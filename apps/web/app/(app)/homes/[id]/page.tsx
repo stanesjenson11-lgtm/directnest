@@ -1,0 +1,288 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense, type ReactNode } from "react";
+import { ContactOwner } from "@/components/listing/contact-owner";
+import { Gallery } from "@/components/listing/gallery";
+import { LocationMap } from "@/components/listing/location-map";
+import { ListingTile } from "@/components/search/listing-tile";
+import { ShortlistButton } from "@/components/shortlist";
+import { bhkLabel, daysAgo, distance, inr, inrShort, sqft } from "@/lib/format";
+import { getListing, listingIds, SAMPLE_DATA, similarListings, toCard } from "@/lib/listings";
+import { nearestMetro } from "@/lib/places";
+import type { Listing } from "@/lib/search";
+
+export async function generateStaticParams() {
+  return (await listingIds()).map((id) => ({ id }));
+}
+
+export async function generateMetadata({ params }: PageProps<"/homes/[id]">): Promise<Metadata> {
+  const l = await getListing((await params).id);
+  if (!l) return { title: "Home not found | DirectNest" };
+  const price = l.type === "rent" ? `${inr(l.price + l.maintenance)} a month` : inrShort(l.price);
+  return {
+    title: `${l.title} | ${price} | DirectNest`,
+    description: `${l.description} Listed by its owner, no brokerage.`,
+  };
+}
+
+export default function HomePage({ params }: PageProps<"/homes/[id]">) {
+  return (
+    <Suspense fallback={<div className="mx-auto h-[60vh] max-w-[1200px] animate-pulse rounded-xl bg-surface" />}>
+      <Home params={params} />
+    </Suspense>
+  );
+}
+
+const FURNISHING = { full: "Fully furnished", semi: "Semi-furnished", none: "Unfurnished" };
+const KIND = { apartment: "Flat", "independent-house": "Independent house", villa: "Villa" };
+const TENANTS = { family: "Families", bachelors: "Bachelors", company: "Company lease" };
+const floorLabel = (l: Listing) =>
+  l.kind === "apartment" ? `${l.floor === 0 ? "Ground" : l.floor} of ${l.totalFloors}` : `${l.totalFloors} storeys`;
+
+async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
+  const l = await getListing((await params).id);
+  if (!l) notFound();
+  const similar = await similarListings(l);
+  const metro = nearestMetro(l.lat, l.lng);
+  const rent = l.type === "rent";
+  const monthly = l.price + l.maintenance;
+  const first = l.owner.name.split(" ")[0];
+
+  const facts: [string, ReactNode][] = [
+    ["Type", `${bhkLabel(l.bhk)} ${KIND[l.kind].toLowerCase()}`],
+    ["Carpet area", sqft(l.carpetSqft)],
+    ["Furnishing", FURNISHING[l.furnishing]],
+    [l.kind === "apartment" ? "Floor" : "Building", floorLabel(l)],
+    ["Facing", l.facing],
+    ["Age", `${l.ageYears} ${l.ageYears === 1 ? "year" : "years"}`],
+    ["Bathrooms", l.bathrooms],
+    ["Balconies", l.balconies],
+    ["Parking", { none: "None", bike: "Two-wheeler", car: "Car" }[l.parking]],
+    ...(rent
+      ? ([
+          ["Available", l.availableInDays === 0 ? "Now" : `In ${l.availableInDays} days`],
+          ["Owner prefers", l.tenants.length ? l.tenants.map((t) => TENANTS[t]).join(", ") : "Anyone"],
+          ["Pets", l.pets ? "Allowed" : "Not allowed"],
+          ["Food", l.nonVeg ? "No restrictions" : "Vegetarian only"],
+        ] as [string, ReactNode][])
+      : []),
+  ];
+
+  return (
+    <main className="mx-auto max-w-[1200px] px-4 pt-4 pb-32 sm:px-6 lg:pb-20">
+      <nav aria-label="Breadcrumb" className="mb-4 text-[14px] text-muted">
+        <ol className="flex flex-wrap gap-x-2">
+          <li>
+            <Link href={`/search?type=${l.type}`} className="hover:text-ink hover:underline">
+              Bengaluru
+            </Link>
+            <span aria-hidden="true"> ›</span>
+          </li>
+          <li>
+            <Link href={`/search?type=${l.type}&q=${encodeURIComponent(l.locality)}`} className="hover:text-ink hover:underline">
+              {l.locality}
+            </Link>
+            <span aria-hidden="true"> ›</span>
+          </li>
+          <li aria-current="page" className="text-ink">
+            {bhkLabel(l.bhk)} {rent ? "for rent" : "for sale"}
+          </li>
+        </ol>
+      </nav>
+
+      <Gallery photos={l.photos} title={l.title} sample={SAMPLE_DATA} />
+
+      <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0">
+          <header>
+            <h1 className="text-[1.75rem] leading-tight font-semibold text-balance sm:text-[2rem]">{l.title}</h1>
+            <p className="mt-1 text-muted">
+              {l.area}, {l.locality}, Bengaluru
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-2 text-[14px] font-medium">
+              <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner verified</li>
+              <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner confirmed available {daysAgo(l.confirmedDaysAgo)}</li>
+              <li className="rounded-md bg-surface px-2 py-1 text-muted">Listed {daysAgo(l.listedDaysAgo)}</li>
+            </ul>
+          </header>
+
+          <section aria-labelledby="facts" className="mt-10">
+            <h2 id="facts" className="sr-only">
+              Key facts
+            </h2>
+            <dl className="grid grid-cols-2 gap-x-6 sm:grid-cols-3">
+              {facts.map(([k, v]) => (
+                <div key={k} className="border-t border-hairline py-3">
+                  <dt className="text-[13px] text-muted">{k}</dt>
+                  <dd className="mt-0.5 font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section aria-labelledby="cost" className="mt-12">
+            <h2 id="cost" className="text-xl font-semibold">
+              What you&rsquo;ll pay
+            </h2>
+            <p className="mt-1 text-muted">Everything, up front. No brokerage and no hidden charges.</p>
+            <table className="mt-4 w-full max-w-xl text-left tabular-nums">
+              <tbody className="[&_td]:py-2.5 [&_td:last-child]:text-right [&_tr]:border-b [&_tr]:border-hairline">
+                {rent ? (
+                  <>
+                    <tr>
+                      <td>Rent</td>
+                      <td>{inr(l.price)}</td>
+                    </tr>
+                    <tr>
+                      <td>Society maintenance</td>
+                      <td>{l.maintenance ? inr(l.maintenance) : "Included"}</td>
+                    </tr>
+                    <tr className="font-semibold">
+                      <td>Every month</td>
+                      <td>{inr(monthly)}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Security deposit
+                        <span className="block text-[14px] text-muted">
+                          {Math.round(l.deposit / l.price)} months&rsquo; rent, refundable when you move out
+                        </span>
+                      </td>
+                      <td>{inr(l.deposit)}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Brokerage
+                        <span className="block text-[14px] text-muted">A broker usually charges a month&rsquo;s rent, {inr(l.price)}</span>
+                      </td>
+                      <td className="font-semibold text-verified">₹0</td>
+                    </tr>
+                    <tr className="font-semibold">
+                      <td>To move in (deposit + first month)</td>
+                      <td>{inr(l.deposit + monthly)}</td>
+                    </tr>
+                  </>
+                ) : (
+                  <>
+                    <tr className="font-semibold">
+                      <td>Price</td>
+                      <td>{inr(l.price)}</td>
+                    </tr>
+                    <tr>
+                      <td>Price per sq ft (carpet)</td>
+                      <td>{inr(Math.round(l.price / l.carpetSqft))}</td>
+                    </tr>
+                    <tr>
+                      <td>Society maintenance</td>
+                      <td>{l.maintenance ? `${inr(l.maintenance)} /month` : "None"}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Brokerage
+                        <span className="block text-[14px] text-muted">
+                          Brokers usually charge 1–2%, {inrShort(l.price * 0.01)} to {inrShort(l.price * 0.02)}
+                        </span>
+                      </td>
+                      <td className="font-semibold text-verified">₹0</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+            {!rent && <p className="mt-3 max-w-xl text-[14px] text-muted">Stamp duty and registration are paid to the state and aren&rsquo;t included here.</p>}
+          </section>
+
+          <section aria-labelledby="about" className="mt-12">
+            <h2 id="about" className="text-xl font-semibold">
+              About this home
+            </h2>
+            <p className="mt-3 max-w-[68ch]">{l.description}</p>
+          </section>
+
+          <section aria-labelledby="amenities" className="mt-12">
+            <h2 id="amenities" className="text-xl font-semibold">
+              In the building
+            </h2>
+            <ul className="mt-4 grid max-w-xl gap-x-8 gap-y-2 sm:grid-cols-2">
+              {l.amenities.map((a) => (
+                <li key={a} className="flex items-center gap-2.5">
+                  <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-verified" aria-hidden="true">
+                    <path d="m3 8.5 3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="location" className="mt-12">
+            <h2 id="location" className="text-xl font-semibold">
+              Where it is
+            </h2>
+            <p className="mt-1 text-muted">
+              {l.area}, {l.locality}.{" "}
+              {metro.metres < 2500 ? `${distance(metro.metres)} to ${metro.name} metro station.` : "No metro station within 2.5 km."} The exact
+              address is shared once you contact the owner.
+            </p>
+            <div className="mt-4">
+              <LocationMap lat={l.lat} lng={l.lng} />
+            </div>
+          </section>
+        </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 rounded-2xl border border-hairline p-6">
+            <p className="tabular-nums">
+              <span className="text-[1.75rem] leading-none font-semibold">{rent ? inr(monthly) : inrShort(l.price)}</span>
+              {rent && <span className="text-muted"> /month</span>}
+            </p>
+            <p className="mt-1 text-[14px] text-muted tabular-nums">
+              {rent ? `${inr(l.price)} rent + ${l.maintenance ? `${inr(l.maintenance)} maintenance` : "no maintenance"}` : `${sqft(l.carpetSqft)} carpet`}
+              {rent && <span className="block">Deposit {inr(l.deposit)}</span>}
+            </p>
+            <div className="mt-5 grid gap-2">
+              <ContactOwner owner={l.owner.name} />
+            </div>
+            <div className="mt-5 flex items-center gap-3 border-t border-hairline pt-5">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo/10 font-semibold text-indigo">{first[0]}</span>
+              <p className="text-[14px]">
+                <span className="block font-medium">Listed by {l.owner.name}, the owner</span>
+                <span className="text-muted">Ownership checked by our team</span>
+              </p>
+              <ShortlistButton id={l.id} title={l.title} onLight className="ml-auto bg-surface hover:bg-hairline" />
+            </div>
+            <p className="mt-4 text-[13px] text-muted">Your number stays private. Owners never see it unless you call them.</p>
+          </div>
+        </aside>
+      </div>
+
+      {similar.length > 0 && (
+        <section aria-labelledby="similar" className="mt-16 border-t border-hairline pt-10">
+          <h2 id="similar" className="text-xl font-semibold">
+            Similar homes nearby
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {similar.map((s) => (
+              <ListingTile key={s.id} card={toCard(s)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Phones: price and the one action stay in reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-hairline bg-canvas px-4 py-3 lg:hidden">
+        <p className="min-w-0 flex-1 tabular-nums">
+          <span className="block text-[1.125rem] leading-tight font-semibold whitespace-nowrap">
+            {rent ? inr(monthly) : inrShort(l.price)}
+            {rent && <span className="text-[14px] font-normal text-muted"> /month</span>}
+          </span>
+          {rent && <span className="block truncate text-[13px] text-muted">Deposit {inr(l.deposit)}</span>}
+        </p>
+        <div className="shrink-0">
+          <ContactOwner owner={l.owner.name} label="Get owner's number" className="w-auto" />
+        </div>
+      </div>
+    </main>
+  );
+}
