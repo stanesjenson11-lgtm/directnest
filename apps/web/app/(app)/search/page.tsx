@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SearchView } from "@/components/search/search-view";
-import { SAMPLE_DATA, searchListings, toCard } from "@/lib/listings";
+import { searchCards } from "@/lib/listings";
 import { LOCALITIES } from "@/lib/places";
 import { parseSearch } from "@/lib/parse-search";
 
@@ -20,9 +20,9 @@ export default function SearchPage({ searchParams }: PageProps<"/search">) {
 
 async function Results({ searchParams }: Pick<PageProps<"/search">, "searchParams">) {
   const params = parseSearch(await searchParams);
-  const listings = await searchListings(params);
+  const cards = await searchCards(params);
   const centre = params.q ? Object.entries(LOCALITIES).find(([n]) => n.toLowerCase() === params.q!.toLowerCase())?.[1] : undefined;
-  return <SearchView params={params} cards={listings.map(toCard)} centre={centre} sample={SAMPLE_DATA} />;
+  return <SearchView params={params} cards={cards} centre={centre} sample={cards.some((c) => c.sample)} />;
 }
 
 function SearchSkeleton() {

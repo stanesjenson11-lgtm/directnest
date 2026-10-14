@@ -8,16 +8,25 @@ import { LocationMap } from "@/components/listing/location-map";
 import { ListingTile } from "@/components/search/listing-tile";
 import { ShortlistButton } from "@/components/shortlist";
 import { bhkLabel, daysAgo, distance, inr, inrShort, sqft } from "@/lib/format";
-import { getListing, listingIds, SAMPLE_DATA, similarListings, toCard } from "@/lib/listings";
+import { cacheLife, cacheTag } from "next/cache";
+import { getListing, listingIds, similarListings } from "@/lib/listings";
 import { nearestMetro } from "@/lib/places";
 import type { Listing } from "@/lib/search";
+
+// Cached for an hour; approving, editing or confirming a listing calls revalidateTag(`listing:${id}`).
+async function cachedListing(id: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`listing:${id}`);
+  return getListing(id);
+}
 
 export async function generateStaticParams() {
   return (await listingIds()).map((id) => ({ id }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/homes/[id]">): Promise<Metadata> {
-  const l = await getListing((await params).id);
+  const l = await cachedListing((await params).id);
   if (!l) return { title: "Home not found | DirectNest" };
   const price = l.type === "rent" ? `${inr(l.price + l.maintenance)} a month` : inrShort(l.price);
   return {
@@ -41,7 +50,7 @@ const floorLabel = (l: Listing) =>
   l.kind === "apartment" ? `${l.floor === 0 ? "Ground" : l.floor} of ${l.totalFloors}` : `${l.totalFloors} storeys`;
 
 async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
-  const l = await getListing((await params).id);
+  const l = await cachedListing((await params).id);
   if (!l) notFound();
   const similar = await similarListings(l);
   const metro = nearestMetro(l.lat, l.lng);
@@ -91,7 +100,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
         </ol>
       </nav>
 
-      <Gallery photos={l.photos} title={l.title} sample={SAMPLE_DATA} />
+      <Gallery photos={l.photos} title={l.title} sample={l.sample} />
 
       <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
@@ -104,6 +113,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
               <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner verified</li>
               <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner confirmed available {daysAgo(l.confirmedDaysAgo)}</li>
               <li className="rounded-md bg-surface px-2 py-1 text-muted">Listed {daysAgo(l.listedDaysAgo)}</li>
+              {l.sample && <li className="rounded-md bg-surface px-2 py-1 text-muted">Sample listing for the demo</li>}
             </ul>
           </header>
 
@@ -264,7 +274,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
           </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {similar.map((s) => (
-              <ListingTile key={s.id} card={toCard(s)} />
+              <ListingTile key={s.id} card={s} />
             ))}
           </div>
         </section>

@@ -75,7 +75,7 @@ export function SearchView({
               </h1>
               <p className="mt-1 text-[14px] text-muted" aria-live="polite">
                 {cards.length === 1 ? "1 home" : `${cards.length} homes`}, every one listed by its owner
-                {sample && <span className="block">Sample listings while the database is being connected.</span>}
+                {sample && <span className="block">Includes sample listings for the demo.</span>}
               </p>
             </div>
             <label className="flex items-center gap-2 text-[14px] text-muted">
