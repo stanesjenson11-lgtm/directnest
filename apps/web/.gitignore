@@ -42,3 +42,7 @@ next-env.d.ts
 
 # copied from maplibre-gl by scripts/copy-map-worker.mjs
 /public/maplibre-gl-worker.mjs
+!.env.example
+
+# local dev database (scripts/db.mjs) and uploads
+/.data/
