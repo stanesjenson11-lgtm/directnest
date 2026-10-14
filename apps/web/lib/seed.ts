@@ -1,6 +1,6 @@
-// Sample listings for the preview build. The database replaces this file; nothing else imports it but lib/listings.ts.
-import { LOCALITIES } from "./places";
-import type { Listing, Photo, PropertyKind, Room } from "./search";
+// Sample listings for development and demos, loaded into Postgres by scripts/seed-db.ts.
+import { LOCALITIES } from "./places.ts";
+import type { Listing, Photo, PropertyKind, Room } from "./search.ts";
 
 const u = (id: string) => `https://images.unsplash.com/photo-${id}?fit=crop&ar=4:3`;
 const pool = (room: Room, rows: [string, string][]): Photo[] => rows.map(([id, credit]) => ({ src: u(id), room, credit }));
@@ -165,5 +165,6 @@ export const SEED: Listing[] = SPECS.map((s, i) => {
     owner: { name: s.who, verified: true },
     listedDaysAgo: s.listedDaysAgo,
     confirmedDaysAgo: s.confirmedDaysAgo,
+    sample: true,
   };
 });

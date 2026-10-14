@@ -1,4 +1,4 @@
-import { haversine } from "./search";
+import { haversine } from "./search.ts";
 
 export const BENGALURU: [number, number] = [12.9716, 77.5946];
 

@@ -2,6 +2,7 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "predev": "node scripts/copy-map-worker.mjs",
     "dev": "next dev",
