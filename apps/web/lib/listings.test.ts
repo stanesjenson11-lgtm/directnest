@@ -15,17 +15,19 @@ after(() => pool.end());
 const search = (raw: Record<string, string>) => searchCards(parseSearch(raw));
 const monthly = (c: Pick<Card, "type" | "price" | "maintenance">) => (c.type === "rent" ? c.price + c.maintenance : c.price);
 const seedCount = (f: (l: (typeof SEED)[number]) => boolean) => SEED.filter(f).length;
+// Real listings can exist alongside the samples, so exact counts compare the sample results only.
+const samples = (cards: Card[]) => cards.filter((c) => c.sample).length;
 
 test("rent by default; buy returns only sales", async () => {
   const rent = await search({});
-  assert.equal(rent.length, seedCount((l) => l.type === "rent"));
-  assert.equal((await search({ type: "buy" })).length, seedCount((l) => l.type === "buy"));
+  assert.equal(samples(rent), seedCount((l) => l.type === "rent"));
+  assert.equal(samples(await search({ type: "buy" })), seedCount((l) => l.type === "buy"));
 });
 
 test("budget counts rent + maintenance; 4 BHK means 4 or more", async () => {
   const capped = await search({ max: "30000" });
   assert.ok(capped.every((c) => monthly(c) <= 30000));
-  assert.equal(capped.length, seedCount((l) => l.type === "rent" && l.price + l.maintenance <= 30000));
+  assert.equal(samples(capped), seedCount((l) => l.type === "rent" && l.price + l.maintenance <= 30000));
   const big = await search({ type: "buy", bhk: "4" });
   assert.ok(big.length > 0 && big.every((c) => c.bhk >= 4));
 });
@@ -46,7 +48,7 @@ test("map box and drawn area", async () => {
 
 test("filters combine and sorting holds", async () => {
   const pets = await search({ pets: "1", bhk: "2,3" });
-  assert.equal(pets.length, seedCount((l) => l.type === "rent" && l.pets && (l.bhk === 2 || l.bhk === 3)));
+  assert.equal(samples(pets), seedCount((l) => l.type === "rent" && l.pets && (l.bhk === 2 || l.bhk === 3)));
   const cheapest = (await search({ sort: "price-asc" })).map(monthly);
   assert.deepEqual(cheapest, [...cheapest].sort((a, b) => a - b));
 });
