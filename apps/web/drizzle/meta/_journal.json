@@ -8,6 +8,13 @@
       "when": 1792000108697,
       "tag": "0000_thankful_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792037296116,
+      "tag": "0001_omniscient_richard_fisk",
+      "breakpoints": true
     }
   ]
 }

@@ -51,6 +51,10 @@ export const listings = pgTable(
     amenities: text().array().notNull().default(sql`'{}'::text[]`),
     description: text().notNull(),
     ownerVerified: boolean().notNull().default(false),
+    proofKey: text(), // private upload; deleted 30 days after review
+    riskFlags: text().array().notNull().default(sql`'{}'::text[]`), // e.g. duplicate-photos, for the review queue
+    rejectReason: text(),
+    reviewedAt: timestamp({ withTimezone: true }),
     createdAt: now(),
     confirmedAt: now(), // owner last said "still available"
     expiresAt: timestamp({ withTimezone: true })
@@ -75,9 +79,24 @@ export const listingPhotos = pgTable(
     src: text().notNull(), // absolute URL (stock) or storage key (uploads)
     room: room().notNull(),
     credit: text(),
+    dhash: bigint({ mode: "bigint" }), // 64-bit difference hash; near-equal hashes across owners flag reused photos
   },
   (t) => [index("listing_photos_listing_idx").on(t.listingId, t.position)],
 );
+
+export const uploadKind = pgEnum("upload_kind", ["photo", "proof"]);
+
+/** Every file someone uploaded. The post action only accepts keys found here for the same owner. */
+export const uploads = pgTable("uploads", {
+  key: text().primaryKey(),
+  ownerId: text()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  kind: uploadKind().notNull(),
+  dhash: bigint({ mode: "bigint" }),
+  ext: text().notNull(), // proof files keep their type (pdf, jpg)
+  createdAt: now(),
+});
 
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
