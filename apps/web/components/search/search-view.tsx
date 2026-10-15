@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { bhkLabel, inr, inrShort } from "@/lib/format";
+import imageLoader from "@/lib/image-loader";
 import type { Card } from "@/lib/listings";
 import { SORTS, toQuery, type SearchParams } from "@/lib/search";
 import { FilterBar } from "./filter-bar";
@@ -191,7 +192,7 @@ export function SearchView({
               className="absolute inset-x-3 bottom-20 flex gap-3 rounded-xl bg-canvas p-2 shadow-[0_12px_32px_-12px_oklch(0.22_0.025_266/0.5)] lg:hidden"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- tiny thumbnail; next/image adds nothing here */}
-              <img src={`${selected.photos[0]}&w=200&q=60&auto=format`} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-lg object-cover" />
+              <img src={imageLoader({ src: selected.photos[0], width: 240 })} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-lg object-cover" />
               <span className="min-w-0 py-1 text-[14px]">
                 <span className="block text-[17px] font-semibold tabular-nums">
                   {selected.type === "rent" ? `${inr(selected.price + selected.maintenance)} /month` : inrShort(selected.price)}

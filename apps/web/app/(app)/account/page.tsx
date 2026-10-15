@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { daysAgo, inr, inrShort } from "@/lib/format";
+import imageLoader from "@/lib/image-loader";
 import { ownerListings } from "@/lib/listings";
 import { requireUser } from "@/lib/session";
 import { confirmAvailable, markRented } from "./actions";
@@ -69,7 +70,7 @@ async function Account() {
               return (
                 <li key={h.id} className="flex flex-wrap gap-4 border-t border-hairline py-5">
                   {/* eslint-disable-next-line @next/next/no-img-element -- small thumbnail from the listing's own photos */}
-                  {h.cover ? <img src={`${h.cover}${h.cover.includes("?") ? "&" : "?"}w=240&q=60`} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-lg object-cover" /> : <span className="aspect-[4/3] w-28 shrink-0 rounded-lg bg-surface" />}
+                  {h.cover ? <img src={imageLoader({ src: h.cover, width: 240 })} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-lg object-cover" /> : <span className="aspect-[4/3] w-28 shrink-0 rounded-lg bg-surface" />}
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2">
                       <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${tone}`}>{label}</span>
