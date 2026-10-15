@@ -18,15 +18,20 @@ export const auth = betterAuth({
   socialProviders: process.env.GOOGLE_CLIENT_ID
     ? { google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET! } }
     : undefined,
-  // SMS costs money and invites abuse: 3 codes per number per 10 minutes, counted in Postgres.
+  // SMS costs money and invites abuse. Limits are per client IP, counted in Postgres; 5 sends leaves room for
+  // carrier-grade NAT, where many Jio/Airtel users share one IP.
+  // ponytail: per-number throttling arrives with Cloudflare Turnstile on the send step (week 1 security task).
   rateLimit: {
     enabled: true,
     storage: "database",
     customRules: {
-      "/phone-number/send-otp": { window: 600, max: 3 },
+      "/phone-number/send-otp": { window: 600, max: 5 },
       "/phone-number/verify": { window: 600, max: 10 },
     },
   },
+  // Behind Cloudflare and Caddy the socket IP is the proxy's; without this every visitor would share one limit.
+  // Only trust these once the VPS firewall accepts web traffic from Cloudflare alone.
+  advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] } },
   plugins: [
     phoneNumber({
       phoneNumberValidator: (n) => INDIAN_MOBILE.test(n),
