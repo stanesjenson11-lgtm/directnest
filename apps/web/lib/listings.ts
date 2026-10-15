@@ -136,6 +136,25 @@ export async function ownerListings(ownerId: string) {
     .orderBy(desc(listings.createdAt));
 }
 
+/** Whether any of these photo hashes is within `maxBits` of a photo on someone else's listing. */
+export async function photosUsedElsewhere(hashes: bigint[], ownerId: string, maxBits: number) {
+  if (!hashes.length) return false;
+  const [row] = await db
+    .select({ id: listingPhotos.id })
+    .from(listingPhotos)
+    .innerJoin(listings, eq(listingPhotos.listingId, listings.id))
+    .where(
+      and(
+        ne(listings.ownerId, ownerId),
+        // One array literal parameter; drizzle would expand a JS array into a list of separate parameters.
+        sql`exists (select 1 from unnest(${`{${hashes.join(",")}}`}::bigint[]) h
+              where bit_count((${listingPhotos.dhash} # h)::bit(64)) <= ${maxBits})`,
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
 export async function listingIds() {
   const rows = await db.select({ id: listings.id }).from(listings).where(eq(listings.status, "active"));
   return rows.map((r) => r.id);

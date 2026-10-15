@@ -5,6 +5,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Reac
 import { submitListing, type PostState } from "@/app/(app)/post/actions";
 import { inr } from "@/lib/format";
 import { LOCALITIES } from "@/lib/places";
+import { PinMap } from "./pin-map";
 
 const AMENITIES = ["Lift", "Power backup", "24×7 security", "Gym", "Swimming pool", "Club house", "Children's play area", "Gas pipeline", "Intercom", "CCTV", "Visitor parking", "Rainwater harvesting"];
 const SECTIONS = [
@@ -16,11 +17,33 @@ const SECTIONS = [
   ["proof", "Proof of ownership"],
   ["you", "Your details"],
 ] as const;
+const ROOMS = [
+  ["living", "Living room"],
+  ["bedroom", "Bedroom"],
+  ["kitchen", "Kitchen"],
+  ["bathroom", "Bathroom"],
+  ["balcony", "Balcony or view"],
+  ["exterior", "Building"],
+] as const;
+type Room = (typeof ROOMS)[number][0];
+const GUESS: Room[] = ["living", "bedroom", "bedroom", "kitchen", "bathroom", "balcony", "exterior"];
 
 const input =
   "h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-ink placeholder:text-muted focus-visible:border-indigo focus-visible:outline-none aria-[invalid=true]:border-danger";
 const choice =
   "flex cursor-pointer items-center justify-center rounded-lg border border-hairline px-4 py-2.5 text-[15px] font-medium transition-colors duration-150 has-checked:border-indigo has-checked:bg-indigo/8 has-checked:text-indigo has-focus-visible:outline-2 has-focus-visible:outline-indigo";
+
+type Upload = { id: string; name: string; preview?: string; status: "uploading" | "ready" | "error"; key?: string; error?: string };
+
+async function upload(file: File, kind: "photo" | "proof"): Promise<string> {
+  const body = new FormData();
+  body.set("kind", kind);
+  body.set("file", file);
+  const res = await fetch("/api/uploads", { method: "POST", body });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? "Upload failed. Check your connection and try again.");
+  return json.key;
+}
 
 function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactNode }) {
   return (
@@ -62,22 +85,57 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
   );
 }
 
-export function PostForm({ sample }: { sample: boolean }) {
+export function PostForm({ name, phone }: { name: string; phone: string | null }) {
   const [state, action, pending] = useActionState<PostState, FormData>(submitListing, { status: "idle" });
   const [type, setType] = useState<"rent" | "buy">("rent");
   const [price, setPrice] = useState(0);
   const [maintenance, setMaintenance] = useState(0);
-  const [photos, setPhotos] = useState<{ url: string; name: string }[]>([]);
-  const [proof, setProof] = useState<string | null>(null);
+  const [locality, setLocality] = useState("");
+  const [pin, setPin] = useState<[number, number] | null>(null);
+  const [photos, setPhotos] = useState<(Upload & { room: Room })[]>([]);
+  const [proof, setProof] = useState<Upload | null>(null);
   const summary = useRef<HTMLDivElement>(null);
   const e = state.status === "error" ? state.errors : {};
+  const uploading = photos.some((p) => p.status === "uploading") || proof?.status === "uploading";
+  const centre = LOCALITIES[Object.keys(LOCALITIES).find((l) => l.toLowerCase() === locality.trim().toLowerCase()) ?? ""];
 
   useEffect(() => {
     if (state.status !== "idle") summary.current?.focus();
   }, [state]);
   // Free blob previews when the form goes away; removals free their own.
-  const urls = useRef<string[]>([]);
-  useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
+  const previews = useRef<string[]>([]);
+  useEffect(() => () => previews.current.forEach((u) => URL.revokeObjectURL(u)), []);
+
+  const patchPhoto = (id: string, patch: Partial<Upload & { room: Room }>) => setPhotos((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  async function addPhotos(files: File[]) {
+    const added = files.slice(0, 20 - photos.length).map((file, i) => {
+      const preview = URL.createObjectURL(file);
+      previews.current.push(preview);
+      const photo = { id: crypto.randomUUID(), name: file.name, preview, status: "uploading" as const, room: GUESS[photos.length + i] ?? ("living" as Room) };
+      return { file, photo };
+    });
+    setPhotos((ps) => [...ps, ...added.map((a) => a.photo)]);
+    // One at a time: kinder to a phone on 4G and to a 1-vCPU server.
+    for (const { file, photo } of added) {
+      try {
+        patchPhoto(photo.id, { status: "ready", key: await upload(file, "photo") });
+      } catch (err) {
+        patchPhoto(photo.id, { status: "error", error: (err as Error).message });
+      }
+    }
+  }
+
+  async function addProof(file: File) {
+    const id = crypto.randomUUID();
+    setProof({ id, name: file.name, status: "uploading" });
+    try {
+      const key = await upload(file, "proof");
+      setProof({ id, name: file.name, status: "ready", key });
+    } catch (err) {
+      setProof({ id, name: file.name, status: "error", error: (err as Error).message });
+    }
+  }
 
   if (state.status === "done") {
     return (
@@ -88,13 +146,15 @@ export function PostForm({ sample }: { sample: boolean }) {
           </svg>
         </p>
         <h1 className="mt-5 text-[1.75rem] font-semibold">Thanks, {state.name}. Your home is in the review queue.</h1>
-        <p className="mt-3 text-muted">
-          Someone on our team checks the photos, the details and your ownership proof, usually within a day. We&rsquo;ll email you when it&rsquo;s live.
-        </p>
-        {sample && <p className="mt-4 rounded-lg bg-surface p-3 text-[14px]">This is a preview build: listings aren&rsquo;t saved until the database is connected.</p>}
-        <Link href="/search" className="mt-8 inline-flex h-12 items-center rounded-full bg-indigo px-6 font-semibold text-canvas hover:bg-indigo-deep">
-          See homes like yours
-        </Link>
+        <p className="mt-3 text-muted">Someone on our team checks the photos, the details and your ownership proof, usually within a day. You can follow it from your account.</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/account" className="inline-flex h-12 items-center rounded-full bg-indigo px-6 font-semibold text-canvas hover:bg-indigo-deep">
+            Go to your account
+          </Link>
+          <Link href="/search" className="inline-flex h-12 items-center rounded-full border border-hairline px-6 font-semibold hover:border-muted">
+            See homes like yours
+          </Link>
+        </div>
       </div>
     );
   }
@@ -119,7 +179,6 @@ export function PostForm({ sample }: { sample: boolean }) {
       </nav>
 
       <form
-        noValidate={false}
         onSubmit={(ev) => {
           ev.preventDefault();
           const data = new FormData(ev.currentTarget);
@@ -184,12 +243,25 @@ export function PostForm({ sample }: { sample: boolean }) {
             </Field>
           </div>
           <Choices name="furnishing" legend="Furnishing" defaultValue="semi" options={[["full", "Furnished"], ["semi", "Semi-furnished"], ["none", "Unfurnished"]]} />
+          <Field label="About the home" hint="What a tenant would want to know: light, water supply, the neighbours, what's nearby." error={e.description}>
+            <textarea name="description" required minLength={40} maxLength={1500} rows={4} className={`${input} h-auto py-2`} aria-invalid={!!e.description} />
+          </Field>
         </Section>
 
-        <Section id="where" title="Location" intro="Tenants see the locality and an approximate area. The full address is only shared with people who contact you.">
+        <Section id="where" title="Location" intro="Tenants see the locality and an approximate spot on the map. The full address is only shared with people who contact you.">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Locality" error={e.locality}>
-              <input name="locality" list="post-localities" required autoComplete="off" placeholder="e.g. HSR Layout" className={input} aria-invalid={!!e.locality} />
+              <input
+                name="locality"
+                list="post-localities"
+                required
+                autoComplete="off"
+                placeholder="e.g. HSR Layout"
+                value={locality}
+                onChange={(ev) => setLocality(ev.target.value)}
+                className={input}
+                aria-invalid={!!e.locality}
+              />
               <datalist id="post-localities">
                 {Object.keys(LOCALITIES).map((l) => (
                   <option key={l} value={l} />
@@ -203,6 +275,16 @@ export function PostForm({ sample }: { sample: boolean }) {
           <Field label="Full address" hint="Private. Never shown on the listing." error={e.address}>
             <textarea name="address" required rows={3} className={`${input} h-auto py-2`} aria-invalid={!!e.address} />
           </Field>
+          <div>
+            <p className="text-[14px] font-medium">Where is the building?</p>
+            <p className="mt-0.5 mb-2 text-[14px] text-muted">
+              {pin ? "Pin placed. Drag it to adjust." : centre ? "Tap the map on your building, or we'll use the centre of " + locality.trim() + "." : "Tap the map on your building."}
+            </p>
+            <PinMap pin={pin} onPin={setPin} centre={centre} />
+            {e.lat && <p className="mt-1.5 text-[14px] text-danger">{e.lat}</p>}
+            <input type="hidden" name="lat" value={pin?.[0] ?? ""} />
+            <input type="hidden" name="lng" value={pin?.[1] ?? ""} />
+          </div>
         </Section>
 
         <Section id="money" title="Price and terms" intro="Tenants see rent and maintenance as one monthly number, so they know exactly what they'll pay.">
@@ -256,45 +338,67 @@ export function PostForm({ sample }: { sample: boolean }) {
         </Section>
 
         <Section id="photos" title="Photos" intro="At least 4: the living room, each bedroom, the kitchen and a bathroom. We remove location data from every photo before it's stored.">
-          <input type="hidden" name="photoCount" value={photos.length} />
           <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-hairline px-6 py-10 text-center hover:border-indigo has-focus-visible:border-indigo">
             <span className="font-semibold text-indigo">Add photos</span>
             <span className="text-[14px] text-muted">JPG or PNG from your phone or computer, up to 20</span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               className="sr-only"
               onChange={(ev) => {
-                const files = [...(ev.target.files ?? [])].slice(0, 20 - photos.length);
-                const added = files.map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
-                urls.current.push(...added.map((a) => a.url));
-                setPhotos((p) => [...p, ...added]);
+                addPhotos([...(ev.target.files ?? [])]);
                 ev.target.value = "";
               }}
             />
           </label>
-          {e.photoCount && <p className="text-[14px] text-danger">{e.photoCount}</p>}
+          {e.photoKeys && <p className="text-[14px] text-danger">{e.photoKeys}</p>}
           {photos.length > 0 && (
-            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {photos.map((p, i) => (
-                <li key={p.url} className="relative aspect-[4/3] overflow-hidden rounded-lg bg-surface">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
-                  <img src={p.url} alt={`Photo ${i + 1}: ${p.name}`} className="h-full w-full object-cover" />
-                  {i === 0 && <span className="absolute bottom-1.5 left-1.5 rounded bg-ink/75 px-1.5 py-0.5 text-[12px] font-medium text-canvas">Cover</span>}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      URL.revokeObjectURL(p.url);
-                      setPhotos((ps) => ps.filter((x) => x.url !== p.url));
-                    }}
-                    aria-label={`Remove photo ${i + 1}`}
-                    className="absolute top-1.5 right-1.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full bg-canvas/90 text-ink"
-                  >
-                    <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
-                      <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                  </button>
+                <li key={p.id}>
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-surface">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the chosen file */}
+                    <img src={p.preview} alt={`Photo ${i + 1}: ${p.name}`} className={`h-full w-full object-cover ${p.status === "ready" ? "" : "opacity-60"}`} />
+                    <span className="absolute bottom-1.5 left-1.5 rounded bg-ink/75 px-1.5 py-0.5 text-[12px] font-medium text-canvas" aria-live="polite">
+                      {p.status === "uploading" ? "Uploading…" : p.status === "error" ? "Failed" : i === 0 ? "Cover" : "Ready"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (p.preview) URL.revokeObjectURL(p.preview);
+                        setPhotos((ps) => ps.filter((x) => x.id !== p.id));
+                      }}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute top-1.5 right-1.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full bg-canvas/90 text-ink"
+                    >
+                      <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
+                        <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  {p.status === "error" ? (
+                    <p className="mt-1 text-[13px] text-danger">{p.error}</p>
+                  ) : (
+                    <select
+                      aria-label={`Room in photo ${i + 1}`}
+                      value={p.room}
+                      onChange={(ev) => patchPhoto(p.id, { room: ev.target.value as Room })}
+                      className="mt-1.5 h-9 w-full rounded-lg border border-hairline bg-canvas px-2 text-[14px]"
+                    >
+                      {ROOMS.map(([v, l]) => (
+                        <option key={v} value={v}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {p.status === "ready" && (
+                    <>
+                      <input type="hidden" name="photoKey" value={p.key} />
+                      <input type="hidden" name="photoRoom" value={p.room} />
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -302,54 +406,40 @@ export function PostForm({ sample }: { sample: boolean }) {
         </Section>
 
         <Section id="proof" title="Proof of ownership" intro="An electricity bill or property tax receipt in your name, or a family member's. Only our review team sees it, and we delete it 30 days after we decide.">
-          <input type="hidden" name="hasProof" value={proof ? "1" : ""} />
           <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-hairline p-4 hover:border-indigo has-focus-visible:border-indigo">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface text-indigo">
               <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden="true">
                 <path d="M5 2h7l4 4v12H5z M12 2v4h4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
               </svg>
             </span>
-            <span className="min-w-0">
-              <span className="block font-semibold">{proof ?? "Upload a bill or tax receipt"}</span>
-              <span className="text-[14px] text-muted">PDF, JPG or PNG</span>
+            <span className="min-w-0" aria-live="polite">
+              <span className="block truncate font-semibold">{proof?.name ?? "Upload a bill or tax receipt"}</span>
+              <span className={`text-[14px] ${proof?.status === "error" ? "text-danger" : "text-muted"}`}>
+                {proof?.status === "uploading" ? "Uploading…" : proof?.status === "ready" ? "Uploaded. Tap to replace." : proof?.error ?? "PDF, JPG or PNG"}
+              </span>
             </span>
-            <input type="file" accept="application/pdf,image/*" className="sr-only" onChange={(ev) => setProof(ev.target.files?.[0]?.name ?? null)} />
+            <input type="file" accept="application/pdf,image/jpeg,image/png" className="sr-only" onChange={(ev) => ev.target.files?.[0] && addProof(ev.target.files[0])} />
           </label>
-          {e.hasProof && <p className="text-[14px] text-danger">{e.hasProof}</p>}
+          <input type="hidden" name="proofKey" value={proof?.status === "ready" ? proof.key : ""} />
+          {e.proofKey && <p className="text-[14px] text-danger">{e.proofKey}</p>}
         </Section>
 
-        <Section id="you" title="Your details" intro="Your number is shown only to tenants on a paid plan, a few a day at most. Brokers who slip through get reported and removed.">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Your name" error={e.ownerName}>
-              <input name="ownerName" required autoComplete="name" className={input} aria-invalid={!!e.ownerName} />
-            </Field>
-            <Field label="Mobile number" error={e.ownerPhone}>
-              <span className="flex h-11 items-center rounded-lg border border-hairline focus-within:border-indigo">
-                <span className="px-3 text-muted tabular-nums">+91</span>
-                <input
-                  name="ownerPhone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  required
-                  pattern="[6-9][0-9]{9}"
-                  maxLength={10}
-                  title="A 10-digit Indian mobile number"
-                  className="h-full min-w-0 flex-1 bg-transparent pr-3 tabular-nums focus-visible:outline-none"
-                  aria-invalid={!!e.ownerPhone}
-                />
-              </span>
-            </Field>
-          </div>
+        <Section id="you" title="Your details">
+          <Field label="Your name" error={e.ownerName}>
+            <input name="ownerName" required autoComplete="name" defaultValue={name} className={`${input} sm:max-w-sm`} aria-invalid={!!e.ownerName} />
+          </Field>
+          <p className="max-w-[60ch] text-[15px] text-muted">
+            Tenants on a paid plan will see your verified number{phone && <span className="tabular-nums text-ink"> {phone}</span>}, a few a day at most. We never show it to anyone else.
+          </p>
         </Section>
 
         <div className="flex flex-wrap items-center gap-4 border-t border-hairline pt-8">
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || uploading}
             className="h-12 cursor-pointer rounded-full bg-indigo px-8 font-semibold text-canvas transition-[background-color,transform] duration-150 hover:bg-indigo-deep active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
-            {pending ? "Sending…" : "Send for review"}
+            {pending ? "Sending…" : uploading ? "Waiting for uploads…" : "Send for review"}
           </button>
           <p className="text-[14px] text-muted">Free. A person reviews every listing before it goes live.</p>
         </div>

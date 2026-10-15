@@ -1,8 +1,10 @@
 // Runs against the dev database: pnpm db:start && pnpm db:migrate && pnpm db:seed, then pnpm test.
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { pool } from "./db.ts";
-import { searchCards, type Card } from "./listings.ts";
+import { eq } from "drizzle-orm";
+import { db, pool } from "./db.ts";
+import { photosUsedElsewhere, searchCards, type Card } from "./listings.ts";
+import { listingPhotos, listings, user } from "./schema.ts";
 import { parseSearch } from "./parse-search.ts";
 import { LOCALITIES } from "./places.ts";
 import { haversine } from "./search.ts";
@@ -47,6 +49,27 @@ test("filters combine and sorting holds", async () => {
   assert.equal(pets.length, seedCount((l) => l.type === "rent" && l.pets && (l.bhk === 2 || l.bhk === 3)));
   const cheapest = (await search({ sort: "price-asc" })).map(monthly);
   assert.deepEqual(cheapest, [...cheapest].sort((a, b) => a - b));
+});
+
+test("a photo reused by another owner is caught, even slightly altered", async () => {
+  const owner = `test-owner-${Date.now()}`;
+  const hash = -0x1234_5678_9abc_def0n;
+  await db.insert(user).values({ id: owner, name: "Test", email: `${owner}@test.invalid` });
+  try {
+    await db.insert(listings).values({
+      id: owner, ownerId: owner, type: "rent", kind: "apartment", bhk: 1, title: "t", locality: "x", area: "x",
+      addressPrivate: "x", location: { x: 77.6, y: 12.9 }, price: 1, carpetSqft: 500, floor: 1, totalFloors: 2,
+      furnishing: "none", facing: "East", ageYears: 1, pets: false, nonVeg: true, parking: "none", bathrooms: 1,
+      balconies: 1, description: "x",
+    });
+    await db.insert(listingPhotos).values({ listingId: owner, position: 0, src: "x", room: "living", dhash: hash });
+    const altered = hash ^ 0b101n; // two bits off
+    assert.equal(await photosUsedElsewhere([altered], "someone-else", 6), true);
+    assert.equal(await photosUsedElsewhere([altered], owner, 6), false, "owners may reuse their own photos");
+    assert.equal(await photosUsedElsewhere([~hash], "someone-else", 6), false);
+  } finally {
+    await db.delete(user).where(eq(user.id, owner)); // cascades to the listing and photo
+  }
 });
 
 test("results never carry the private address", async () => {
