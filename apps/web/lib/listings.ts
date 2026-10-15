@@ -117,6 +117,25 @@ export async function getListing(id: string): Promise<Listing | undefined> {
   };
 }
 
+/** Everything an owner sees on their dashboard, any status. */
+export async function ownerListings(ownerId: string) {
+  return db
+    .select({
+      id: listings.id,
+      title: listings.title,
+      status: listings.status,
+      type: listings.type,
+      price: listings.price,
+      maintenance: listings.maintenance,
+      confirmedDaysAgo: daysSince(listings.confirmedAt),
+      expiresInDays: sql<number>`(${listings.expiresAt}::date - current_date)`.mapWith(Number),
+      cover: sql<string | null>`(select p.src from ${listingPhotos} p where p.listing_id = listings.id order by p.position limit 1)`,
+    })
+    .from(listings)
+    .where(eq(listings.ownerId, ownerId))
+    .orderBy(desc(listings.createdAt));
+}
+
 export async function listingIds() {
   const rows = await db.select({ id: listings.id }).from(listings).where(eq(listings.status, "active"));
   return rows.map((r) => r.id);

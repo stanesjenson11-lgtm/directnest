@@ -13,7 +13,7 @@ import { getListing, listingIds, similarListings } from "@/lib/listings";
 import { nearestMetro } from "@/lib/places";
 import type { Listing } from "@/lib/search";
 
-// Cached for an hour; approving, editing or confirming a listing calls revalidateTag(`listing:${id}`).
+// Cached for an hour; approving, editing or confirming a listing calls updateTag(`listing:${id}`).
 async function cachedListing(id: string) {
   "use cache";
   cacheLife("hours");
