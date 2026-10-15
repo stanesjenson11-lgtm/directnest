@@ -1,13 +1,15 @@
-// Local dev Postgres: a private cluster in .data/pg on port 5440, trusting local connections only.
+// Local dev Postgres: a private cluster on port 5440, trusting local connections only.
 // Uses an installed PostgreSQL's binaries (PG_BIN) and touches no system service or global config.
 //   node scripts/db.mjs start | stop | status
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
-const data = join(root, ".data", "pg");
+// Kept outside the repo on purpose: Postgres writes constantly, and inside the project the dev server's
+// file watcher would rebuild (and reload the browser) on every write.
+const root = process.env.PG_DATA ?? join(process.env.LOCALAPPDATA ?? join(homedir(), ".local", "share"), "directnest");
+const data = join(root, "pg");
 const port = process.env.PG_PORT ?? "5440";
 const bin = process.env.PG_BIN ?? (process.platform === "win32" ? "C:\\Program Files\\PostgreSQL\\16\\bin" : "");
 const exe = (name) => (bin ? join(bin, name) : name);
@@ -28,7 +30,7 @@ if (cmd === "start") {
   }
   if (run("pg_ctl", ["-D", data, "status"], { allowFail: true }).status !== 0) {
     // listen_addresses=localhost keeps it off the network; -w waits until it accepts connections.
-    run("pg_ctl", ["-D", data, "-l", join(root, ".data", "pg.log"), "-o", `-p ${port} -c listen_addresses=localhost`, "-w", "start"], { stdio: "ignore" });
+    run("pg_ctl", ["-D", data, "-l", join(root, "pg.log"), "-o", `-p ${port} -c listen_addresses=localhost`, "-w", "start"], { stdio: "ignore" });
   }
   const exists = run("psql", ["-h", "localhost", "-p", port, "-U", "postgres", "-tAc", "SELECT 1 FROM pg_database WHERE datname = 'directnest'"]);
   if (!exists.stdout.includes("1")) run("createdb", ["-h", "localhost", "-p", port, "-U", "postgres", "directnest"]);
