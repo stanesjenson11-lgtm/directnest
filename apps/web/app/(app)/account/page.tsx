@@ -64,7 +64,9 @@ async function Account() {
           </div>
         ) : (
           <ul className="mt-4">
-            {homes.map((h) => {
+            {homes.map((home) => {
+              // Past its 30 days without a confirmation, a listing is already hidden from search.
+              const h = { ...home, status: home.status === "active" && home.expiresInDays < 0 ? ("expired" as const) : home.status };
               const [status, tone] = STATUS[h.status];
               const label = h.status === "rented" && h.type === "buy" ? "Sold" : status;
               return (

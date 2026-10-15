@@ -74,6 +74,25 @@ test("a photo reused by another owner is caught, even slightly altered", async (
   }
 });
 
+test("a listing past its 30 days drops out of search until the owner confirms it", async () => {
+  const owner = `test-expiry-${Date.now()}`;
+  await db.insert(user).values({ id: owner, name: "Test", email: `${owner}@test.invalid` });
+  try {
+    await db.insert(listings).values({
+      id: owner, ownerId: owner, status: "active", type: "rent", kind: "apartment", bhk: 1, title: "t", locality: "x",
+      area: "x", addressPrivate: "x", location: { x: 77.62, y: 12.93 }, price: 1, carpetSqft: 500, floor: 1,
+      totalFloors: 2, furnishing: "none", facing: "East", ageYears: 1, pets: false, nonVeg: true, parking: "none",
+      bathrooms: 1, balconies: 1, description: "x", expiresAt: new Date(Date.now() - 86_400_000),
+    });
+    const ids = async () => (await search({ bbox: "77.6,12.9,77.65,12.95" })).map((c) => c.id);
+    assert.ok(!(await ids()).includes(owner));
+    await db.update(listings).set({ expiresAt: new Date(Date.now() + 86_400_000) }).where(eq(listings.id, owner));
+    assert.ok((await ids()).includes(owner));
+  } finally {
+    await db.delete(user).where(eq(user.id, owner));
+  }
+});
+
 test("results never carry the private address", async () => {
   const [card] = await search({});
   assert.ok(card && !("addressPrivate" in card));

@@ -37,12 +37,15 @@ const cardColumns = {
 type CardRow = Omit<Card, "lat" | "lng" | "metro"> & { location: { x: number; y: number } };
 const toCard = ({ location, ...r }: CardRow): Card => ({ ...r, lng: location.x, lat: location.y, metro: nearestMetro(location.y, location.x) });
 
+// Public = approved and not past its 30-day expiry. Expiry needs no job: an unconfirmed listing just stops matching.
+const live = sql`${listings.status} = 'active' and ${listings.expiresAt} > now()`;
+
 // ponytail: planar distance in degrees (1° ≈ 111 km; longitude is ~3% short at Bengaluru's latitude). PostGIS when it matters.
 const RADIUS_DEG = 3000 / 111_000;
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 function conditions(p: SearchParams): SQL {
-  const c: (SQL | undefined)[] = [eq(listings.status, "active"), eq(listings.type, p.type)];
+  const c: (SQL | undefined)[] = [live, eq(listings.type, p.type)];
   const centre = p.q ? Object.entries(LOCALITIES).find(([n]) => n.toLowerCase() === p.q!.toLowerCase())?.[1] : undefined;
 
   if (p.area) {
@@ -93,7 +96,7 @@ export async function searchCards(p: SearchParams): Promise<Card[]> {
 
 export async function getListing(id: string): Promise<Listing | undefined> {
   const row = await db.query.listings.findFirst({
-    where: and(eq(listings.id, id), eq(listings.status, "active")),
+    where: and(eq(listings.id, id), live),
     columns: { addressPrivate: false },
     extras: {
       confirmedDaysAgo: daysSince(listings.confirmedAt).as("confirmed_days_ago"),
@@ -174,7 +177,7 @@ export async function photosUsedElsewhere(hashes: bigint[], ownerId: string, max
 }
 
 export async function listingIds() {
-  const rows = await db.select({ id: listings.id }).from(listings).where(eq(listings.status, "active"));
+  const rows = await db.select({ id: listings.id }).from(listings).where(live);
   return rows.map((r) => r.id);
 }
 
@@ -182,7 +185,7 @@ export async function similarListings(l: Listing, limit = 3): Promise<Card[]> {
   const rows = await db
     .select(cardColumns)
     .from(listings)
-    .where(and(eq(listings.status, "active"), eq(listings.type, l.type), ne(listings.id, l.id), sql`abs(${listings.bhk} - ${l.bhk}) <= 1`))
+    .where(and(live, eq(listings.type, l.type), ne(listings.id, l.id), sql`abs(${listings.bhk} - ${l.bhk}) <= 1`))
     .orderBy(sql`${listings.location} <-> point(${l.lng}, ${l.lat})`)
     .limit(limit);
   return rows.map(toCard);
