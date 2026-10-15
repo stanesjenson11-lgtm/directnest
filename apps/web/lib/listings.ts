@@ -129,11 +129,29 @@ export async function ownerListings(ownerId: string) {
       maintenance: listings.maintenance,
       confirmedDaysAgo: daysSince(listings.confirmedAt),
       expiresInDays: sql<number>`(${listings.expiresAt}::date - current_date)`.mapWith(Number),
+      rejectReason: listings.rejectReason,
       cover: sql<string | null>`(select p.src from ${listingPhotos} p where p.listing_id = listings.id order by p.position limit 1)`,
     })
     .from(listings)
     .where(eq(listings.ownerId, ownerId))
     .orderBy(desc(listings.createdAt));
+}
+
+/** The review queue: oldest first, with everything a reviewer needs, including private fields. Admin pages only. */
+export async function pendingListings() {
+  return db.query.listings.findMany({
+    where: eq(listings.status, "pending_review"),
+    orderBy: asc(listings.createdAt),
+    extras: { waitingDays: daysSince(listings.createdAt).as("waiting_days") },
+    with: {
+      photos: { columns: { src: true, room: true }, orderBy: asc(listingPhotos.position) },
+      owner: {
+        columns: { name: true, phoneNumber: true, createdAt: true },
+        // Callback form: the relation is aliased in the generated SQL, so refer to the aliased column.
+        extras: (owner) => ({ listingCount: sql<number>`(select count(*) from listings o where o.owner_id = ${owner.id})`.mapWith(Number).as("listing_count") }),
+      },
+    },
+  });
 }
 
 /** Whether any of these photo hashes is within `maxBits` of a photo on someone else's listing. */

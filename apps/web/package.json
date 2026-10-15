@@ -15,7 +15,8 @@
     "db:stop": "node scripts/db.mjs stop",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node --env-file-if-exists=.env.local scripts/seed-db.ts"
+    "db:seed": "node --env-file-if-exists=.env.local scripts/seed-db.ts",
+    "make-admin": "node --env-file-if-exists=.env.local scripts/make-admin.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.7",

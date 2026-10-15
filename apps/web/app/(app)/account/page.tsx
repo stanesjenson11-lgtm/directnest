@@ -92,6 +92,7 @@ async function Account() {
                           : `You confirmed it ${daysAgo(h.confirmedDaysAgo)}.`)}
                       {h.status === "pending_review" && "We review new homes within a day."}
                       {h.status === "expired" && "Confirm it's still available to put it back up."}
+                      {h.status === "rejected" && `${h.rejectReason ?? "It wasn't approved"}. Fix it and post it again.`}
                     </p>
                   </div>
                   {(h.status === "active" || h.status === "expired") && (

@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "./auth.ts";
 
 export async function getSession() {
@@ -10,6 +10,13 @@ export async function getSession() {
 export async function requireUser(next: string) {
   const session = await getSession();
   if (!session) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+  return session.user;
+}
+
+/** Review-team pages. Anyone else gets a plain 404, so the pages don't advertise themselves. */
+export async function requireAdmin() {
+  const session = await getSession();
+  if (session?.user.role !== "admin") notFound();
   return session.user;
 }
 
