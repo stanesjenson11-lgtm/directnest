@@ -1,37 +1,48 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useSyncExternalStore } from "react";
+import { myShortlist, shortlist } from "@/app/(app)/account/actions";
+import { authClient } from "@/lib/auth-client";
 
-// ponytail: shortlist lives in this browser only; sync to the `shortlists` table once sign-in exists.
-const KEY = "dn-shortlist";
-const EMPTY: string[] = [];
+// One copy of the signed-in person's shortlist for every heart on the page: loaded once, updated optimistically.
+const EMPTY = new Set<string>();
 const subscribers = new Set<() => void>();
-let cache: string[] | undefined;
+let ids = EMPTY;
+let owner: string | undefined; // whose list `ids` is
 
-function snapshot() {
-  if (!cache) {
-    try {
-      cache = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    } catch {
-      cache = [];
-    }
-  }
-  return cache!;
-}
-
-function toggle(id: string) {
-  const list = snapshot();
-  cache = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-  try {
-    localStorage.setItem(KEY, JSON.stringify(cache));
-  } catch {}
-  subscribers.forEach((fn) => fn());
-}
-
+const notify = () => subscribers.forEach((fn) => fn());
 const subscribe = (fn: () => void) => {
   subscribers.add(fn);
   return () => subscribers.delete(fn);
 };
+
+function loadFor(userId: string | undefined) {
+  if (owner === userId) return;
+  owner = userId;
+  ids = EMPTY;
+  notify();
+  if (userId)
+    myShortlist().then((list) => {
+      if (owner !== userId) return;
+      ids = new Set(list);
+      notify();
+    });
+}
+
+function flip(id: string, on: boolean) {
+  const next = new Set(ids);
+  if (on) next.add(id);
+  else next.delete(id);
+  ids = next;
+  notify();
+}
+
+async function toggle(id: string) {
+  const on = !ids.has(id);
+  flip(id, on);
+  if (!(await shortlist(id, on).catch(() => false))) flip(id, !on); // put it back if the save failed
+}
 
 export function ShortlistButton({
   id,
@@ -44,7 +55,15 @@ export function ShortlistButton({
   className?: string;
   onLight?: boolean; // dark outline for white surfaces; default is for photos
 }) {
-  const saved = useSyncExternalStore(subscribe, snapshot, () => EMPTY).includes(id);
+  const { data: session, isPending } = authClient.useSession();
+  const router = useRouter();
+  const path = usePathname();
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!isPending) loadFor(userId);
+  }, [userId, isPending]);
+  const saved = useSyncExternalStore(subscribe, () => ids, () => EMPTY).has(id);
+
   return (
     <button
       type="button"
@@ -52,7 +71,9 @@ export function ShortlistButton({
       aria-label={saved ? `Remove ${title} from your shortlist` : `Add ${title} to your shortlist`}
       onClick={(e) => {
         e.preventDefault();
-        toggle(id);
+        if (isPending) return;
+        if (!userId) router.push(`/sign-in?next=${encodeURIComponent(path + location.search)}`);
+        else toggle(id);
       }}
       className={`grid h-10 w-10 cursor-pointer place-items-center rounded-full transition-transform duration-150 ease-out-quint active:scale-90 ${className}`}
     >
