@@ -1,6 +1,6 @@
 // Sample listings for development and demos, loaded into Postgres by scripts/seed-db.ts.
 import { LOCALITIES } from "./places.ts";
-import type { Listing, Photo, PropertyKind, Room } from "./search.ts";
+import { RENTALS, type Listing, type Photo, type PropertyKind, type Room } from "./search.ts";
 
 const u = (id: string) => `https://images.unsplash.com/photo-${id}?fit=crop&ar=4:3`;
 const pool = (room: Room, rows: [string, string][]): Photo[] => rows.map(([id, credit]) => ({ src: u(id), room, credit }));
@@ -80,10 +80,10 @@ function photosFor(i: number, kind: PropertyKind, bhk: number): Photo[] {
   return kind === "apartment" ? [...all.slice(0, 1), outside, ...all.slice(1)] : [outside, ...all];
 }
 
-const AMENITIES = {
+const AMENITY_SETS = {
   society: ["Lift", "Power backup", "24×7 security", "Gym", "Swimming pool", "Club house", "Children's play area", "Gas pipeline", "CCTV", "Visitor parking"],
-  building: ["Lift", "Power backup", "Security guard", "Intercom", "Rainwater harvesting"],
-  house: ["Power backup", "Borewell and corporation water", "Terrace access"],
+  building: ["Lift", "Power backup", "24×7 security", "Intercom", "Rainwater harvesting"],
+  house: ["Power backup", "Rainwater harvesting"],
 };
 
 const KIND_WORD: Record<PropertyKind, string> = { apartment: "flat", "independent-house": "independent house", villa: "villa" };
@@ -91,7 +91,7 @@ const FURNISHED = { full: "fully furnished", semi: "semi-furnished", none: "unfu
 const ordinal = (n: number) => (n === 0 ? "ground" : n + (["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] ?? "th"));
 
 type Spec = Pick<Listing, "type" | "bhk" | "area" | "price" | "carpetSqft" | "floor" | "totalFloors" | "furnishing" | "facing" | "ageYears" | "listedDaysAgo" | "confirmedDaysAgo"> &
-  Partial<Listing> & { at: keyof typeof LOCALITIES; d: [number, number]; who: string; amen: keyof typeof AMENITIES; note: string };
+  Partial<Listing> & { at: keyof typeof LOCALITIES; d: [number, number]; who: string; amen: keyof typeof AMENITY_SETS; note: string };
 
 const SPECS: Spec[] = [
   { type: "rent", at: "Koramangala", area: "5th Block", d: [0.002, -0.003], bhk: 2, price: 45000, maintenance: 2500, deposit: 225000, carpetSqft: 1150, floor: 3, totalFloors: 4, furnishing: "semi", facing: "East", ageYears: 8, pets: true, parking: "car", who: "Priya S.", amen: "building", listedDaysAgo: 6, confirmedDaysAgo: 2, note: "Five minutes' walk to Forum Mall and the 80 Feet Road cafés." },
@@ -129,13 +129,22 @@ function describe(s: Spec, kind: PropertyKind) {
   return `A ${FURNISHED[s.furnishing]} ${what} ${where} in ${s.area}, ${s.at}, ${s.ageYears} years old and facing ${s.facing.toLowerCase()}. ${s.note}`;
 }
 
+// Rough 2026 sale rates (₹ per sq ft of carpet area) for turning the samples into sale listings while rentals are off.
+// ponytail: sample numbers only; real listings carry the owner's price.
+const RATE: Record<string, number> = {
+  Koramangala: 16000, "HSR Layout": 13000, Indiranagar: 18000, Whitefield: 9500, Bellandur: 10500, Marathahalli: 9000,
+  "Electronic City": 6500, "JP Nagar": 11000, Jayanagar: 15000, "BTM Layout": 10000, Hebbal: 11500, Yelahanka: 7500, Malleshwaram: 15000,
+};
+
 export const SEED: Listing[] = SPECS.map((s, i) => {
   const kind = s.kind ?? "apartment";
+  const sale = s.type === "buy" || !RENTALS;
+  const price = s.type === "buy" || RENTALS ? s.price : Math.round((s.carpetSqft * RATE[s.at] * (kind === "apartment" ? 1 : 1.35)) / 1e5) * 1e5;
   const [lat, lng] = LOCALITIES[s.at];
   const slug = `${s.bhk === 0 ? "1rk" : `${s.bhk}bhk`}-${s.area}-${s.at}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return {
     id: `${slug}-${i + 1}`,
-    type: s.type,
+    type: sale ? "buy" : s.type,
     kind,
     bhk: s.bhk,
     title: `${s.bhk === 0 ? "1 RK studio" : `${s.bhk} BHK ${KIND_WORD[kind]}`} in ${s.area}, ${s.at}`,
@@ -143,9 +152,9 @@ export const SEED: Listing[] = SPECS.map((s, i) => {
     area: s.area,
     lat: lat + s.d[0],
     lng: lng + s.d[1],
-    price: s.price,
+    price,
     maintenance: s.maintenance ?? 0,
-    deposit: s.deposit ?? 0,
+    deposit: sale ? 0 : (s.deposit ?? 0),
     carpetSqft: s.carpetSqft,
     floor: s.floor,
     totalFloors: s.totalFloors,
@@ -153,18 +162,19 @@ export const SEED: Listing[] = SPECS.map((s, i) => {
     facing: s.facing,
     ageYears: s.ageYears,
     availableInDays: s.availableInDays ?? 0,
-    tenants: s.tenants ?? [],
+    tenants: sale ? [] : (s.tenants ?? []),
     pets: s.pets ?? false,
     nonVeg: s.nonVeg ?? true,
     parking: s.parking ?? "none",
     bathrooms: s.bathrooms ?? Math.max(1, s.bhk),
     balconies: s.balconies ?? 1,
-    amenities: AMENITIES[s.amen],
+    amenities: [...AMENITY_SETS[s.amen]],
     description: describe(s, kind),
     photos: photosFor(i, kind, s.bhk),
     owner: { name: s.who, verified: true },
     listedDaysAgo: s.listedDaysAgo,
     confirmedDaysAgo: s.confirmedDaysAgo,
     sample: true,
+    saleCondition: sale ? (s.ageYears <= 3 ? "new" : "resale") : null,
   };
 });

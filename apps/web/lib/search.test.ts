@@ -2,12 +2,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseSearch } from "./parse-search.ts";
-import { toQuery } from "./search.ts";
+import { DEFAULT_TYPE, RENTALS, toQuery } from "./search.ts";
 
 test("junk params fall back to safe defaults", () => {
-  const p = parseSearch({ bhk: "abc", max: "-5", sort: "nope", bbox: "1,2", type: "lease" });
-  assert.deepEqual([p.type, p.sort, p.max, p.bbox], ["rent", "relevant", undefined, undefined]);
-  assert.deepEqual(p.bhk, []);
+  const p = parseSearch({ bhk: "abc", max: "-5", sort: "nope", bbox: "1,2", type: "lease", floor: "attic", amen: "Moat" });
+  assert.deepEqual([p.type, p.sort, p.max, p.bbox], [DEFAULT_TYPE, "relevant", undefined, undefined]);
+  assert.deepEqual([p.bhk, p.floor, p.amen], [[], [], []]);
+});
+
+test("rent links become sale searches while rentals are off", { skip: RENTALS }, () => {
+  assert.equal(parseSearch({ type: "rent" }).type, "buy");
 });
 
 test("query round-trips and drops defaults", () => {

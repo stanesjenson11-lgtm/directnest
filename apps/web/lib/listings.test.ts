@@ -7,7 +7,7 @@ import { photosUsedElsewhere, searchCards, type Card } from "./listings.ts";
 import { listingPhotos, listings, user } from "./schema.ts";
 import { parseSearch } from "./parse-search.ts";
 import { LOCALITIES } from "./places.ts";
-import { haversine } from "./search.ts";
+import { DEFAULT_TYPE, haversine } from "./search.ts";
 import { SEED } from "./seed.ts";
 
 after(() => pool.end());
@@ -18,18 +18,25 @@ const seedCount = (f: (l: (typeof SEED)[number]) => boolean) => SEED.filter(f).l
 // Real listings can exist alongside the samples, so exact counts compare the sample results only.
 const samples = (cards: Card[]) => cards.filter((c) => c.sample).length;
 
-test("rent by default; buy returns only sales", async () => {
-  const rent = await search({});
-  assert.equal(samples(rent), seedCount((l) => l.type === "rent"));
-  assert.equal(samples(await search({ type: "buy" })), seedCount((l) => l.type === "buy"));
+test("the default search returns every sample of the default type", async () => {
+  assert.equal(samples(await search({})), seedCount((l) => l.type === DEFAULT_TYPE));
 });
 
-test("budget counts rent + maintenance; 4 BHK means 4 or more", async () => {
-  const capped = await search({ max: "30000" });
-  assert.ok(capped.every((c) => monthly(c) <= 30000));
-  assert.equal(samples(capped), seedCount((l) => l.type === "rent" && l.price + l.maintenance <= 30000));
-  const big = await search({ type: "buy", bhk: "4" });
+test("budget caps the price; 4 BHK means 4 or more", async () => {
+  const capped = await search({ max: "10000000" });
+  assert.ok(capped.every((c) => monthly(c) <= 10_000_000));
+  assert.equal(samples(capped), seedCount((l) => l.type === DEFAULT_TYPE && monthly(l) <= 10_000_000));
+  const big = await search({ bhk: "4" });
   assert.ok(big.length > 0 && big.every((c) => c.bhk >= 4));
+});
+
+test("new or resale, floor band and amenities filter", async () => {
+  const resale = await search({ cond: "resale", bhk: "2,3" });
+  assert.equal(samples(resale), seedCount((l) => l.saleCondition === "resale" && (l.bhk === 2 || l.bhk === 3)));
+  assert.equal(samples(await search({ floor: "high" })), seedCount((l) => l.type === DEFAULT_TYPE && l.floor > 10));
+  const amen = await search({ amen: "Gym,Lift" });
+  assert.ok(samples(amen) > 0);
+  assert.equal(samples(amen), seedCount((l) => l.type === DEFAULT_TYPE && l.amenities.includes("Gym") && l.amenities.includes("Lift")));
 });
 
 test("a locality name searches about 3 km around it", async () => {
@@ -48,7 +55,7 @@ test("map box and drawn area", async () => {
 
 test("filters combine and sorting holds", async () => {
   const pets = await search({ pets: "1", bhk: "2,3" });
-  assert.equal(samples(pets), seedCount((l) => l.type === "rent" && l.pets && (l.bhk === 2 || l.bhk === 3)));
+  assert.equal(samples(pets), seedCount((l) => l.type === DEFAULT_TYPE && l.pets && (l.bhk === 2 || l.bhk === 3)));
   const cheapest = (await search({ sort: "price-asc" })).map(monthly);
   assert.deepEqual(cheapest, [...cheapest].sort((a, b) => a - b));
 });
@@ -79,7 +86,7 @@ test("a listing past its 30 days drops out of search until the owner confirms it
   await db.insert(user).values({ id: owner, name: "Test", email: `${owner}@test.invalid` });
   try {
     await db.insert(listings).values({
-      id: owner, ownerId: owner, status: "active", type: "rent", kind: "apartment", bhk: 1, title: "t", locality: "x",
+      id: owner, ownerId: owner, status: "active", type: DEFAULT_TYPE, kind: "apartment", bhk: 1, title: "t", locality: "x",
       area: "x", addressPrivate: "x", location: { x: 77.62, y: 12.93 }, price: 1, carpetSqft: 500, floor: 1,
       totalFloors: 2, furnishing: "none", facing: "East", ageYears: 1, pets: false, nonVeg: true, parking: "none",
       bathrooms: 1, balconies: 1, description: "x", expiresAt: new Date(Date.now() - 86_400_000),

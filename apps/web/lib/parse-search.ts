@@ -1,6 +1,6 @@
 // Server-side: turns untrusted URL params into SearchParams. Kept apart from lib/search.ts so zod never ships to the browser.
 import { z } from "zod";
-import { SORTS } from "./search.ts";
+import { AMENITIES, DEFAULT_TYPE, FLOORS, RENTALS, SORTS } from "./search.ts";
 
 const list = <T extends string>(values: readonly [T, ...T[]]) =>
   z
@@ -20,7 +20,11 @@ const coords = (min: number) =>
     .catch(undefined);
 
 export const searchSchema = z.object({
-  type: z.enum(["rent", "buy"]).catch("rent"),
+  // While rentals are off, every search is a sale search whatever the URL says.
+  type: z
+    .enum(["rent", "buy"])
+    .catch(DEFAULT_TYPE)
+    .transform((t) => (RENTALS ? t : "buy")),
   q: z.string().trim().max(80).optional().catch(undefined),
   bhk: z
     .string()
@@ -32,6 +36,9 @@ export const searchSchema = z.object({
   furnishing: list(["full", "semi", "none"]),
   tenants: z.enum(["family", "bachelors", "company"]).optional().catch(undefined),
   kind: list(["apartment", "independent-house", "villa"]),
+  cond: z.enum(["new", "resale"]).optional().catch(undefined),
+  floor: list(FLOORS.map(([v]) => v) as unknown as [(typeof FLOORS)[number][0], ...(typeof FLOORS)[number][0][]]),
+  amen: list(AMENITIES as unknown as [(typeof AMENITIES)[number], ...(typeof AMENITIES)[number][]]),
   avail: z.enum(["now", "15", "30"]).optional().catch(undefined),
   pets: z.literal("1").optional().catch(undefined),
   parking: z.literal("1").optional().catch(undefined),

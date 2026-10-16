@@ -8,7 +8,7 @@ import type { Listing, SearchParams } from "./search.ts";
 /** What a result tile and a map pin need, and nothing more. */
 export type Card = Pick<
   Listing,
-  "id" | "type" | "title" | "locality" | "area" | "lat" | "lng" | "price" | "maintenance" | "deposit" | "bhk" | "carpetSqft" | "furnishing" | "confirmedDaysAgo" | "sample"
+  "id" | "type" | "title" | "locality" | "area" | "lat" | "lng" | "price" | "maintenance" | "deposit" | "bhk" | "carpetSqft" | "furnishing" | "confirmedDaysAgo" | "sample" | "saleCondition"
 > & { photos: string[]; metro: { name: string; metres: number } };
 
 const daysSince = (col: typeof listings.confirmedAt | typeof listings.createdAt) => sql<number>`(current_date - (${col})::date)`.mapWith(Number);
@@ -28,6 +28,7 @@ const cardColumns = {
   carpetSqft: listings.carpetSqft,
   furnishing: listings.furnishing,
   sample: listings.sample,
+  saleCondition: listings.saleCondition,
   confirmedDaysAgo: daysSince(listings.confirmedAt),
   // Written qualified on purpose: drizzle renders ${listings.id} as a bare "id", which would bind to p.id here.
   photos: sql<string[]>`coalesce((select array_agg(p.src order by p.position) from ${listingPhotos} p
@@ -71,6 +72,13 @@ function conditions(p: SearchParams): SQL {
   if (p.kind?.length) c.push(inArray(listings.kind, p.kind));
   if (p.tenants) c.push(sql`(cardinality(${listings.tenants}) = 0 or ${p.tenants} = any(${listings.tenants}))`);
   if (p.avail) c.push(sql`coalesce(${listings.availableFrom}, current_date) <= current_date + ${p.avail === "now" ? 0 : Number(p.avail)}::int`);
+  if (p.cond) c.push(eq(listings.saleCondition, p.cond));
+  if (p.floor?.length) {
+    const band = { ground: sql`${listings.floor} = 0`, low: sql`${listings.floor} between 1 and 3`, mid: sql`${listings.floor} between 4 and 10`, high: sql`${listings.floor} > 10` };
+    c.push(or(...p.floor.map((f) => band[f])));
+  }
+  // Must have every chosen amenity; the array literal goes as one parameter.
+  if (p.amen?.length) c.push(sql`${listings.amenities} @> ${`{${p.amen.map((a) => `"${a}"`).join(",")}}`}::text[]`);
   if (p.pets) c.push(eq(listings.pets, true));
   if (p.parking) c.push(eq(listings.parking, "car"));
   return and(...c)!;

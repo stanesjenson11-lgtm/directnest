@@ -49,6 +49,7 @@ await db.transaction(async (tx) => {
       balconies: l.balconies,
       amenities: l.amenities,
       description: l.description,
+      saleCondition: l.saleCondition ?? null,
       ownerVerified: l.owner.verified,
       createdAt: ago(l.listedDaysAgo),
       confirmedAt: ago(l.confirmedDaysAgo),

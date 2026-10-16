@@ -1,5 +1,33 @@
 // Listing types and small helpers shared by server and browser. Filtering itself happens in Postgres (lib/listings.ts).
 
+/** The client launches with buying and selling only (requirements form, Oct 2026). Flip when rentals start. */
+export const RENTALS = false;
+export const DEFAULT_TYPE: ListingType = RENTALS ? "rent" : "buy";
+
+/** One list for the post form, the amenities filter and the listing page, so the words always match. */
+export const AMENITIES = [
+  "Lift",
+  "Power backup",
+  "24×7 security",
+  "Gym",
+  "Swimming pool",
+  "Club house",
+  "Children's play area",
+  "Gas pipeline",
+  "Intercom",
+  "CCTV",
+  "Visitor parking",
+  "Rainwater harvesting",
+] as const;
+
+/** Floor filter bands; values are what goes in the URL. */
+export const FLOORS = [
+  ["ground", "Ground floor"],
+  ["low", "1st to 3rd"],
+  ["mid", "4th to 10th"],
+  ["high", "Above 10th"],
+] as const;
+
 export type ListingType = "rent" | "buy";
 export type Furnishing = "full" | "semi" | "none";
 export type Tenant = "family" | "bachelors" | "company";
@@ -45,6 +73,9 @@ export interface Listing {
   listedDaysAgo: number;
   confirmedDaysAgo: number;
   sample: boolean; // seeded demo listing
+  saleCondition?: "new" | "resale" | null;
+  videoUrl?: string | null;
+  visitVerifiedAt?: Date | null;
 }
 
 export const SORTS = ["relevant", "newest", "price-asc", "price-desc"] as const;
@@ -57,7 +88,7 @@ export function toQuery(p: Partial<SearchParams>) {
   const out = new URLSearchParams();
   for (const [k, v] of Object.entries(p)) {
     if (v === undefined || v === "" || (Array.isArray(v) && v.length === 0)) continue;
-    if ((k === "type" && v === "rent") || (k === "sort" && v === "relevant")) continue;
+    if ((k === "type" && v === DEFAULT_TYPE) || (k === "sort" && v === "relevant")) continue;
     if (k === "area" && Array.isArray(v)) {
       const n = v as number[];
       const pairs: string[] = [];
