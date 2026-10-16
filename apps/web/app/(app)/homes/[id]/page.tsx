@@ -76,7 +76,11 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
           ["Pets", l.pets ? "Allowed" : "Not allowed"],
           ["Food", l.nonVeg ? "No restrictions" : "Vegetarian only"],
         ] as [string, ReactNode][])
-      : []),
+      : ([
+          ...(l.saleCondition ? [["Condition", l.saleCondition === "new" ? "New from the builder" : "Resale"]] : []),
+          ["Possession", l.availableInDays === 0 ? "Ready to move" : `In ${l.availableInDays} days`],
+          ["Pets in society", l.pets ? "Allowed" : "Not allowed"],
+        ] as [string, ReactNode][])),
   ];
 
   return (

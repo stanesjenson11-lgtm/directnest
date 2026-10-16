@@ -253,11 +253,9 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
             </fieldset>
             <fieldset>
               <legend className={legend}>Must have</legend>
-              {p.type === "rent" && (
-                <Check checked={!!p.pets} onChange={() => go({ pets: p.pets ? undefined : "1" })}>
-                  Pets allowed
-                </Check>
-              )}
+              <Check checked={!!p.pets} onChange={() => go({ pets: p.pets ? undefined : "1" })}>
+                {p.type === "rent" ? "Pets allowed" : "Pet-friendly society"}
+              </Check>
               <Check checked={!!p.parking} onChange={() => go({ parking: p.parking ? undefined : "1" })}>
                 Car parking
               </Check>
