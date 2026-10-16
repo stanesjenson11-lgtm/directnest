@@ -2,7 +2,7 @@
 import { and, asc, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "./db.ts";
 import { LOCALITIES, nearestMetro } from "./places.ts";
-import { listingPhotos, listings } from "./schema.ts";
+import { listingPhotos, listings, shortlists } from "./schema.ts";
 import type { Listing, SearchParams } from "./search.ts";
 
 /** What a result tile and a map pin need, and nothing more. */
@@ -99,6 +99,17 @@ export async function searchCards(p: SearchParams): Promise<Card[]> {
     .where(conditions(p))
     .orderBy(...ORDER[p.sort](p.type))
     .limit(200);
+  return rows.map(toCard);
+}
+
+/** Someone's shortlist, newest first. Homes that were sold or expired drop out. */
+export async function shortlistedCards(userId: string): Promise<Card[]> {
+  const rows = await db
+    .select(cardColumns)
+    .from(listings)
+    .innerJoin(shortlists, and(eq(shortlists.listingId, listings.id), eq(shortlists.userId, userId)))
+    .where(live)
+    .orderBy(desc(shortlists.createdAt));
   return rows.map(toCard);
 }
 

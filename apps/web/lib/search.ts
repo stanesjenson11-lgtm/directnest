@@ -89,6 +89,7 @@ export const SORTS = ["relevant", "newest", "price-asc", "price-desc"] as const;
 
 export type { SearchParams } from "./parse-search.ts";
 import type { SearchParams } from "./parse-search.ts";
+import { inrShort } from "./format.ts";
 
 /** Back to a query string, dropping defaults so URLs stay short and shareable. */
 export function toQuery(p: Partial<SearchParams>) {
@@ -106,6 +107,16 @@ export function toQuery(p: Partial<SearchParams>) {
     } else out.set(k, Array.isArray(v) ? v.join(",") : String(v));
   }
   return out.toString();
+}
+
+/** A short name for a saved search: "2 BHK, 3 BHK homes for sale near HSR Layout, up to ₹1 Cr, 2 more filters". */
+export function describeSearch(p: SearchParams) {
+  const bhk = p.bhk?.map((b) => (b === 0 ? "1 RK" : `${b === 4 ? "4+" : b} BHK`)).join(", ");
+  const place = p.area ? "in a drawn area" : p.bbox ? "in a map area" : p.q ? `near ${p.q}` : "in Bengaluru";
+  const budget = p.min && p.max ? `${inrShort(p.min)} to ${inrShort(p.max)}` : p.max ? `up to ${inrShort(p.max)}` : p.min ? `from ${inrShort(p.min)}` : "";
+  const more = [p.furnishing?.length, p.tenants, p.kind?.length, p.cond, p.floor?.length, p.amen?.length, p.avail, p.pets, p.parking].filter(Boolean).length;
+  const head = `${bhk ? `${bhk} homes` : "Homes"} ${p.type === "rent" ? "for rent" : "for sale"} ${place}`;
+  return [head, budget, more && `${more} more ${more === 1 ? "filter" : "filters"}`].filter(Boolean).join(", ");
 }
 
 export function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
