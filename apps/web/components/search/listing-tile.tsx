@@ -100,6 +100,7 @@ export function ListingTile({
           </Link>
         </h3>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+          {card.visited && <span className="rounded bg-verified-wash px-1.5 py-0.5 font-medium text-verified">Visited by our team</span>}
           <span className="rounded bg-verified-wash px-1.5 py-0.5 font-medium text-verified">
             Owner confirmed {daysAgo(card.confirmedDaysAgo)}
           </span>

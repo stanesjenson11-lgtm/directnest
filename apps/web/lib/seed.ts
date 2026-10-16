@@ -176,5 +176,7 @@ export const SEED: Listing[] = SPECS.map((s, i) => {
     confirmedDaysAgo: s.confirmedDaysAgo,
     sample: true,
     saleCondition: sale ? (s.ageYears <= 3 ? "new" : "resale") : null,
+    // Half the samples show the staff-visit badge, visited the day after they were listed.
+    visitVerifiedAt: i % 2 ? null : new Date(Date.now() - Math.max(s.listedDaysAgo - 1, 0) * 86_400_000),
   };
 });

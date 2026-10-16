@@ -50,6 +50,7 @@ await db.transaction(async (tx) => {
       amenities: l.amenities,
       description: l.description,
       saleCondition: l.saleCondition ?? null,
+      visitVerifiedAt: l.visitVerifiedAt ?? null,
       ownerVerified: l.owner.verified,
       createdAt: ago(l.listedDaysAgo),
       confirmedAt: ago(l.confirmedDaysAgo),

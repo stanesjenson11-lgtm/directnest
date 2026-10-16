@@ -100,6 +100,11 @@ test("a listing past its 30 days drops out of search until the owner confirms it
   }
 });
 
+test("cards say which homes our staff visited", async () => {
+  const cards = await search({});
+  assert.equal(cards.filter((c) => c.sample && c.visited).length, seedCount((l) => l.type === DEFAULT_TYPE && !!l.visitVerifiedAt));
+});
+
 test("results never carry the private address", async () => {
   const [card] = await search({});
   assert.ok(card && !("addressPrivate" in card));

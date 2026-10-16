@@ -116,6 +116,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
             </p>
             <ul className="mt-4 flex flex-wrap gap-2 text-[14px] font-medium">
               <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner verified</li>
+              {l.visitVerifiedAt && <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Visited by our team</li>}
               <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner confirmed available {daysAgo(l.confirmedDaysAgo)}</li>
               <li className="rounded-md bg-surface px-2 py-1 text-muted">Listed {daysAgo(l.listedDaysAgo)}</li>
               {l.sample && <li className="rounded-md bg-surface px-2 py-1 text-muted">Sample listing for the demo</li>}
