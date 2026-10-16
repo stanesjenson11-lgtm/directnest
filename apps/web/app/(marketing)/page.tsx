@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Hero } from "@/components/home/hero";
 import { Wordmark } from "@/components/home/scenery";
 import { ScrollTouches } from "@/components/home/scroll-touches";
+import { RENTALS } from "@/lib/search";
 
 const STEPS = [
   {
@@ -61,10 +62,12 @@ function SiteHeader() {
           <Wordmark />
         </Link>
         <nav aria-label="Main" className="flex items-center gap-1 text-[15px] font-medium sm:gap-2">
-          <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
-            Rent
-          </Link>
-          <Link href="/search?type=buy" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
+          {RENTALS && (
+            <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
+              Rent
+            </Link>
+          )}
+          <Link href="/search" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
             Buy
           </Link>
           <Link

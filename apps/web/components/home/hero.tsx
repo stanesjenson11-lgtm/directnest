@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RENTALS } from "@/lib/search";
 import { Story } from "./story";
 import { DeviceDemo } from "./device-demo";
 import { FloorPlan, GateBoard, KeyRing, Rocket, Sky, Skyline, VerifiedStamp } from "./scenery";
@@ -21,6 +22,7 @@ const FLIGHT = "M1760 640 C1320 560 1120 150 780 200 S300 40 -260 110";
 function SearchForm() {
   return (
     <form action="/search" method="get" role="search" className="mt-8 w-full max-w-xl">
+      {RENTALS && (
       <fieldset className="mb-3 flex gap-1">
         <legend className="sr-only">Looking to</legend>
         {[
@@ -36,6 +38,7 @@ function SearchForm() {
           </label>
         ))}
       </fieldset>
+      )}
       <div className="flex flex-wrap items-stretch gap-2 rounded-[28px] bg-canvas p-2 sm:flex-nowrap sm:rounded-full">
         <label htmlFor="city" className="sr-only">
           City
@@ -163,11 +166,11 @@ export function Hero() {
                 Search the way you actually hunt for a flat.
               </h2>
               <p className="mx-auto mt-4 hidden max-w-[56ch] text-moonlight-dim sm:block">
-                Draw your own area on the map. See rent and maintenance as one number. Know when the owner last confirmed
+                Draw your own area on the map. See the price and the monthly maintenance together. Know when the owner last confirmed
                 the home is still available.
               </p>
               <Link
-                href="/search?city=Bengaluru&type=rent"
+                href="/search"
                 className="mt-5 inline-flex h-12 items-center rounded-full bg-streetlight px-6 font-semibold text-dusk transition-colors duration-150 ease-out-quint hover:bg-[oklch(0.86_0.14_82)]"
               >
                 Search homes in Bengaluru

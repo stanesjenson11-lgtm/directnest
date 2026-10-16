@@ -4,9 +4,10 @@ import { SearchView } from "@/components/search/search-view";
 import { searchCards } from "@/lib/listings";
 import { LOCALITIES } from "@/lib/places";
 import { parseSearch } from "@/lib/parse-search";
+import { RENTALS } from "@/lib/search";
 
 export const metadata: Metadata = {
-  title: "Homes for rent and sale in Bengaluru, straight from owners | DirectNest",
+  title: `Homes for ${RENTALS ? "rent and sale" : "sale"} in Bengaluru, straight from owners | DirectNest`,
   description: "Search flats and houses in Bengaluru on a map. Every listing is approved by a person and comes straight from its owner.",
 };
 

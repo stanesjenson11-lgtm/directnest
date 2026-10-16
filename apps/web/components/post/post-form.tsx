@@ -5,6 +5,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Reac
 import { submitListing, type PostState } from "@/app/(app)/post/actions";
 import { inr } from "@/lib/format";
 import { LOCALITIES } from "@/lib/places";
+import { DEFAULT_TYPE, RENTALS } from "@/lib/search";
 import { PinMap } from "./pin-map";
 
 const AMENITIES = ["Lift", "Power backup", "24×7 security", "Gym", "Swimming pool", "Club house", "Children's play area", "Gas pipeline", "Intercom", "CCTV", "Visitor parking", "Rainwater harvesting"];
@@ -87,7 +88,8 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
 
 export function PostForm({ name, phone }: { name: string; phone: string | null }) {
   const [state, action, pending] = useActionState<PostState, FormData>(submitListing, { status: "idle" });
-  const [type, setType] = useState<"rent" | "buy">("rent");
+  const [type, setType] = useState<"rent" | "buy">(DEFAULT_TYPE);
+  const who = type === "rent" ? "tenant" : "buyer";
   const [price, setPrice] = useState(0);
   const [maintenance, setMaintenance] = useState(0);
   const [locality, setLocality] = useState("");
@@ -206,7 +208,9 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
                   ["rent", "Rent it out"],
                   ["buy", "Sell it"],
                 ] as const
-              ).map(([v, l]) => (
+              )
+                .filter(([v]) => RENTALS || v === "buy")
+                .map(([v, l]) => (
                 <label key={v} className={choice}>
                   <input type="radio" name="type" value={v} checked={type === v} onChange={() => setType(v)} className="sr-only" />
                   {l}
@@ -243,12 +247,12 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
             </Field>
           </div>
           <Choices name="furnishing" legend="Furnishing" defaultValue="semi" options={[["full", "Furnished"], ["semi", "Semi-furnished"], ["none", "Unfurnished"]]} />
-          <Field label="About the home" hint="What a tenant would want to know: light, water supply, the neighbours, what's nearby." error={e.description}>
+          <Field label="About the home" hint={`What a ${who} would want to know: light, water supply, the neighbours, what's nearby.`} error={e.description}>
             <textarea name="description" required minLength={40} maxLength={1500} rows={4} className={`${input} h-auto py-2`} aria-invalid={!!e.description} />
           </Field>
         </Section>
 
-        <Section id="where" title="Location" intro="Tenants see the locality and an approximate spot on the map. The full address is only shared with people who contact you.">
+        <Section id="where" title="Location" intro={`${who === "tenant" ? "Tenants" : "Buyers"} see the locality and an approximate spot on the map. The full address is only shared with people who contact you.`}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Locality" error={e.locality}>
               <input
@@ -287,7 +291,7 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
           </div>
         </Section>
 
-        <Section id="money" title="Price and terms" intro="Tenants see rent and maintenance as one monthly number, so they know exactly what they'll pay.">
+        <Section id="money" title="Price and terms" intro={type === "rent" ? "Tenants see rent and maintenance as one monthly number, so they know exactly what they'll pay." : "Buyers see the price, the carpet area and the monthly maintenance together."}>
           <div className={`grid gap-4 ${type === "rent" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
             <Field label={type === "rent" ? "Monthly rent (₹)" : "Price (₹)"} error={e.price}>
               <input name="price" type="number" inputMode="numeric" min={1000} required onChange={(ev) => setPrice(Number(ev.target.value) || 0)} className={`${input} tabular-nums`} aria-invalid={!!e.price} />

@@ -10,6 +10,7 @@ import { photosUsedElsewhere } from "@/lib/listings";
 import { SAME_PHOTO } from "@/lib/media";
 import { LOCALITIES } from "@/lib/places";
 import { listingPhotos, listings, uploads, user } from "@/lib/schema";
+import { RENTALS } from "@/lib/search";
 import { requireUser } from "@/lib/session";
 
 const money = z.coerce.number().int().min(0).max(1_000_000_000);
@@ -18,7 +19,7 @@ const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "exterior", "balcony"
 
 const listingSchema = z
   .object({
-    type: z.enum(["rent", "buy"]),
+    type: z.enum(RENTALS ? ["rent", "buy"] : ["buy"], "We only list homes for sale right now"),
     kind: z.enum(["apartment", "independent-house", "villa"]),
     bhk: z.coerce.number().int().min(0).max(4),
     carpetSqft: z.coerce.number().int().min(100, "Carpet area looks too small").max(20000),

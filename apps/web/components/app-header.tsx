@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AccountNav } from "@/components/account-nav";
 import { Wordmark } from "@/components/home/scenery";
+import { RENTALS } from "@/lib/search";
 
 // Daylight header for product pages (search, listing, post). Fixed 64px so pages can size against it.
 export function AppHeader() {
@@ -12,10 +13,12 @@ export function AppHeader() {
           <Wordmark />
         </Link>
         <nav aria-label="Main" className="flex items-center gap-1 text-[15px] font-medium whitespace-nowrap">
-          <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
-            Rent
-          </Link>
-          <Link href="/search?type=buy" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
+          {RENTALS && (
+            <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
+              Rent
+            </Link>
+          )}
+          <Link href="/search" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
             Buy
           </Link>
           <Suspense fallback={<span className="inline-block w-16" />}>
