@@ -10,6 +10,7 @@ import { SORTS, toQuery, type SearchParams } from "@/lib/search";
 import { FilterBar } from "./filter-bar";
 import { ListingTile } from "./listing-tile";
 import { MapView } from "./map-view";
+import { SaveSearch } from "./save-search";
 
 const SORT_LABEL: Record<(typeof SORTS)[number], string> = {
   relevant: "Recently confirmed",
@@ -79,20 +80,23 @@ export function SearchView({
                 {sample && <span className="block">Includes sample listings for the demo.</span>}
               </p>
             </div>
-            <label className="flex items-center gap-2 text-[14px] text-muted">
-              Sort
-              <select
-                value={p.sort}
-                onChange={(e) => go({ sort: e.target.value as SearchParams["sort"] })}
-                className="h-9 cursor-pointer rounded-lg border border-hairline bg-canvas px-2 text-[14px] font-medium text-ink"
-              >
-                {SORTS.map((s) => (
-                  <option key={s} value={s}>
-                    {SORT_LABEL[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <SaveSearch query={toQuery(p)} />
+              <label className="flex items-center gap-2 text-[14px] text-muted">
+                Sort
+                <select
+                  value={p.sort}
+                  onChange={(e) => go({ sort: e.target.value as SearchParams["sort"] })}
+                  className="h-9 cursor-pointer rounded-lg border border-hairline bg-canvas px-2 text-[14px] font-medium text-ink"
+                >
+                  {SORTS.map((s) => (
+                    <option key={s} value={s}>
+                      {SORT_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
 
           {cards.length ? (

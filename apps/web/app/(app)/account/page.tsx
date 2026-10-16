@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { ListingTile } from "@/components/search/listing-tile";
 import { daysAgo, inr, inrShort, phone as formatPhone } from "@/lib/format";
 import imageLoader from "@/lib/image-loader";
 import { leadsByRequester, leadsForOwner } from "@/lib/leads";
-import { ownerListings } from "@/lib/listings";
+import { ownerListings, shortlistedCards } from "@/lib/listings";
+import { savedSearchList } from "@/lib/saved";
 import { SLOTS } from "@/lib/search";
 import { requireUser } from "@/lib/session";
-import { answer, confirmAvailable, markRented } from "./actions";
+import { answer, confirmAvailable, markRented, removeSavedSearch } from "./actions";
 
 export const metadata: Metadata = { title: "Your account | DirectNest", robots: { index: false } };
 
@@ -51,7 +53,13 @@ export default function AccountPage() {
 
 async function Account() {
   const me = await requireUser("/account");
-  const [homes, incoming, mine] = await Promise.all([ownerListings(me.id), leadsForOwner(me.id), leadsByRequester(me.id)]);
+  const [homes, incoming, mine, saved, searches] = await Promise.all([
+    ownerListings(me.id),
+    leadsForOwner(me.id),
+    leadsByRequester(me.id),
+    shortlistedCards(me.id),
+    savedSearchList(me.id),
+  ]);
   const phone = me.phoneNumber ? formatPhone(me.phoneNumber) : null;
 
   return (
@@ -197,6 +205,49 @@ async function Account() {
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="saved-homes" className="mt-12">
+        <h2 id="saved-homes" className="text-xl font-semibold">
+          Saved homes
+        </h2>
+        {saved.length ? (
+          <div className="mt-4 grid gap-x-3 gap-y-4 sm:grid-cols-2">
+            {saved.map((c) => (
+              <ListingTile key={c.id} card={c} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 border-t border-hairline pt-5 text-muted">Tap the heart on any home to keep it here.</p>
+        )}
+      </section>
+
+      <section aria-labelledby="saved-searches-title" id="saved-searches" className="mt-12 scroll-mt-24">
+        <h2 id="saved-searches-title" className="text-xl font-semibold">
+          Saved searches
+        </h2>
+        {searches.length ? (
+          <ul className="mt-4">
+            {searches.map((s) => (
+              <li key={s.id} className="flex items-center gap-4 border-t border-hairline py-3">
+                <Link href={`/search?${s.query}`} className="min-w-0 flex-1 font-medium hover:underline">
+                  {s.label}
+                </Link>
+                <form action={removeSavedSearch.bind(null, s.id)}>
+                  <button className="h-9 cursor-pointer rounded-full px-3 text-[14px] font-semibold text-muted hover:text-ink">Remove</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 border-t border-hairline pt-5 text-muted">
+            Use &ldquo;Save search&rdquo; on the{" "}
+            <Link href="/search" className="text-indigo hover:underline">
+              search page
+            </Link>{" "}
+            to come back to the same filters in one tap.
+          </p>
+        )}
+      </section>
 
       {mine.length > 0 && (
         <section aria-labelledby="asked" className="mt-12">
