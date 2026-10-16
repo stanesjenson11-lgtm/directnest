@@ -3,13 +3,13 @@
 import type { CSSProperties, ReactNode } from "react";
 import { inrShort } from "@/lib/format";
 import { LOCALITIES } from "@/lib/places";
-import type { SearchParams } from "@/lib/search";
+import { AMENITIES, FLOORS, RENTALS, type SearchParams } from "@/lib/search";
 
 type Go = (patch: Partial<SearchParams>) => void;
 
 const BUDGET = {
   rent: [10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000, 150000],
-  buy: [5_000_000, 7_500_000, 10_000_000, 15_000_000, 20_000_000, 30_000_000, 50_000_000],
+  buy: [2_500_000, 5_000_000, 7_500_000, 10_000_000, 15_000_000, 20_000_000, 30_000_000, 50_000_000, 100_000_000],
 };
 const BHK = [
   [0, "1 RK"],
@@ -71,7 +71,7 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
   const budgetLabel =
     p.min || p.max ? `${p.min ? inrShort(p.min) : "Any"} – ${p.max ? inrShort(p.max) : "Any"}` : "Budget";
   const bhkLabel = p.bhk?.length ? BHK.filter(([v]) => p.bhk!.includes(v)).map(([, l]) => l.replace(" BHK", "")).join(", ") + " BHK" : "BHK";
-  const more = [p.tenants, p.avail, p.pets, p.parking, p.kind?.length].filter(Boolean).length;
+  const more = [p.tenants, p.avail, p.pets, p.parking, p.kind?.length, p.cond, p.floor?.length].filter(Boolean).length;
 
   return (
     <div className="border-b border-hairline bg-canvas">
@@ -111,19 +111,21 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
           </button>
         </form>
 
-        <div role="group" aria-label="Rent or buy" className="flex shrink-0 rounded-full border border-hairline p-1">
-          {(["rent", "buy"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              aria-pressed={p.type === t}
-              onClick={() => go({ type: t, min: undefined, max: undefined })}
-              className={`h-8 cursor-pointer rounded-full px-4 text-[15px] font-medium transition-colors duration-150 ${p.type === t ? "bg-ink text-canvas" : "text-muted hover:text-ink"}`}
-            >
-              {t === "rent" ? "Rent" : "Buy"}
-            </button>
-          ))}
-        </div>
+        {RENTALS && (
+          <div role="group" aria-label="Rent or buy" className="flex shrink-0 rounded-full border border-hairline p-1">
+            {(["rent", "buy"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={p.type === t}
+                onClick={() => go({ type: t, min: undefined, max: undefined })}
+                className={`h-8 cursor-pointer rounded-full px-4 text-[15px] font-medium transition-colors duration-150 ${p.type === t ? "bg-ink text-canvas" : "text-muted hover:text-ink"}`}
+              >
+                {t === "rent" ? "Rent" : "Buy"}
+              </button>
+            ))}
+          </div>
+        )}
 
         <Pop id="f-bhk" label={bhkLabel} on={!!p.bhk?.length}>
           <fieldset>
@@ -170,6 +172,17 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
           </fieldset>
         </Pop>
 
+        <Pop id="f-amen" label={p.amen?.length ? `Amenities (${p.amen.length})` : "Amenities"} on={!!p.amen?.length}>
+          <fieldset className="grid w-[min(92vw,440px)] sm:grid-cols-2">
+            <legend className={legend}>Must have all of</legend>
+            {AMENITIES.map((a) => (
+              <Check key={a} checked={!!p.amen?.includes(a)} onChange={() => go({ amen: toggle(p.amen, a) })}>
+                {a}
+              </Check>
+            ))}
+          </fieldset>
+        </Pop>
+
         <Pop id="f-more" label={more ? `More filters (${more})` : "More filters"} on={more > 0}>
           <div className="grid w-[min(92vw,440px)] gap-4 sm:grid-cols-2">
             {p.type === "rent" && (
@@ -185,14 +198,28 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
                 ))}
               </fieldset>
             )}
+            {p.type === "buy" && (
+              <fieldset>
+                <legend className={legend}>Condition</legend>
+                <Radio name="cond" checked={!p.cond} onChange={() => go({ cond: undefined })}>
+                  Any
+                </Radio>
+                <Radio name="cond" checked={p.cond === "new"} onChange={() => go({ cond: "new" })}>
+                  New from the builder
+                </Radio>
+                <Radio name="cond" checked={p.cond === "resale"} onChange={() => go({ cond: "resale" })}>
+                  Resale
+                </Radio>
+              </fieldset>
+            )}
             <fieldset>
-              <legend className={legend}>Move in</legend>
+              <legend className={legend}>{p.type === "rent" ? "Move in" : "Possession"}</legend>
               <Radio name="avail" checked={!p.avail} onChange={() => go({ avail: undefined })}>
-                Any time
+                {p.type === "rent" ? "Any time" : "Any"}
               </Radio>
               {(
                 [
-                  ["now", "Immediately"],
+                  ["now", p.type === "rent" ? "Immediately" : "Ready to move"],
                   ["15", "Within 15 days"],
                   ["30", "Within 30 days"],
                 ] as const
@@ -217,10 +244,20 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
               ))}
             </fieldset>
             <fieldset>
+              <legend className={legend}>Floor</legend>
+              {FLOORS.map(([v, l]) => (
+                <Check key={v} checked={!!p.floor?.includes(v)} onChange={() => go({ floor: toggle(p.floor, v) })}>
+                  {l}
+                </Check>
+              ))}
+            </fieldset>
+            <fieldset>
               <legend className={legend}>Must have</legend>
-              <Check checked={!!p.pets} onChange={() => go({ pets: p.pets ? undefined : "1" })}>
-                Pets allowed
-              </Check>
+              {p.type === "rent" && (
+                <Check checked={!!p.pets} onChange={() => go({ pets: p.pets ? undefined : "1" })}>
+                  Pets allowed
+                </Check>
+              )}
               <Check checked={!!p.parking} onChange={() => go({ parking: p.parking ? undefined : "1" })}>
                 Car parking
               </Check>
@@ -228,10 +265,10 @@ export function FilterBar({ p, go }: { p: SearchParams; go: Go }) {
           </div>
         </Pop>
 
-        {(p.bhk?.length || p.min || p.max || p.furnishing?.length || more > 0) && (
+        {(p.bhk?.length || p.min || p.max || p.furnishing?.length || p.amen?.length || more > 0) && (
           <button
             type="button"
-            onClick={() => go({ bhk: undefined, min: undefined, max: undefined, furnishing: undefined, tenants: undefined, avail: undefined, kind: undefined, pets: undefined, parking: undefined })}
+            onClick={() => go({ bhk: undefined, min: undefined, max: undefined, furnishing: undefined, tenants: undefined, avail: undefined, kind: undefined, pets: undefined, parking: undefined, cond: undefined, floor: undefined, amen: undefined })}
             className="h-10 shrink-0 cursor-pointer rounded-full px-3 text-[15px] font-medium whitespace-nowrap text-indigo hover:underline"
           >
             Clear filters

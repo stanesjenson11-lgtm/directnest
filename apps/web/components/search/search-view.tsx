@@ -111,7 +111,7 @@ export function SearchView({
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => go({ bhk: undefined, min: undefined, max: undefined, furnishing: undefined, tenants: undefined, avail: undefined, kind: undefined, pets: undefined, parking: undefined })}
+                  onClick={() => go({ bhk: undefined, min: undefined, max: undefined, furnishing: undefined, tenants: undefined, avail: undefined, kind: undefined, pets: undefined, parking: undefined, cond: undefined, floor: undefined, amen: undefined })}
                   className="h-10 cursor-pointer rounded-full bg-indigo px-5 font-semibold text-canvas hover:bg-indigo-deep"
                 >
                   Clear filters
