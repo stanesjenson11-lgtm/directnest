@@ -12,7 +12,10 @@ export function inrShort(n: number) {
   return `₹${n}`;
 }
 
-export const sqft = (n: number) => `${n.toLocaleString("en-IN")} sq ft`;
+/** +919845012345 → +91 98450 12345 */
+export const phone = (n: string) => n.replace(/^\+91(\d{5})(\d{5})$/, "+91 $1 $2");
+
+export const sqft =(n: number) => `${n.toLocaleString("en-IN")} sq ft`;
 
 export const bhkLabel = (bhk: number) => (bhk === 0 ? "1 RK" : `${bhk} BHK`);
 

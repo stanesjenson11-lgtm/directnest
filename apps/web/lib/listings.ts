@@ -39,7 +39,7 @@ type CardRow = Omit<Card, "lat" | "lng" | "metro"> & { location: { x: number; y:
 const toCard = ({ location, ...r }: CardRow): Card => ({ ...r, lng: location.x, lat: location.y, metro: nearestMetro(location.y, location.x) });
 
 // Public = approved and not past its 30-day expiry. Expiry needs no job: an unconfirmed listing just stops matching.
-const live = sql`${listings.status} = 'active' and ${listings.expiresAt} > now()`;
+export const live = sql`${listings.status} = 'active' and ${listings.expiresAt} > now()`;
 
 // ponytail: planar distance in degrees (1° ≈ 111 km; longitude is ~3% short at Bengaluru's latitude). PostGIS when it matters.
 const RADIUS_DEG = 3000 / 111_000;

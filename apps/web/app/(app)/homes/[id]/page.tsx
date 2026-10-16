@@ -252,7 +252,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
               {rent && <span className="block">Deposit {inr(l.deposit)}</span>}
             </p>
             <div className="mt-5 grid gap-2">
-              <ContactOwner owner={l.owner.name} />
+              <ContactOwner listingId={l.id} owner={l.owner.name} sample={l.sample} />
             </div>
             <div className="mt-5 flex items-center gap-3 border-t border-hairline pt-5">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo/10 font-semibold text-indigo">{first[0]}</span>
@@ -290,7 +290,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
           {rent && <span className="block truncate text-[13px] text-muted">Deposit {inr(l.deposit)}</span>}
         </p>
         <div className="shrink-0">
-          <ContactOwner owner={l.owner.name} label="Get owner's number" className="w-auto" />
+          <ContactOwner listingId={l.id} owner={l.owner.name} sample={l.sample} label="Get owner's number" className="w-auto" />
         </div>
       </div>
     </main>
