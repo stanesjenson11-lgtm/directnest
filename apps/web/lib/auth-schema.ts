@@ -23,6 +23,7 @@ export const user = pgTable("user", {
   phoneNumber: text("phone_number").unique(),
   phoneNumberVerified: boolean("phone_number_verified"),
   role: text("role").default("member"),
+  banned: boolean("banned").default(false),
 });
 
 export const session = pgTable(

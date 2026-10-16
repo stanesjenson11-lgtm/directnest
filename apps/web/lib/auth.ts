@@ -1,4 +1,6 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { eq } from "drizzle-orm";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber } from "better-auth/plugins";
@@ -13,6 +15,18 @@ export const auth = betterAuth({
     additionalFields: {
       // "member" for everyone; "admin" is set by hand for the review team.
       role: { type: "string", defaultValue: "member", input: false },
+      banned: { type: "boolean", defaultValue: false, input: false },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        // Banning also deletes a person's sessions (admin action); this stops them signing back in.
+        before: async (s) => {
+          const [u] = await db.select({ banned: schema.user.banned }).from(schema.user).where(eq(schema.user.id, s.userId));
+          if (u?.banned) throw new APIError("FORBIDDEN", { message: "This account has been suspended. Call us if you think this is a mistake." });
+        },
+      },
     },
   },
   socialProviders: process.env.GOOGLE_CLIENT_ID

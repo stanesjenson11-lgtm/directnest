@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, serial, smallint, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -10,6 +10,7 @@ export const furnishing = pgEnum("furnishing", ["full", "semi", "none"]);
 export const parking = pgEnum("parking", ["none", "bike", "car"]);
 export const listingStatus = pgEnum("listing_status", ["pending_review", "active", "rented", "expired", "rejected"]);
 export const room = pgEnum("room", ["living", "bedroom", "kitchen", "bathroom", "exterior", "balcony"]);
+export const saleCondition = pgEnum("sale_condition", ["new", "resale"]); // new = from the builder
 
 const now = () => timestamp({ withTimezone: true }).notNull().defaultNow();
 
@@ -50,6 +51,9 @@ export const listings = pgTable(
     balconies: smallint().notNull(),
     amenities: text().array().notNull().default(sql`'{}'::text[]`),
     description: text().notNull(),
+    saleCondition: saleCondition(), // sales only
+    videoUrl: text(), // YouTube link; we embed it rather than host video
+    visitVerifiedAt: timestamp({ withTimezone: true }), // our staff saw the home in person
     ownerVerified: boolean().notNull().default(false),
     proofKey: text(), // private upload; deleted 30 days after review
     riskFlags: text().array().notNull().default(sql`'{}'::text[]`), // e.g. duplicate-photos, for the review queue
@@ -97,6 +101,54 @@ export const uploads = pgTable("uploads", {
   ext: text().notNull(), // proof files keep their type (pdf, jpg)
   createdAt: now(),
 });
+
+const userRef = () =>
+  text()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" });
+const listingRef = () =>
+  text()
+    .notNull()
+    .references(() => listings.id, { onDelete: "cascade" });
+
+/** Every time someone saw an owner's number. Caps scraping and tells owners who's interested. */
+export const contactReveals = pgTable(
+  "contact_reveals",
+  { id: serial().primaryKey(), userId: userRef(), listingId: listingRef(), createdAt: now() },
+  (t) => [index("contact_reveals_user_idx").on(t.userId, t.createdAt), index("contact_reveals_listing_idx").on(t.listingId)],
+);
+
+export const leadKind = pgEnum("lead_kind", ["callback", "visit"]);
+export const leadStatus = pgEnum("lead_status", ["new", "confirmed", "declined", "done"]);
+
+/** A buyer asking the owner to call back, or to visit. The owner answers from their dashboard. */
+export const leads = pgTable(
+  "leads",
+  {
+    id: serial().primaryKey(),
+    listingId: listingRef(),
+    requesterId: userRef(),
+    kind: leadKind().notNull(),
+    preferredDate: date({ mode: "string" }),
+    preferredSlot: text(), // morning | afternoon | evening
+    note: text(),
+    status: leadStatus().notNull().default("new"),
+    createdAt: now(),
+  },
+  (t) => [index("leads_listing_idx").on(t.listingId), index("leads_requester_idx").on(t.requesterId)],
+);
+
+export const savedSearches = pgTable(
+  "saved_searches",
+  { id: serial().primaryKey(), userId: userRef(), query: text().notNull(), label: text().notNull(), createdAt: now() },
+  (t) => [index("saved_searches_user_idx").on(t.userId)],
+);
+
+export const shortlists = pgTable(
+  "shortlists",
+  { userId: userRef(), listingId: listingRef(), createdAt: now() },
+  (t) => [primaryKey({ columns: [t.userId, t.listingId] })],
+);
 
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),

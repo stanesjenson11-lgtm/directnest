@@ -15,6 +15,13 @@
       "when": 1792037296116,
       "tag": "0001_omniscient_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792132739686,
+      "tag": "0002_confused_valkyrie",
+      "breakpoints": true
     }
   ]
 }
