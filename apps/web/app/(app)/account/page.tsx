@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { daysAgo, inr, inrShort } from "@/lib/format";
+import { daysAgo, inr, inrShort, phone as formatPhone } from "@/lib/format";
 import imageLoader from "@/lib/image-loader";
+import { leadsByRequester, leadsForOwner } from "@/lib/leads";
 import { ownerListings } from "@/lib/listings";
+import { SLOTS } from "@/lib/search";
 import { requireUser } from "@/lib/session";
-import { confirmAvailable, markRented } from "./actions";
+import { answer, confirmAvailable, markRented } from "./actions";
 
 export const metadata: Metadata = { title: "Your account | DirectNest", robots: { index: false } };
 
@@ -17,6 +19,25 @@ const STATUS = {
   expired: ["Expired", "bg-danger/10 text-danger"],
   rejected: ["Not approved", "bg-danger/10 text-danger"],
 } as const;
+
+const LEAD = {
+  new: ["New", "bg-indigo/10 text-indigo"],
+  confirmed: ["Confirmed", "bg-verified-wash text-verified"],
+  declined: ["Declined", "bg-surface text-muted"],
+  done: ["Done", "bg-surface text-muted"],
+} as const;
+
+const primary = "h-9 cursor-pointer rounded-full bg-indigo px-4 text-[14px] font-semibold text-canvas hover:bg-indigo-deep";
+const secondary = "h-9 cursor-pointer rounded-full border border-hairline px-4 text-[14px] font-semibold hover:border-muted";
+
+/** "Sat 18 Oct, Evening, 4 to 8" for visits; when it was asked for callbacks. */
+function when(r: { kind: string; preferredDate: string | null; preferredSlot: string | null; createdAt?: Date }) {
+  if (r.kind === "visit" && r.preferredDate) {
+    const day = new Date(`${r.preferredDate}T12:00:00+05:30`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+    return [day, SLOTS.find(([v]) => v === r.preferredSlot)?.[1]].filter(Boolean).join(", ");
+  }
+  return r.createdAt ? `Asked ${daysAgo(Math.floor((Date.now() - r.createdAt.getTime()) / 86_400_000))}` : "";
+}
 
 export default function AccountPage() {
   return (
@@ -30,8 +51,8 @@ export default function AccountPage() {
 
 async function Account() {
   const me = await requireUser("/account");
-  const homes = await ownerListings(me.id);
-  const phone = me.phoneNumber ? `${me.phoneNumber.slice(0, 3)} ${me.phoneNumber.slice(3, 8)} ${me.phoneNumber.slice(8)}` : null;
+  const [homes, incoming, mine] = await Promise.all([ownerListings(me.id), leadsForOwner(me.id), leadsByRequester(me.id)]);
+  const phone = me.phoneNumber ? formatPhone(me.phoneNumber) : null;
 
   return (
     <>
@@ -117,6 +138,86 @@ async function Account() {
           </ul>
         )}
       </section>
+
+      {incoming.length > 0 && (
+        <section aria-labelledby="requests" className="mt-12">
+          <h2 id="requests" className="text-xl font-semibold">
+            Requests from buyers
+          </h2>
+          <ul className="mt-4">
+            {incoming.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-start gap-4 border-t border-hairline py-5">
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${LEAD[r.status][1]}`}>{LEAD[r.status][0]}</span>
+                    <span className="text-[14px] text-muted">{when(r)}</span>
+                  </p>
+                  <p className="mt-1 font-medium">
+                    {r.kind === "visit" ? "Wants to visit " : "Wants a call back about "}
+                    <Link href={`/homes/${r.listingId}`} className="hover:underline">
+                      {r.title}
+                    </Link>
+                  </p>
+                  <p className="mt-0.5 text-[14px] text-muted">
+                    {r.name || "A buyer"},{" "}
+                    {r.phone ? (
+                      <a href={`tel:${r.phone}`} className="font-medium text-indigo tabular-nums hover:underline">
+                        {formatPhone(r.phone)}
+                      </a>
+                    ) : (
+                      "no phone number"
+                    )}
+                  </p>
+                  {r.note && <p className="mt-2 max-w-prose text-[15px] whitespace-pre-line">{r.note}</p>}
+                </div>
+                {(r.status === "new" || (r.status === "confirmed" && r.kind === "visit")) && (
+                  <div className="flex w-full gap-2 sm:w-auto sm:flex-col">
+                    {r.status === "confirmed" ? (
+                      <form action={answer.bind(null, r.id, "done")}>
+                        <button className={secondary}>Visit done</button>
+                      </form>
+                    ) : r.kind === "visit" ? (
+                      <>
+                        <form action={answer.bind(null, r.id, "confirmed")}>
+                          <button className={primary}>Confirm visit</button>
+                        </form>
+                        <form action={answer.bind(null, r.id, "declined")}>
+                          <button className={secondary}>Decline</button>
+                        </form>
+                      </>
+                    ) : (
+                      <form action={answer.bind(null, r.id, "done")}>
+                        <button className={primary}>I called them</button>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {mine.length > 0 && (
+        <section aria-labelledby="asked" className="mt-12">
+          <h2 id="asked" className="text-xl font-semibold">
+            Your requests
+          </h2>
+          <ul className="mt-4">
+            {mine.map((r) => (
+              <li key={r.id} className="border-t border-hairline py-4">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${LEAD[r.status][1]}`}>{r.status === "new" ? "Waiting for the owner" : LEAD[r.status][0]}</span>
+                  <span className="text-[14px] text-muted">{r.kind === "visit" ? `Visit, ${when(r)}` : "Call back"}</span>
+                </p>
+                <Link href={`/homes/${r.listingId}`} className="mt-1 block truncate font-medium hover:underline">
+                  {r.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

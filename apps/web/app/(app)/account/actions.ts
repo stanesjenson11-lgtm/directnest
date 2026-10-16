@@ -3,6 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { db } from "@/lib/db";
+import { answerLead } from "@/lib/leads";
 import { listings } from "@/lib/schema";
 import { requireUser } from "@/lib/session";
 
@@ -27,6 +28,13 @@ export async function markRented(id: string) {
     .where(and(eq(listings.id, id), eq(listings.ownerId, me.id), eq(listings.status, "active")))
     .returning({ id: listings.id });
   if (row) refresh(id);
+}
+
+export async function answer(id: number, status: "confirmed" | "declined" | "done") {
+  const me = await requireUser("/account");
+  // Bound arguments arrive from the browser, so they're checked like any other input.
+  if (!["confirmed", "declined", "done"].includes(status) || !Number.isInteger(id)) return;
+  if (await answerLead(me.id, id, status)) revalidatePath("/account");
 }
 
 function refresh(id: string) {
