@@ -433,7 +433,7 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
             <input name="ownerName" required autoComplete="name" defaultValue={name} className={`${input} sm:max-w-sm`} aria-invalid={!!e.ownerName} />
           </Field>
           <p className="max-w-[60ch] text-[15px] text-muted">
-            {who === "tenant" ? "Tenants" : "Buyers"} who sign in with a verified phone will see your number{phone && <span className="tabular-nums text-ink"> {phone}</span>}. Each person can see only a few numbers a day, and we never show yours to anyone who isn't signed in.
+            {who === "tenant" ? "Tenants" : "Buyers"} who sign in with a verified phone will see your number{phone && <span className="tabular-nums text-ink"> {phone}</span>}. Each person can see only a few numbers a day, and we never show yours to anyone who isn&rsquo;t signed in.
           </p>
         </Section>
 
