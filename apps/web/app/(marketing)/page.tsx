@@ -16,7 +16,7 @@ const STEPS = [
   },
   {
     title: "Go live once a person approves it",
-    body: "Tenants then contact you directly. Your listing stays up for as long as you keep confirming it's available.",
+    body: "Buyers then contact you directly. Your listing stays up for as long as you keep confirming it's available.",
   },
 ];
 
@@ -97,7 +97,7 @@ export default function HomePage() {
                 Post your home in three steps. Free for owners.
               </h2>
               <p className="mt-5 max-w-[46ch] text-muted">
-                No listing fee and no broker calls. Tenants who are serious enough to pay for a plan contact you directly.
+                No listing fee and no broker calls. Buyers sign in with a verified phone number before they see yours.
               </p>
               <div className="relative mt-10 aspect-[4/3] overflow-hidden rounded-xl bg-surface">
                 <div data-parallax className="absolute inset-x-0 -inset-y-[8%]">
