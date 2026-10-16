@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { listings } from "@/lib/schema";
@@ -32,6 +32,16 @@ export async function reject(id: string, form: FormData) {
     .update(listings)
     .set({ status: "rejected", rejectReason: reason, reviewedAt: sql`now()` })
     .where(and(eq(listings.id, id), eq(listings.status, "pending_review")));
+  done(id);
+}
+
+/** Our staff saw the home in person. Works before or after approval; nobody marks their own listing. */
+export async function markVisited(id: string) {
+  const me = await requireAdmin();
+  await db
+    .update(listings)
+    .set({ visitVerifiedAt: sql`now()` })
+    .where(and(eq(listings.id, id), isNull(listings.visitVerifiedAt), ne(listings.ownerId, me.id)));
   done(id);
 }
 

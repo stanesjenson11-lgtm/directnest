@@ -1,5 +1,5 @@
 // The one seam between pages and data. Public queries only ever return active listings and never the private address.
-import { and, asc, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "./db.ts";
 import { LOCALITIES, nearestMetro } from "./places.ts";
 import { listingPhotos, listings, shortlists } from "./schema.ts";
@@ -9,7 +9,7 @@ import type { Listing, SearchParams } from "./search.ts";
 export type Card = Pick<
   Listing,
   "id" | "type" | "title" | "locality" | "area" | "lat" | "lng" | "price" | "maintenance" | "deposit" | "bhk" | "carpetSqft" | "furnishing" | "confirmedDaysAgo" | "sample" | "saleCondition"
-> & { photos: string[]; metro: { name: string; metres: number } };
+> & { photos: string[]; metro: { name: string; metres: number }; visited: boolean };
 
 const daysSince = (col: typeof listings.confirmedAt | typeof listings.createdAt) => sql<number>`(current_date - (${col})::date)`.mapWith(Number);
 const monthly = (type: SearchParams["type"]) => (type === "rent" ? sql`(${listings.price} + ${listings.maintenance})` : sql`${listings.price}`);
@@ -29,6 +29,7 @@ const cardColumns = {
   furnishing: listings.furnishing,
   sample: listings.sample,
   saleCondition: listings.saleCondition,
+  visited: sql<boolean>`(${listings.visitVerifiedAt} is not null)`,
   confirmedDaysAgo: daysSince(listings.confirmedAt),
   // Written qualified on purpose: drizzle renders ${listings.id} as a bare "id", which would bind to p.id here.
   photos: sql<string[]>`coalesce((select array_agg(p.src order by p.position) from ${listingPhotos} p
@@ -173,6 +174,17 @@ export async function pendingListings() {
         extras: (owner) => ({ listingCount: sql<number>`(select count(*) from listings o where o.owner_id = ${owner.id})`.mapWith(Number).as("listing_count") }),
       },
     },
+  });
+}
+
+/** Live homes our staff haven't visited yet, oldest first, with what a visitor needs. Admin pages only. */
+export async function unvisitedListings() {
+  return db.query.listings.findMany({
+    where: and(live, isNull(listings.visitVerifiedAt), eq(listings.sample, false)),
+    columns: { id: true, title: true, addressPrivate: true, createdAt: true },
+    with: { owner: { columns: { name: true, phoneNumber: true } } },
+    orderBy: asc(listings.createdAt),
+    limit: 50,
   });
 }
 

@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { bhkLabel, daysAgo, inr, inrShort, sqft } from "@/lib/format";
 import imageLoader from "@/lib/image-loader";
-import { pendingListings } from "@/lib/listings";
+import { pendingListings, unvisitedListings } from "@/lib/listings";
 import { requireAdmin } from "@/lib/session";
-import { approve, reject } from "./actions";
+import { approve, markVisited, reject } from "./actions";
 import { FLAG_TEXT, REJECT_REASONS } from "./reasons";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+
+const visitButton = "h-11 cursor-pointer rounded-full border border-hairline px-5 font-semibold hover:border-muted";
 
 const ROOM = { living: "Living", bedroom: "Bedroom", kitchen: "Kitchen", bathroom: "Bathroom", exterior: "Building", balcony: "Balcony" };
 
@@ -24,7 +26,7 @@ export default function AdminPage() {
 
 async function Queue() {
   await requireAdmin();
-  const queue = await pendingListings();
+  const [queue, toVisit] = await Promise.all([pendingListings(), unvisitedListings()]);
 
   return (
     <>
@@ -106,6 +108,13 @@ async function Queue() {
           </p>
 
           <div className="mt-6 flex flex-wrap items-end gap-3">
+            {l.visitVerifiedAt ? (
+              <p className="self-center text-[15px] text-verified">Visited {l.visitVerifiedAt.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+            ) : (
+              <form action={markVisited.bind(null, l.id)}>
+                <button className={visitButton}>Mark visited</button>
+              </form>
+            )}
             <form action={approve.bind(null, l.id)}>
               <button className="h-11 cursor-pointer rounded-full bg-verified px-6 font-semibold text-canvas hover:opacity-90">Approve and publish</button>
             </form>
@@ -126,6 +135,30 @@ async function Queue() {
           </div>
         </article>
       ))}
+
+      <section aria-labelledby="to-visit" className="mt-16 border-t border-hairline pt-8">
+        <h2 id="to-visit" className="text-xl font-semibold">
+          Live homes to visit
+        </h2>
+        <p className="mt-1 text-muted">
+          {toVisit.length === 0 ? "Every live home has been visited." : "Mark each one once someone from the team has seen it in person. Buyers see a “Visited by our team” badge."}
+        </p>
+        <ul className="mt-4">
+          {toVisit.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-center gap-4 border-t border-hairline py-4">
+              <div className="min-w-0 flex-1 text-[15px]">
+                <p className="font-medium">{v.title}</p>
+                <p className="text-muted">
+                  {v.addressPrivate}. {v.owner.name || "Owner"}, <span className="tabular-nums">{v.owner.phoneNumber ?? "no phone"}</span>
+                </p>
+              </div>
+              <form action={markVisited.bind(null, v.id)}>
+                <button className={visitButton}>Mark visited</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }
