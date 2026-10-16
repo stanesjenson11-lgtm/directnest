@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/homes/[id]">): Pr
   const price = l.type === "rent" ? `${inr(l.price + l.maintenance)} a month` : inrShort(l.price);
   return {
     title: `${l.title} | ${price} | DirectNest`,
-    description: `${l.description} Listed by its owner, no brokerage.`,
+    description: `${l.description} Listed by its owner and approved by our team.`,
   };
 }
 
@@ -141,7 +141,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
             <h2 id="cost" className="text-xl font-semibold">
               What you&rsquo;ll pay
             </h2>
-            <p className="mt-1 text-muted">Everything, up front. No brokerage and no hidden charges.</p>
+            <p className="mt-1 text-muted">Everything, up front.</p>
             <table className="mt-4 w-full max-w-xl text-left tabular-nums">
               <tbody className="[&_td]:py-2.5 [&_td:last-child]:text-right [&_tr]:border-b [&_tr]:border-hairline">
                 {rent ? (
@@ -167,13 +167,6 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
                       </td>
                       <td>{inr(l.deposit)}</td>
                     </tr>
-                    <tr>
-                      <td>
-                        Brokerage
-                        <span className="block text-[14px] text-muted">A broker usually charges a month&rsquo;s rent, {inr(l.price)}</span>
-                      </td>
-                      <td className="font-semibold text-verified">₹0</td>
-                    </tr>
                     <tr className="font-semibold">
                       <td>To move in (deposit + first month)</td>
                       <td>{inr(l.deposit + monthly)}</td>
@@ -192,15 +185,6 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
                     <tr>
                       <td>Society maintenance</td>
                       <td>{l.maintenance ? `${inr(l.maintenance)} /month` : "None"}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Brokerage
-                        <span className="block text-[14px] text-muted">
-                          Brokers usually charge 1–2%, {inrShort(l.price * 0.01)} to {inrShort(l.price * 0.02)}
-                        </span>
-                      </td>
-                      <td className="font-semibold text-verified">₹0</td>
                     </tr>
                   </>
                 )}

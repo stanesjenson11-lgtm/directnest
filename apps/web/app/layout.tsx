@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { Anek_Latin, Kalam } from "next/font/google";
+import { RENTALS } from "@/lib/search";
 import "./globals.css";
 
 const anek = Anek_Latin({
@@ -19,9 +20,9 @@ const kalam = Kalam({
 });
 
 export const metadata: Metadata = {
-  title: "DirectNest: rent straight from the owner",
+  title: `DirectNest: ${RENTALS ? "rent or buy" : "buy"} straight from verified owners`,
   description:
-    "Homes for rent and sale from verified owners in Bengaluru and across India. A person approves every listing. No brokerage, ever.",
+    `Homes for ${RENTALS ? "rent and sale" : "sale"} from verified owners in Bengaluru. A person approves every listing before it goes live.`,
 };
 
 export const viewport: Viewport = {
