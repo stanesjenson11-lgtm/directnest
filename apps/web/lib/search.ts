@@ -28,6 +28,13 @@ export const FLOORS = [
   ["high", "Above 10th"],
 ] as const;
 
+/** Visit time slots; values are what's stored on a lead. */
+export const SLOTS = [
+  ["morning", "Morning, 9 to 12"],
+  ["afternoon", "Afternoon, 12 to 4"],
+  ["evening", "Evening, 4 to 8"],
+] as const;
+
 export type ListingType = "rent" | "buy";
 export type Furnishing = "full" | "semi" | "none";
 export type Tenant = "family" | "bachelors" | "company";

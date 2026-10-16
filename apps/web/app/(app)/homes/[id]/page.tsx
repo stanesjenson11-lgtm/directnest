@@ -5,6 +5,7 @@ import { Suspense, type ReactNode } from "react";
 import { ContactOwner } from "@/components/listing/contact-owner";
 import { Gallery } from "@/components/listing/gallery";
 import { LocationMap } from "@/components/listing/location-map";
+import { RequestLead } from "@/components/listing/request-lead";
 import { ListingTile } from "@/components/search/listing-tile";
 import { ShortlistButton } from "@/components/shortlist";
 import { bhkLabel, daysAgo, distance, inr, inrShort, sqft } from "@/lib/format";
@@ -115,6 +116,11 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
               <li className="rounded-md bg-surface px-2 py-1 text-muted">Listed {daysAgo(l.listedDaysAgo)}</li>
               {l.sample && <li className="rounded-md bg-surface px-2 py-1 text-muted">Sample listing for the demo</li>}
             </ul>
+            {/* Phones: the aside is hidden, so the two requests sit here; the number stays in the bottom bar. */}
+            <div className="mt-5 grid grid-cols-2 gap-2 lg:hidden">
+              <RequestLead listingId={l.id} owner={l.owner.name} sample={l.sample} kind="visit" />
+              <RequestLead listingId={l.id} owner={l.owner.name} sample={l.sample} kind="callback" />
+            </div>
           </header>
 
           <section aria-labelledby="facts" className="mt-10">
@@ -253,6 +259,10 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
             </p>
             <div className="mt-5 grid gap-2">
               <ContactOwner listingId={l.id} owner={l.owner.name} sample={l.sample} />
+              <div className="grid grid-cols-2 gap-2">
+                <RequestLead listingId={l.id} owner={l.owner.name} sample={l.sample} kind="visit" />
+                <RequestLead listingId={l.id} owner={l.owner.name} sample={l.sample} kind="callback" />
+              </div>
             </div>
             <div className="mt-5 flex items-center gap-3 border-t border-hairline pt-5">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo/10 font-semibold text-indigo">{first[0]}</span>

@@ -1,9 +1,10 @@
-// Runs against the dev database, like listings.test.ts.
+// Getting in touch with owners: number reveals and callback/visit requests. Runs against the dev database, like listings.test.ts.
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { count, eq, inArray } from "drizzle-orm";
 import { db, pool } from "./db.ts";
 import { REVEALS_PER_DAY, revealPhone } from "./contact.ts";
+import { answerLead, createLead, leadSchema, leadsByRequester, leadsForOwner } from "./leads.ts";
 import { contactReveals, listings, user } from "./schema.ts";
 import { SEED } from "./seed.ts";
 
@@ -41,5 +42,34 @@ test("numbers are logged once per listing and capped per day", async () => {
     assert.deepEqual(await revealPhone(viewer, "no-such-home"), { ok: false, reason: "gone" });
   } finally {
     await db.delete(user).where(inArray(user.id, [owner, viewer])); // cascades to listings and reveals
+  }
+});
+
+test("visit requests: validated, one open request each, answered only by the owner", async () => {
+  const t = `test-lead-${Date.now()}`;
+  const [owner, buyer] = [`${t}-owner`, `${t}-buyer`];
+  await db.insert(user).values([
+    { id: owner, name: "Owner", email: `${owner}@test.invalid` },
+    { id: buyer, name: "Buyer", email: `${buyer}@test.invalid`, phoneNumber: `+9197${String(Date.now()).slice(-8)}` },
+  ]);
+  try {
+    await db.insert(listings).values(home(`${t}-a`, owner));
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const visit = { listingId: `${t}-a`, kind: "visit", preferredDate: tomorrow, preferredSlot: "evening" };
+
+    assert.equal(leadSchema.safeParse({ ...visit, preferredDate: "2020-01-01" }).success, false, "no visits in the past");
+    assert.equal(leadSchema.safeParse({ ...visit, preferredSlot: undefined }).success, false);
+    assert.deepEqual(await createLead(buyer, leadSchema.parse(visit)), { ok: true });
+    assert.deepEqual(await createLead(buyer, leadSchema.parse(visit)), { ok: false, reason: "duplicate" });
+    assert.deepEqual(await createLead(owner, leadSchema.parse(visit)), { ok: false, reason: "own" });
+    assert.deepEqual(await createLead(buyer, leadSchema.parse({ ...visit, listingId: SEED[0].id })), { ok: false, reason: "sample" });
+
+    const [lead] = await leadsForOwner(owner);
+    assert.equal(lead.phone?.slice(0, 5), "+9197", "the owner gets the number of someone who asked to be called");
+    assert.equal(await answerLead(buyer, lead.id, "confirmed"), false, "only the owner can answer");
+    assert.equal(await answerLead(owner, lead.id, "confirmed"), true);
+    assert.equal((await leadsByRequester(buyer))[0].status, "confirmed");
+  } finally {
+    await db.delete(user).where(inArray(user.id, [owner, buyer]));
   }
 });
