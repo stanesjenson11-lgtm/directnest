@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { count, eq, inArray } from "drizzle-orm";
 import { db, pool } from "./db.ts";
 import { REVEALS_PER_DAY, revealPhone } from "./contact.ts";
+import { crmLeads, stageCounts, updateCrm } from "./crm.ts";
 import { answerLead, createLead, leadSchema, leadsByRequester, leadsForOwner } from "./leads.ts";
 import { contactReveals, listings, user } from "./schema.ts";
 import { SEED } from "./seed.ts";
@@ -69,6 +70,14 @@ test("visit requests: validated, one open request each, answered only by the own
     assert.equal(await answerLead(buyer, lead.id, "confirmed"), false, "only the owner can answer");
     assert.equal(await answerLead(owner, lead.id, "confirmed"), true);
     assert.equal((await leadsByRequester(buyer))[0].status, "confirmed");
+
+    // The sales team's pipeline sits beside the owner's answer and doesn't change it.
+    const before = await stageCounts();
+    assert.equal(await updateCrm(lead.id, "contacted", "  Called, wants a Sunday visit  "), true);
+    const [crm] = (await crmLeads("contacted")).filter((l) => l.id === lead.id);
+    assert.deepEqual([crm.note, crm.ownerAnswer, crm.buyerPhone?.slice(0, 5)], ["Called, wants a Sunday visit", "confirmed", "+9197"]);
+    const after = await stageCounts();
+    assert.deepEqual([after.new, after.contacted], [before.new - 1, before.contacted + 1]);
   } finally {
     await db.delete(user).where(inArray(user.id, [owner, buyer]));
   }
