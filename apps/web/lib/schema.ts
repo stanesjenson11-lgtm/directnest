@@ -120,6 +120,8 @@ export const contactReveals = pgTable(
 
 export const leadKind = pgEnum("lead_kind", ["callback", "visit"]);
 export const leadStatus = pgEnum("lead_status", ["new", "confirmed", "declined", "done"]);
+// The sales team's own pipeline for each request, separate from the owner's answer above.
+export const crmStage = pgEnum("crm_stage", ["new", "contacted", "visited", "negotiating", "won", "lost"]);
 
 /** A buyer asking the owner to call back, or to visit. The owner answers from their dashboard. */
 export const leads = pgTable(
@@ -133,6 +135,9 @@ export const leads = pgTable(
     preferredSlot: text(), // morning | afternoon | evening
     note: text(),
     status: leadStatus().notNull().default("new"),
+    crmStage: crmStage().notNull().default("new"),
+    crmNote: text(), // staff only; never shown to the buyer or the owner
+    crmUpdatedAt: timestamp({ withTimezone: true }),
     createdAt: now(),
   },
   (t) => [index("leads_listing_idx").on(t.listingId), index("leads_requester_idx").on(t.requesterId)],
