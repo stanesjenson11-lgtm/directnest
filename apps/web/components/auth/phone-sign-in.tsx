@@ -25,6 +25,7 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [check, setCheck] = useState(0); // a Turnstile token works once; a new key remounts the widget for a fresh one
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [pending, start] = useTransition();
@@ -45,6 +46,8 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
           headers: turnstileToken ? { "x-turnstile-token": turnstileToken } : {},
         },
       });
+      setTurnstileToken(null);
+      setCheck((n) => n + 1);
       if (error) return setError(explain(error));
       setStep("code");
       setCooldown(30);
@@ -58,6 +61,8 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
       router.replace(next);
       router.refresh();
     });
+
+  const turnstile = <Turnstile key={check} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />;
 
   return (
     <div className="mx-auto w-full max-w-sm">
@@ -97,7 +102,7 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
               {error}
             </p>
           )}
-          <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />
+          {turnstile}
           <button
             type="submit"
             disabled={pending || !turnstileToken}
@@ -173,9 +178,10 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
           >
             {pending ? "Checking…" : "Sign in"}
           </button>
+          {turnstile}
           <button
             type="button"
-            disabled={cooldown > 0 || pending}
+            disabled={cooldown > 0 || pending || !turnstileToken}
             onClick={send}
             className="mt-3 h-10 w-full cursor-pointer rounded-full text-[15px] font-medium text-indigo disabled:cursor-default disabled:text-muted"
           >
