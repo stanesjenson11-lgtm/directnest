@@ -273,6 +273,18 @@ export const pages = pgTable(
   (t) => [uniqueIndex("pages_kind_slug_idx").on(t.kind, t.slug)],
 );
 
+/** DPDP consent records: logs user acceptance of terms & privacy notices. */
+export const consents = pgTable(
+  "consents",
+  {
+    id: serial().primaryKey(),
+    userId: userRef(),
+    policyVersion: text().notNull().default("2026-10"),
+    consentedAt: now(),
+  },
+  (t) => [index("consents_user_idx").on(t.userId)],
+);
+
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),

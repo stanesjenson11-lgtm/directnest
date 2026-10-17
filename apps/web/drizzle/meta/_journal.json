@@ -71,6 +71,13 @@
       "when": 1792236963349,
       "tag": "0009_famous_joshua_kane",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792240657267,
+      "tag": "0010_moaning_liz_osborn",
+      "breakpoints": true
     }
   ]
 }
