@@ -5,6 +5,7 @@ const PAGES = [
   ["/admin/leads", "Sales leads"],
   ["/admin/support", "Support"],
   ["/admin/users", "Users"],
+  ["/admin/projects", "Projects"],
   ["/admin/plans", "Plans"],
   ["/admin/pages", "Blog and areas"],
   ["/admin/import", "Import"],

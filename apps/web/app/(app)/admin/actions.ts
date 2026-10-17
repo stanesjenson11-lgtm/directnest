@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
 import { readPage, savePage } from "@/lib/pages";
 import { featureListing, readPlan, savePlan } from "@/lib/plans";
+import { readProject, saveProject, setUnits, unitIds } from "@/lib/projects";
 import { notify } from "@/lib/notify";
 import { savedSearchMatches } from "@/lib/saved";
 import { listings } from "@/lib/schema";
@@ -132,6 +133,20 @@ export async function savePageAction(id: number | null, _: AdminFormState, form:
   updateTag("pages");
   revalidatePath("/admin/pages");
   return { ok: r.page.published ? "Saved and live." : "Saved as a draft." };
+}
+
+/** Creates or edits a builder project and sets its units. Listing pages show the project, so their caches refresh too. */
+export async function saveProjectAction(id: string | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
+  await requireAdmin();
+  const r = readProject(form);
+  if ("error" in r) return r;
+  const projectId = await saveProject(id ? String(id) : null, r.project);
+  const before = await unitIds(projectId);
+  const unknown = await setUnits(projectId, String(form.get("units") ?? ""));
+  for (const u of new Set([...before, ...(await unitIds(projectId))])) updateTag(`listing:${u}`);
+  updateTag("projects");
+  revalidatePath("/admin/projects");
+  return unknown.length ? { error: `Saved, but these aren't sale listings here: ${unknown.join(", ")}` } : { ok: r.project.published ? "Saved and live." : "Saved as a draft." };
 }
 
 function done(id: string) {
