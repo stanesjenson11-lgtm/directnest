@@ -1,10 +1,10 @@
 // Runs against the dev database.
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { deleteAccount, latestConsent, recordConsent } from "./account.ts";
 import { db, pool } from "./db.ts";
-import { consents, listings, notifications, savedSearches, uploads, user } from "./schema.ts";
+import { auditLogs, consents, listings, notifications, savedSearches, uploads, user } from "./schema.ts";
 import { SEED } from "./seed.ts";
 
 after(() => pool.end());
@@ -66,7 +66,11 @@ test("DPDP: consent is recorded with timestamp and version, and account deletion
 
     const userConsents = await db.select().from(consents).where(eq(consents.userId, t));
     assert.equal(userConsents.length, 0, "consents are cascade deleted");
+
+    const [log] = await db.select().from(auditLogs).where(and(eq(auditLogs.action, "ACCOUNT_DELETED"), eq(auditLogs.targetId, t)));
+    assert.ok(log, "the audit log still says whose account was deleted");
   } finally {
+    await db.delete(auditLogs).where(eq(auditLogs.targetId, t));
     await db.delete(user).where(inArray(user.id, [t]));
   }
 });

@@ -28,7 +28,7 @@ export async function latestConsent(userId: string) {
 
 /**
  * Permanently deletes a user's account and all their personal data.
- * Purges uploaded photos and documents from disk, then deletes the user row.
+ * Deletes the user row, then purges their uploaded photos and documents from disk.
  * Postgres cascades the deletion across sessions, listings, chats, tickets, leads, and alerts.
  */
 export async function deleteAccount(userId: string): Promise<{ ok: boolean; deletedListings: string[] }> {
@@ -36,10 +36,12 @@ export async function deleteAccount(userId: string): Promise<{ ok: boolean; dele
   const listingIds = userListings.map((l) => l.id);
 
   const userUploads = await db.select({ key: uploads.key, kind: uploads.kind, ext: uploads.ext }).from(uploads).where(eq(uploads.ownerId, userId));
+  await db.delete(user).where(eq(user.id, userId));
+  // Files go only once the rows are gone, so a failed delete never leaves listings with missing photos.
   await Promise.all(userUploads.map((u) => deleteMediaFile(u.key, u.kind, u.ext)));
 
-  await logAuditEvent("ACCOUNT_DELETED", { userId, details: { deletedListingsCount: listingIds.length } });
-  await db.delete(user).where(eq(user.id, userId));
+  // The user row is gone, so the id lives in targetId (userId would be a dangling foreign key).
+  await logAuditEvent("ACCOUNT_DELETED", { targetId: userId, details: { deletedListingsCount: listingIds.length } });
 
   return { ok: true, deletedListings: listingIds };
 }
