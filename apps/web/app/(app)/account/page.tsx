@@ -96,9 +96,14 @@ async function Account() {
             Your homes
           </h2>
           {homes.length > 0 && (
-            <Link href="/post" className="text-[15px] font-medium text-indigo hover:underline">
-              Post another home
-            </Link>
+            <span className="flex gap-4">
+              <Link href="/plans" className="text-[15px] font-medium text-indigo hover:underline">
+                Get more buyers
+              </Link>
+              <Link href="/post" className="text-[15px] font-medium text-indigo hover:underline">
+                Post another home
+              </Link>
+            </span>
           )}
         </div>
 
