@@ -1,6 +1,7 @@
 // Support tickets: one person and the team, in a thread. Staff see every ticket; everyone else only their own.
 import { aliasedTable, and, asc, count, desc, eq, gt, sql } from "drizzle-orm";
 import { db } from "./db.ts";
+import { notify } from "./notify.ts";
 import { listings, ticketMessages, tickets, user } from "./schema.ts";
 
 export { isTopic, TICKET_STATUS, TOPICS, topicLabel, type Topic } from "./support-topics.ts";
@@ -73,6 +74,7 @@ export async function replyToTicket(ticketId: number, viewer: { id: string; staf
       .set({ status: fromStaff ? "answered" : "open", updatedAt: sql`now()` })
       .where(eq(tickets.id, ticketId));
   });
+  if (fromStaff) await notify(t.userId, "Our team replied to your support request", `/help/${ticketId}`);
   return { ok: true };
 }
 

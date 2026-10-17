@@ -213,6 +213,12 @@ export async function photosUsedElsewhere(hashes: bigint[], ownerId: string, max
   return !!row;
 }
 
+/** Whether a home is among a search's results. Same conditions as the search itself. */
+export async function listingMatches(p: SearchParams, listingId: string) {
+  const [row] = await db.select({ id: listings.id }).from(listings).where(and(conditions(p), eq(listings.id, listingId))).limit(1);
+  return !!row;
+}
+
 export async function listingIds() {
   const rows = await db.select({ id: listings.id }).from(listings).where(live);
   return rows.map((r) => r.id);

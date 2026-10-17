@@ -4,7 +4,8 @@ import { z } from "zod";
 import { db } from "./db.ts";
 import { live } from "./listings.ts";
 import { leads, listings, user } from "./schema.ts";
-import { SLOTS } from "./search.ts";
+import { notify } from "./notify.ts";
+import { SLOTS, visitTime } from "./search.ts";
 
 // ponytail: a fixed daily cap per person against spam, until abuse says otherwise.
 export const LEADS_PER_DAY = 10;
@@ -30,7 +31,7 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export type LeadResult = { ok: true } | { ok: false; reason: "gone" | "sample" | "own" | "duplicate" | "limit" };
 
 export async function createLead(requesterId: string, d: LeadInput): Promise<LeadResult> {
-  const [l] = await db.select({ ownerId: listings.ownerId, sample: listings.sample }).from(listings).where(and(eq(listings.id, d.listingId), live));
+  const [l] = await db.select({ ownerId: listings.ownerId, sample: listings.sample, title: listings.title }).from(listings).where(and(eq(listings.id, d.listingId), live));
   if (!l) return { ok: false, reason: "gone" };
   if (l.sample) return { ok: false, reason: "sample" };
   if (l.ownerId === requesterId) return { ok: false, reason: "own" };
@@ -45,6 +46,13 @@ export async function createLead(requesterId: string, d: LeadInput): Promise<Lea
   if (n >= LEADS_PER_DAY) return { ok: false, reason: "limit" };
 
   await db.insert(leads).values({ ...d, requesterId, note: d.note || null });
+  const [me] = await db.select({ name: user.name }).from(user).where(eq(user.id, requesterId));
+  const who = me?.name || "A buyer";
+  await notify(
+    l.ownerId,
+    d.kind === "visit" ? `${who} wants to visit ${l.title} on ${visitTime(d.preferredDate ?? null, d.preferredSlot ?? null)}` : `${who} asked you to call back about ${l.title}`,
+    "/account#requests",
+  );
   return { ok: true };
 }
 
@@ -89,6 +97,11 @@ export async function answerLead(ownerId: string, id: number, status: "confirmed
     .update(leads)
     .set({ status })
     .where(and(eq(leads.id, id), sql`${leads.listingId} in (select id from listings where owner_id = ${ownerId})`))
-    .returning({ id: leads.id });
+    .returning({ requesterId: leads.requesterId, kind: leads.kind, listingId: leads.listingId });
+  if (row && status !== "done") {
+    const [l] = await db.select({ title: listings.title }).from(listings).where(eq(listings.id, row.listingId));
+    const what = row.kind === "visit" ? "visit to" : "callback request about";
+    await notify(row.requesterId, `The owner ${status === "confirmed" ? "confirmed" : "declined"} your ${what} ${l.title}`, `/homes/${row.listingId}`);
+  }
   return !!row;
 }

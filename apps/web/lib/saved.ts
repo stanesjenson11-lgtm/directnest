@@ -1,11 +1,12 @@
 // Per-person lists kept in the database: shortlisted homes and saved searches.
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db.ts";
+import { listingMatches } from "./listings.ts";
 import { parseSearch } from "./parse-search.ts";
 import { savedSearches, shortlists } from "./schema.ts";
 import { describeSearch, toQuery } from "./search.ts";
 
-// ponytail: a flat cap keeps the list readable; alerts for new matches arrive with WhatsApp.
+// ponytail: a flat cap keeps the list readable. New matches are announced by savedSearchMatches when a home is approved.
 export const MAX_SAVED_SEARCHES = 20;
 
 export async function shortlistIds(userId: string) {
@@ -33,6 +34,18 @@ export async function saveSearch(userId: string, raw: string): Promise<{ ok: tru
   if (n >= MAX_SAVED_SEARCHES) return { ok: false, reason: "full" };
   await db.insert(savedSearches).values({ userId, query, label: describeSearch(p) });
   return { ok: true };
+}
+
+/** People whose saved searches include this home, with the search's name; one entry per person, never the owner. */
+export async function savedSearchMatches(listingId: string, ownerId: string) {
+  // ponytail: checks every saved search one by one; fine for thousands, batch it by locality if it grows past that.
+  const all = await db.select({ userId: savedSearches.userId, query: savedSearches.query, label: savedSearches.label }).from(savedSearches);
+  const found = new Map<string, string>();
+  for (const s of all) {
+    if (s.userId === ownerId || found.has(s.userId)) continue;
+    if (await listingMatches(parseSearch(Object.fromEntries(new URLSearchParams(s.query))), listingId)) found.set(s.userId, s.label);
+  }
+  return [...found].map(([userId, label]) => ({ userId, label }));
 }
 
 export async function savedSearchList(userId: string) {
