@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -55,6 +55,7 @@ export const listings = pgTable(
     videoUrl: text(), // YouTube link; we embed it rather than host video
     visitVerifiedAt: timestamp({ withTimezone: true }), // our staff saw the home in person
     featuredUntil: timestamp({ withTimezone: true }), // shown first, with a "Featured" badge, until then
+    projectId: text().references((): AnyPgColumn => projects.id, { onDelete: "set null" }), // a unit of a builder's project
     ownerVerified: boolean().notNull().default(false),
     proofKey: text(), // private upload; deleted 30 days after review
     riskFlags: text().array().notNull().default(sql`'{}'::text[]`), // e.g. duplicate-photos, for the review queue
@@ -72,6 +73,19 @@ export const listings = pgTable(
     index("listings_owner_idx").on(t.ownerId),
   ],
 );
+
+/** A builder's project. Its units are ordinary sale listings (condition "new") that point here. */
+export const projects = pgTable("projects", {
+  id: text().primaryKey(), // slug, e.g. prestige-lakeside-whitefield
+  name: text().notNull(),
+  builder: text().notNull(),
+  rera: text().notNull(), // Karnataka RERA registration number, shown on the page as the law expects
+  possession: date({ mode: "string" }), // expected handover; null = ready
+  locality: text().notNull(),
+  description: text().notNull(),
+  published: boolean().notNull().default(false),
+  createdAt: now(),
+});
 
 export const listingPhotos = pgTable(
   "listing_photos",
@@ -262,6 +276,7 @@ export const pages = pgTable(
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),
+  project: one(projects, { fields: [listings.projectId], references: [projects.id] }),
 }));
 
 export const listingPhotosRelations = relations(listingPhotos, ({ one }) => ({
