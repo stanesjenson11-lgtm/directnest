@@ -13,6 +13,12 @@ export function AppFooter() {
         <Link href="/plans" className="hover:text-ink hover:underline">
           Plans for owners
         </Link>
+        <Link href="/areas" className="hover:text-ink hover:underline">
+          Area guides
+        </Link>
+        <Link href="/blog" className="hover:text-ink hover:underline">
+          Blog
+        </Link>
         {support && (
           <a href={`tel:${support}`} className="tabular-nums hover:text-ink">
             Call {phone(support)}
