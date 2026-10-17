@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -148,6 +148,36 @@ export const shortlists = pgTable(
   "shortlists",
   { userId: userRef(), listingId: listingRef(), createdAt: now() },
   (t) => [primaryKey({ columns: [t.userId, t.listingId] })],
+);
+
+/** One chat per buyer and listing. The read markers say up to when each side has seen the thread. */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: serial().primaryKey(),
+    listingId: listingRef(),
+    buyerId: userRef(),
+    ownerId: userRef(),
+    buyerReadAt: now(),
+    ownerReadAt: now(),
+    lastMessageAt: now(),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex("conversations_listing_buyer_idx").on(t.listingId, t.buyerId), index("conversations_owner_idx").on(t.ownerId, t.lastMessageAt)],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: serial().primaryKey(),
+    conversationId: integer()
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderId: userRef(),
+    body: text().notNull(),
+    createdAt: now(),
+  },
+  (t) => [index("messages_conversation_idx").on(t.conversationId, t.id), index("messages_sender_idx").on(t.senderId, t.createdAt)],
 );
 
 export const listingsRelations = relations(listings, ({ one, many }) => ({
