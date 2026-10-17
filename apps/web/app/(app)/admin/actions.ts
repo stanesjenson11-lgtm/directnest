@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
 import { readPage, savePage } from "@/lib/pages";
 import { featureListing, readPlan, savePlan } from "@/lib/plans";
+import { notify } from "@/lib/notify";
+import { savedSearchMatches } from "@/lib/saved";
 import { listings } from "@/lib/schema";
 import { requireAdmin } from "@/lib/session";
 import { REJECT_REASONS } from "./reasons";
@@ -15,7 +17,7 @@ import { REJECT_REASONS } from "./reasons";
 // Both only touch listings still pending, so two reviewers can't double-decide one listing.
 export async function approve(id: string) {
   const me = await requireAdmin();
-  await db
+  const [row] = await db
     .update(listings)
     .set({
       status: "active",
@@ -25,19 +27,26 @@ export async function approve(id: string) {
       expiresAt: sql`now() + interval '30 days'`,
     })
     // A reviewer can never approve their own listing.
-    .where(and(eq(listings.id, id), eq(listings.status, "pending_review"), ne(listings.ownerId, me.id)));
+    .where(and(eq(listings.id, id), eq(listings.status, "pending_review"), ne(listings.ownerId, me.id)))
+    .returning({ ownerId: listings.ownerId, title: listings.title });
   done(id);
+  if (!row) return;
+  await notify(row.ownerId, `Your home is live: ${row.title}`, `/homes/${id}`);
+  // Everyone whose saved search now includes this home hears about it once.
+  for (const m of await savedSearchMatches(id, row.ownerId)) await notify(m.userId, `New home for your search "${m.label}": ${row.title}`, `/homes/${id}`);
 }
 
 export async function reject(id: string, form: FormData) {
   await requireAdmin();
   const reason = String(form.get("reason"));
   if (!(REJECT_REASONS as readonly string[]).includes(reason)) return;
-  await db
+  const [row] = await db
     .update(listings)
     .set({ status: "rejected", rejectReason: reason, reviewedAt: sql`now()` })
-    .where(and(eq(listings.id, id), eq(listings.status, "pending_review")));
+    .where(and(eq(listings.id, id), eq(listings.status, "pending_review")))
+    .returning({ ownerId: listings.ownerId, title: listings.title });
   done(id);
+  if (row) await notify(row.ownerId, `${row.title} wasn't approved: ${reason}. You can fix it and post it again.`, "/account");
 }
 
 /** Our staff saw the home in person. Works before or after approval; nobody marks their own listing. */
