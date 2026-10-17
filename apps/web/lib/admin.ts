@@ -1,3 +1,4 @@
+// Staff tools for people: find them, and ban or unban. Admin pages only.
 import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
 import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";

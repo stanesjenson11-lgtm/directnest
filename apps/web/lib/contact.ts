@@ -1,3 +1,4 @@
+// The only way an owner's number leaves the server: to a signed-in person, logged, and capped per day against scraping.
 import { and, count, eq, gt, sql } from "drizzle-orm";
 import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
