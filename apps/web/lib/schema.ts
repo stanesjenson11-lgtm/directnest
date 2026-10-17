@@ -185,6 +185,40 @@ export const messages = pgTable(
   (t) => [index("messages_conversation_idx").on(t.conversationId, t.id), index("messages_sender_idx").on(t.senderId, t.createdAt)],
 );
 
+export const ticketTopic = pgEnum("ticket_topic", ["account", "listing", "report", "other"]);
+// open = waiting on the team, answered = waiting on the person, closed = done (a new message reopens it)
+export const ticketStatus = pgEnum("ticket_status", ["open", "answered", "closed"]);
+
+/** A support conversation between one person and the team. */
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: serial().primaryKey(),
+    userId: userRef(),
+    topic: ticketTopic().notNull(),
+    listingId: text().references(() => listings.id, { onDelete: "set null" }),
+    status: ticketStatus().notNull().default("open"),
+    createdAt: now(),
+    updatedAt: now(),
+  },
+  (t) => [index("tickets_user_idx").on(t.userId), index("tickets_status_idx").on(t.status, t.updatedAt)],
+);
+
+export const ticketMessages = pgTable(
+  "ticket_messages",
+  {
+    id: serial().primaryKey(),
+    ticketId: integer()
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    authorId: userRef(),
+    fromStaff: boolean().notNull().default(false),
+    body: text().notNull(),
+    createdAt: now(),
+  },
+  (t) => [index("ticket_messages_ticket_idx").on(t.ticketId, t.id)],
+);
+
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),
