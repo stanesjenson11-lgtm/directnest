@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 declare global {
   interface Window {
@@ -34,15 +34,20 @@ export function Turnstile({ onVerify, onExpire, onError, className }: TurnstileP
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  // Effect events read the latest callbacks, so a parent re-render (a keystroke) doesn't rebuild the widget.
+  const verified = useEffectEvent((token: string) => onVerify(token));
+  const expired = useEffectEvent(() => onExpire?.());
+  const failed = useEffectEvent((err: unknown) => onError?.(err));
 
   useEffect(() => {
     // If no site key is configured, pass dev bypass token automatically so developers are never stuck
     if (!siteKey) {
-      onVerify("dev-turnstile-bypass");
+      verified("dev-turnstile-bypass");
       return;
     }
 
     let isMounted = true;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     function renderWidget() {
       if (!isMounted || !containerRef.current || !window.turnstile || !siteKey) return;
@@ -52,13 +57,13 @@ export function Turnstile({ onVerify, onExpire, onError, className }: TurnstileP
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           callback: (token) => {
-            if (isMounted) onVerify(token);
+            if (isMounted) verified(token);
           },
           "expired-callback": () => {
-            if (isMounted && onExpire) onExpire();
+            if (isMounted) expired();
           },
           "error-callback": (err) => {
-            if (isMounted && onError) onError(err);
+            if (isMounted) failed(err);
           },
           theme: "auto",
           size: "normal",
@@ -80,18 +85,18 @@ export function Turnstile({ onVerify, onExpire, onError, className }: TurnstileP
         script.onload = () => renderWidget();
         document.head.appendChild(script);
       } else {
-        const interval = setInterval(() => {
+        interval = setInterval(() => {
           if (window.turnstile) {
             clearInterval(interval);
             renderWidget();
           }
         }, 100);
-        return () => clearInterval(interval);
       }
     }
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -99,7 +104,7 @@ export function Turnstile({ onVerify, onExpire, onError, className }: TurnstileP
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify, onExpire, onError]);
+  }, [siteKey]);
 
   if (!siteKey) return null;
 
