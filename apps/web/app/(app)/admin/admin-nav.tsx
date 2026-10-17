@@ -3,6 +3,7 @@ import Link from "next/link";
 const PAGES = [
   ["/admin", "Review queue"],
   ["/admin/leads", "Sales leads"],
+  ["/admin/support", "Support"],
   ["/admin/users", "Users"],
   ["/admin/import", "Import"],
 ] as const;
