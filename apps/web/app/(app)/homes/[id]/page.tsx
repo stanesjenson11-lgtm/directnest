@@ -307,6 +307,9 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
               <ShortlistButton id={l.id} title={l.title} onLight className="ml-auto bg-surface hover:bg-hairline" />
             </div>
             <p className="mt-4 text-[13px] text-muted">Your number stays private. Owners never see it unless you call them.</p>
+            <Link href={`/help?topic=report&listing=${encodeURIComponent(l.id)}`} className="mt-2 inline-block text-[13px] text-muted underline hover:text-ink">
+              Report this listing
+            </Link>
           </div>
         </aside>
       </div>

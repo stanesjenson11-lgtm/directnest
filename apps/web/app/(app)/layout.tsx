@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AppFooter } from "@/components/app-footer";
 import { AppHeader } from "@/components/app-header";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -6,6 +7,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <AppHeader />
       {children}
+      <AppFooter />
     </>
   );
 }
