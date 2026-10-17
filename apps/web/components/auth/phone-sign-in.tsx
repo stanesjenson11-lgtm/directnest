@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
+import { Turnstile } from "./turnstile";
 
 type AuthError = { code?: string; status?: number; message?: string };
 
@@ -12,6 +13,7 @@ function explain(e: AuthError) {
   if (e.code === "OTP_EXPIRED") return "That code has expired. Send a new one.";
   if (e.code === "TOO_MANY_ATTEMPTS") return "Too many wrong codes. Send a new one.";
   if (e.code === "INVALID_PHONE_NUMBER") return "Enter a 10-digit Indian mobile number.";
+  if (e.code === "BOT_DETECTED" || e.status === 403) return "Security verification failed. Please try again.";
   return e.message || "Something went wrong. Try again.";
 }
 
@@ -22,6 +24,7 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [pending, start] = useTransition();
@@ -36,7 +39,12 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
   const send = () =>
     start(async () => {
       setError(null);
-      const { error } = await authClient.phoneNumber.sendOtp({ phoneNumber: e164 });
+      const { error } = await authClient.phoneNumber.sendOtp({
+        phoneNumber: e164,
+        fetchOptions: {
+          headers: turnstileToken ? { "x-turnstile-token": turnstileToken } : {},
+        },
+      });
       if (error) return setError(explain(error));
       setStep("code");
       setCooldown(30);
@@ -89,9 +97,10 @@ export function PhoneSignIn({ next, google, dev }: { next: string; google: boole
               {error}
             </p>
           )}
+          <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !turnstileToken}
             className="mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas transition-colors hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70"
           >
             {pending ? "Sending…" : "Send code"}
