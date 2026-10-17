@@ -15,7 +15,20 @@ export function inrShort(n: number) {
 /** +919845012345 → +91 98450 12345 */
 export const phone = (n: string) => n.replace(/^\+91(\d{5})(\d{5})$/, "+91 $1 $2");
 
-export const sqft =(n: number) => `${n.toLocaleString("en-IN")} sq ft`;
+/** The 11-character video id from any common YouTube link (watch, youtu.be, shorts, embed, live), or null. */
+export function youtubeId(link: string) {
+  try {
+    const u = new URL(link);
+    const host = u.hostname.replace(/^(www|m)\./, "");
+    const id =
+      host === "youtu.be" ? u.pathname.slice(1) : ["youtube.com", "youtube-nocookie.com"].includes(host) ? (u.searchParams.get("v") ?? u.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/)?.[1]) : null;
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export const sqft = (n: number) => `${n.toLocaleString("en-IN")} sq ft`;
 
 export const bhkLabel = (bhk: number) => (bhk === 0 ? "1 RK" : `${bhk} BHK`);
 
