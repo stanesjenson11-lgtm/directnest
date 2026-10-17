@@ -1,7 +1,11 @@
 "use server";
 
 import { and, eq, sql } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
+import { deleteAccount } from "@/lib/account";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { answerLead } from "@/lib/leads";
 import { listings, user } from "@/lib/schema";
@@ -75,4 +79,23 @@ export async function removeSavedSearch(id: number) {
 function refresh(id: string) {
   updateTag(`listing:${id}`); // the public page drops a rented listing straight away
   revalidatePath("/account");
+}
+
+/**
+ * Permanently deletes the signed-in person's account, listings, uploads and personal data.
+ * Clears better-auth session cookies and redirects home.
+ */
+export async function deleteMyAccount() {
+  const me = await requireUser("/account");
+  const { deletedListings } = await deleteAccount(me.id);
+  for (const id of deletedListings) updateTag(`listing:${id}`);
+  updateTag("search");
+  try {
+    await auth.api.signOut({ headers: await headers() });
+  } catch {}
+  const store = await cookies();
+  for (const c of store.getAll()) {
+    if (c.name.includes("better-auth")) store.delete(c.name);
+  }
+  redirect("/");
 }

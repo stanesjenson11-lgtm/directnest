@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ListingTile } from "@/components/search/listing-tile";
 import { daysAgo, inr, inrShort, phone as formatPhone } from "@/lib/format";
@@ -292,6 +293,18 @@ async function Account() {
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="privacy" className="mt-16 border-t border-hairline pt-8">
+        <h2 id="privacy" className="text-[15px] font-semibold text-muted">
+          Privacy and data
+        </h2>
+        <p className="mt-1 text-[13px] text-muted">
+          Your personal data is handled under India&rsquo;s Digital Personal Data Protection Act. You have the right to erase your account and associated listings, chats, and records at any time.
+        </p>
+        <div className="mt-4">
+          <DeleteAccountButton />
+        </div>
+      </section>
     </>
   );
 }
