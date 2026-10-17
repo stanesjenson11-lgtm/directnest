@@ -1,6 +1,6 @@
 // Uploaded photos and ownership proofs. Server only.
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -75,3 +75,12 @@ export function hamming(a: bigint, b: bigint) {
 
 /** Two photos this close are the same picture. Postgres runs the same test with bit_count over the XOR. */
 export const SAME_PHOTO = 6;
+
+/** Deletes an uploaded photo or proof document from storage. */
+export async function deleteMediaFile(key: string, kind: "photo" | "proof", ext = "jpg") {
+  if (kind === "photo") {
+    await Promise.all(WIDTHS.map((w) => unlink(join(MEDIA_DIR, "public", `${key}-${w}.webp`)).catch(() => {})));
+  } else {
+    await unlink(join(MEDIA_DIR, "private", `${key}.${ext}`)).catch(() => {});
+  }
+}
