@@ -89,6 +89,7 @@ export interface Listing {
   saleCondition?: "new" | "resale" | null;
   videoUrl?: string | null;
   visitVerifiedAt?: Date | null;
+  project?: { id: string; name: string; builder: string; rera: string } | null; // a unit of a builder's project
 }
 
 export const SORTS = ["relevant", "newest", "price-asc", "price-desc"] as const;

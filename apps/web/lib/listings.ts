@@ -132,10 +132,11 @@ export async function getListing(id: string): Promise<Listing | undefined> {
     with: {
       photos: { columns: { src: true, room: true, credit: true }, orderBy: asc(listingPhotos.position) },
       owner: { columns: { name: true } },
+      project: { columns: { id: true, name: true, builder: true, rera: true, published: true } },
     },
   });
   if (!row) return undefined;
-  const { location, owner, ownerVerified, photos, ...rest } = row;
+  const { location, owner, ownerVerified, photos, project, ...rest } = row;
   return {
     ...rest,
     lng: location.x,
@@ -143,6 +144,7 @@ export async function getListing(id: string): Promise<Listing | undefined> {
     tenants: rest.tenants as Listing["tenants"],
     photos: photos.map((ph) => ({ ...ph, credit: ph.credit ?? "" })),
     owner: { name: owner.name, verified: ownerVerified },
+    project: project?.published ? { id: project.id, name: project.name, builder: project.builder, rera: project.rera } : null,
   };
 }
 
@@ -211,6 +213,12 @@ export async function photosUsedElsewhere(hashes: bigint[], ownerId: string, max
     )
     .limit(1);
   return !!row;
+}
+
+/** A builder project's live units, cheapest first. */
+export async function projectCards(projectId: string): Promise<Card[]> {
+  const rows = await db.select(cardColumns).from(listings).where(and(live, eq(listings.projectId, projectId))).orderBy(asc(listings.price));
+  return rows.map(toCard);
 }
 
 /** Whether a home is among a search's results. Same conditions as the search itself. */
