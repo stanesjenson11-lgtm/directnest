@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 type AuthError = { code?: string; status?: number; message?: string };
 
 function explain(e: AuthError) {
-  if (e.status === 429) return "Too many tries from this number. Wait a few minutes and try again.";
+  // 429 is the per-connection limit in lib/auth.ts, so it isn't about the number typed.
   if (e.code === "INVALID_OTP") return "That code doesn't match. Check the SMS and try again.";
   if (e.code === "OTP_EXPIRED") return "That code has expired. Send a new one.";
   if (e.code === "TOO_MANY_ATTEMPTS") return "Too many wrong codes. Send a new one.";
