@@ -3,6 +3,7 @@ import Link from "next/link";
 const PAGES = [
   ["/admin", "Review queue"],
   ["/admin/users", "Users"],
+  ["/admin/import", "Import"],
 ] as const;
 
 export function AdminNav({ current }: { current: (typeof PAGES)[number][0] }) {
