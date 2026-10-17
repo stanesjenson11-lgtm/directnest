@@ -118,6 +118,15 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
             <p className="mt-1 text-muted">
               {l.area}, {l.locality}, Bengaluru
             </p>
+            {l.project && (
+              <p className="mt-1 text-[15px]">
+                Part of{" "}
+                <Link href={`/projects/${l.project.id}`} className="font-medium text-indigo hover:underline">
+                  {l.project.name}
+                </Link>{" "}
+                by {l.project.builder} <span className="text-muted tabular-nums">· RERA {l.project.rera}</span>
+              </p>
+            )}
             <ul className="mt-4 flex flex-wrap gap-2 text-[14px] font-medium">
               <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Owner verified</li>
               {l.visitVerifiedAt && <li className="rounded-md bg-verified-wash px-2 py-1 text-verified">Visited by our team</li>}

@@ -13,6 +13,9 @@ export function AppFooter() {
         <Link href="/plans" className="hover:text-ink hover:underline">
           Plans for owners
         </Link>
+        <Link href="/projects" className="hover:text-ink hover:underline">
+          New projects
+        </Link>
         <Link href="/areas" className="hover:text-ink hover:underline">
           Area guides
         </Link>
