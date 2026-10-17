@@ -26,7 +26,7 @@ export function RequestLead({ listingId, owner, sample, kind }: { listingId: str
         onClick={() => dialog.current?.showModal()}
         className="h-11 w-full cursor-pointer rounded-full border border-hairline px-4 text-[15px] font-semibold transition-colors duration-150 ease-out-quint hover:border-muted"
       >
-        {kind === "visit" ? "Schedule a visit" : "Request a callback"}
+        {kind === "visit" ? "Schedule a visit" : "Call me back"}
       </button>
       <dialog ref={dialog} aria-labelledby={`${id}-title`} className="m-auto w-[min(92vw,460px)] rounded-2xl bg-canvas p-6 text-ink shadow-2xl backdrop:bg-ink/40">
         <h2 id={`${id}-title`} className="text-xl font-semibold">
