@@ -5,12 +5,12 @@ import { and, count, eq, gt, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { bhkLabel } from "@/lib/format";
+import { bhkLabel, youtubeId } from "@/lib/format";
 import { photosUsedElsewhere } from "@/lib/listings";
 import { SAME_PHOTO } from "@/lib/media";
 import { LOCALITIES } from "@/lib/places";
 import { listingPhotos, listings, uploads, user } from "@/lib/schema";
-import { RENTALS } from "@/lib/search";
+import { AMENITIES, RENTALS } from "@/lib/search";
 import { requireUser } from "@/lib/session";
 
 const money = z.coerce.number().int().min(0).max(1_000_000_000);
@@ -27,6 +27,16 @@ const listingSchema = z
     totalFloors: z.coerce.number().int().min(1).max(80),
     facing: z.string().min(1),
     furnishing: z.enum(["full", "semi", "none"]),
+    saleCondition: z.enum(["new", "resale"]).optional(),
+    bathrooms: z.coerce.number().int().min(1, "Add at least one bathroom").max(10),
+    balconies: z.coerce.number().int().min(0).max(10),
+    videoUrl: z
+      .string()
+      .trim()
+      .max(300)
+      .transform((v) => (v ? youtubeId(v) : ""))
+      .refine((v) => v !== null, "Paste a YouTube link, like https://youtu.be/…")
+      .optional(),
     ageYears: z.coerce.number().int().min(0).max(100),
     locality: z.string().trim().min(2, "Tell us the locality").max(80),
     area: z.string().trim().min(2, "Add the block, sector or street").max(120),
@@ -42,7 +52,7 @@ const listingSchema = z
     pets: z.enum(["yes", "no"]),
     food: z.enum(["any", "veg"]),
     parking: z.enum(["none", "bike", "car"]),
-    amenities: z.array(z.string().max(60)).max(30),
+    amenities: z.array(z.enum(AMENITIES)),
     photoKeys: z.array(z.uuid()).min(4, "Add at least 4 photos, one for each room").max(20),
     photoRooms: z.array(z.enum(ROOMS)),
     proofKey: z.uuid({ error: "Upload an electricity bill or property tax receipt" }),
@@ -50,10 +60,11 @@ const listingSchema = z
   })
   .refine((d) => d.floor <= d.totalFloors, { path: ["floor"], message: "Floor can't be above the top floor" })
   .refine((d) => d.type === "buy" || d.deposit > 0, { path: ["deposit"], message: "Enter the security deposit" })
+  .refine((d) => d.type === "rent" || d.saleCondition, { path: ["saleCondition"], message: "Choose new or resale" })
   .refine((d) => d.photoRooms.length === d.photoKeys.length, { path: ["photoKeys"], message: "Choose a room for each photo" })
   .refine((d) => (d.lat !== undefined && d.lng !== undefined) || Object.keys(LOCALITIES).includes(d.locality), {
     path: ["lat"],
-    message: "Drop a pin on the map so tenants know roughly where it is",
+    message: "Drop a pin on the map so people know roughly where it is",
   });
 
 export type PostState = { status: "idle" } | { status: "error"; errors: Record<string, string> } | { status: "done"; name: string };
@@ -128,8 +139,10 @@ export async function submitListing(_prev: PostState, form: FormData): Promise<P
       pets: d.pets === "yes",
       nonVeg: d.food === "any",
       parking: d.parking,
-      bathrooms: Math.max(1, d.bhk),
-      balconies: 1,
+      bathrooms: d.bathrooms,
+      balconies: d.balconies,
+      saleCondition: d.type === "buy" ? d.saleCondition : null,
+      videoUrl: d.videoUrl ? `https://www.youtube.com/watch?v=${d.videoUrl}` : null,
       amenities: d.amenities,
       description: d.description,
       proofKey: d.proofKey,

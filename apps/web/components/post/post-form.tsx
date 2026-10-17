@@ -5,15 +5,15 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Reac
 import { submitListing, type PostState } from "@/app/(app)/post/actions";
 import { inr } from "@/lib/format";
 import { LOCALITIES } from "@/lib/places";
-import { DEFAULT_TYPE, RENTALS } from "@/lib/search";
+import { AMENITIES, DEFAULT_TYPE, RENTALS } from "@/lib/search";
 import { PinMap } from "./pin-map";
 
-const AMENITIES = ["Lift", "Power backup", "24×7 security", "Gym", "Swimming pool", "Club house", "Children's play area", "Gas pipeline", "Intercom", "CCTV", "Visitor parking", "Rainwater harvesting"];
 const SECTIONS = [
   ["what", "The home"],
   ["where", "Location"],
   ["money", "Price and terms"],
   ["amenities", "Amenities"],
+  ["video", "Video tour"],
   ["photos", "Photos"],
   ["proof", "Proof of ownership"],
   ["you", "Your details"],
@@ -220,7 +220,7 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
           </fieldset>
           <Choices name="kind" legend="Property type" defaultValue="apartment" options={[["apartment", "Flat"], ["independent-house", "Independent house"], ["villa", "Villa"]]} />
           <Choices name="bhk" legend="Bedrooms" defaultValue="2" options={[["0", "1 RK"], ["1", "1 BHK"], ["2", "2 BHK"], ["3", "3 BHK"], ["4", "4+ BHK"]]} />
-          <div className="grid gap-4 sm:grid-cols-3">
+          {type === "buy" && <Choices name="saleCondition" legend="New or resale" defaultValue="resale" options={[["new", "New from the builder"], ["resale", "Resale"]]} />}          <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Carpet area (sq ft)" error={e.carpetSqft}>
               <input name="carpetSqft" type="number" inputMode="numeric" min={100} required className={input} aria-invalid={!!e.carpetSqft} />
             </Field>
@@ -244,6 +244,14 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
             </Field>
             <Field label="Age of building (years)">
               <input name="ageYears" type="number" inputMode="numeric" min={0} required className={input} />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Bathrooms" error={e.bathrooms}>
+              <input name="bathrooms" type="number" inputMode="numeric" min={1} max={10} defaultValue={2} required className={input} aria-invalid={!!e.bathrooms} />
+            </Field>
+            <Field label="Balconies">
+              <input name="balconies" type="number" inputMode="numeric" min={0} max={10} defaultValue={1} required className={input} />
             </Field>
           </div>
           <Choices name="furnishing" legend="Furnishing" defaultValue="semi" options={[["full", "Furnished"], ["semi", "Semi-furnished"], ["none", "Unfurnished"]]} />
@@ -323,11 +331,13 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
           )}
           {type === "buy" && (
             <>
-              <input type="hidden" name="pets" value="yes" />
+              <Field label="Ready to move in from" hint="Leave empty if it's ready now">
+                <input name="availableFrom" type="date" className={`${input} sm:max-w-xs`} />
+              </Field>
+              <Choices name="pets" legend="Pets in the society" defaultValue="yes" options={[["yes", "Allowed"], ["no", "Not allowed"]]} />
               <input type="hidden" name="food" value="any" />
             </>
-          )}
-          <Choices name="parking" legend="Parking" defaultValue="car" options={[["none", "None"], ["bike", "Two-wheeler"], ["car", "Car"]]} />
+          )}          <Choices name="parking" legend="Parking" defaultValue="car" options={[["none", "None"], ["bike", "Two-wheeler"], ["car", "Car"]]} />
         </Section>
 
         <Section id="amenities" title="Amenities">
@@ -339,6 +349,12 @@ export function PostForm({ name, phone }: { name: string; phone: string | null }
               </label>
             ))}
           </div>
+        </Section>
+
+        <Section id="video" title="Video tour" intro="Optional. Upload a walk-through to YouTube (it can be unlisted) and paste the link. Buyers can play it on your listing.">
+          <Field label="YouTube link" error={e.videoUrl}>
+            <input name="videoUrl" type="url" inputMode="url" placeholder="https://youtu.be/…" className={input} aria-invalid={!!e.videoUrl} />
+          </Field>
         </Section>
 
         <Section id="photos" title="Photos" intro="At least 4: the living room, each bedroom, the kitchen and a bathroom. We remove location data from every photo before it's stored.">
