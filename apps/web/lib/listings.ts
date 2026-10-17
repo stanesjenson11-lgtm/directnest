@@ -40,8 +40,10 @@ const cardColumns = {
 type CardRow = Omit<Card, "lat" | "lng" | "metro"> & { location: { x: number; y: number } };
 const toCard = ({ location, ...r }: CardRow): Card => ({ ...r, lng: location.x, lat: location.y, metro: nearestMetro(location.y, location.x) });
 
-// Public = approved and not past its 30-day expiry. Expiry needs no job: an unconfirmed listing just stops matching.
-export const live = sql`${listings.status} = 'active' and ${listings.expiresAt} > now()`;
+// Public = approved, not past its 30-day expiry, and its owner isn't banned. Expiry needs no job: an unconfirmed
+// listing just stops matching. A ban hides listings without touching them, so unbanning restores everything.
+export const live = sql`${listings.status} = 'active' and ${listings.expiresAt} > now()
+  and not exists (select 1 from "user" b where b.id = listings.owner_id and b.banned)`;
 
 // ponytail: planar distance in degrees (1° ≈ 111 km; longitude is ~3% short at Bengaluru's latitude). PostGIS when it matters.
 const RADIUS_DEG = 3000 / 111_000;
