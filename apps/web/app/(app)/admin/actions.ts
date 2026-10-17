@@ -2,6 +2,7 @@
 
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
+import { setBanned } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { listings } from "@/lib/schema";
 import { requireAdmin } from "@/lib/session";
@@ -43,6 +44,15 @@ export async function markVisited(id: string) {
     .set({ visitVerifiedAt: sql`now()` })
     .where(and(eq(listings.id, id), isNull(listings.visitVerifiedAt), ne(listings.ownerId, me.id)));
   done(id);
+}
+
+/** Ban or unban someone. Their cached listing pages are refreshed straight away, so a ban takes them down at once. */
+export async function setUserBanned(userId: string, banned: boolean) {
+  const me = await requireAdmin();
+  if (!(await setBanned(me.id, String(userId), banned === true))) return;
+  const theirs = await db.select({ id: listings.id }).from(listings).where(eq(listings.ownerId, String(userId)));
+  for (const { id } of theirs) updateTag(`listing:${id}`);
+  revalidatePath("/admin/users");
 }
 
 function done(id: string) {

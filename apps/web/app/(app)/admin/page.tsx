@@ -5,6 +5,7 @@ import imageLoader from "@/lib/image-loader";
 import { pendingListings, unvisitedListings } from "@/lib/listings";
 import { requireAdmin } from "@/lib/session";
 import { approve, markVisited, reject } from "./actions";
+import { AdminNav } from "./admin-nav";
 import { FLAG_TEXT, REJECT_REASONS } from "./reasons";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
@@ -30,6 +31,8 @@ async function Queue() {
 
   return (
     <>
+      {/* Inside the Suspense boundary, after the admin check: the static shell must not reveal these pages. */}
+      <AdminNav current="/admin" />
       <h1 className="text-[2rem] leading-tight font-semibold">Review queue</h1>
       <p className="mt-1 text-muted">
         {queue.length === 0 ? "Nothing waiting. New listings appear here as owners send them." : `${queue.length} waiting, oldest first. Nothing goes live until it's approved here.`}
