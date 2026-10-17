@@ -6,6 +6,7 @@ import { setBanned } from "@/lib/admin";
 import { isStage, updateCrm } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
+import { featureListing, readPlan, savePlan } from "@/lib/plans";
 import { listings } from "@/lib/schema";
 import { requireAdmin } from "@/lib/session";
 import { REJECT_REASONS } from "./reasons";
@@ -82,6 +83,32 @@ export async function saveCrm(id: number, form: FormData) {
   if (!Number.isInteger(id) || !isStage(stage)) return;
   await updateCrm(id, stage, String(form.get("note") ?? ""));
   revalidatePath("/admin/leads");
+}
+
+export type AdminFormState = { error?: string; ok?: string };
+
+/** Creates (id null) or edits a plan. The public plans page is cached under the "plans" tag. */
+export async function savePlanAction(id: number | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
+  await requireAdmin();
+  if (id !== null && !Number.isInteger(id)) return { error: "Unknown plan." };
+  const r = readPlan(form);
+  if ("error" in r) return r;
+  await savePlan(id, r.plan);
+  updateTag("plans");
+  revalidatePath("/admin/plans");
+  return { ok: "Saved." };
+}
+
+/** Features a listing for some days (0 stops). Takes the listing's link or its id. */
+export async function featureAction(_: AdminFormState, form: FormData): Promise<AdminFormState> {
+  await requireAdmin();
+  const raw = String(form.get("listing") ?? "").trim();
+  const id = raw.split("/homes/").pop()!.split(/[?#/]/)[0].slice(0, 200);
+  const days = Number(form.get("days"));
+  if (!id || !Number.isInteger(days) || days < 0 || days > 365) return { error: "Paste the listing's link and choose the number of days." };
+  if (!(await featureListing(id, days))) return { error: "There's no listing with that link." };
+  revalidatePath("/admin/plans");
+  return { ok: days ? `Featured for ${days} days.` : "No longer featured." };
 }
 
 function done(id: string) {
