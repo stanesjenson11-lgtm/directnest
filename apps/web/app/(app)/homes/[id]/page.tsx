@@ -13,7 +13,7 @@ import { ShortlistButton } from "@/components/shortlist";
 import { bhkLabel, daysAgo, distance, inr, inrShort, sqft, youtubeId } from "@/lib/format";
 import { cacheLife, cacheTag } from "next/cache";
 import { getListing, listingIds, similarListings } from "@/lib/listings";
-import { nearestMetro } from "@/lib/places";
+import { nearbyPlaces, nearestMetro, PLACES_SOURCE } from "@/lib/nearby";
 import type { Listing } from "@/lib/search";
 
 // Cached for an hour; approving, editing or confirming a listing calls updateTag(`listing:${id}`).
@@ -57,6 +57,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
   if (!l) notFound();
   const similar = await similarListings(l);
   const metro = nearestMetro(l.lat, l.lng);
+  const near = nearbyPlaces(l.lat, l.lng);
   const rent = l.type === "rent";
   const monthly = l.price + l.maintenance;
   const first = l.owner.name.split(" ")[0];
@@ -246,10 +247,38 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
               address is shared once you contact the owner.
             </p>
             <div className="mt-4">
-              <LocationMap lat={l.lat} lng={l.lng} />
+              <LocationMap lat={l.lat} lng={l.lng} places={(["metro", "school", "hospital"] as const).flatMap((kind) => near[kind].map((p) => ({ ...p, kind })))} />
             </div>
-          </section>
-        </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-3">
+              {(
+                [
+                  ["metro", "Metro stations", "bg-ink"],
+                  ["school", "Schools", "bg-verified"],
+                  ["hospital", "Hospitals", "bg-danger"],
+                ] as const
+              ).map(([kind, label, dot]) => (
+                <div key={kind}>
+                  <h3 className="flex items-center gap-2 text-[15px] font-semibold">
+                    <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+                    {label}
+                  </h3>
+                  {near[kind].length ? (
+                    <ul className="mt-2 grid gap-1.5 text-[15px]">
+                      {near[kind].map((p) => (
+                        <li key={p.name} className="flex justify-between gap-3">
+                          <span className="min-w-0 truncate">{p.name}</span>
+                          <span className="shrink-0 text-muted tabular-nums">{distance(p.metres)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-[15px] text-muted">None within {kind === "metro" ? "3" : "2"} km</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-[13px] text-muted">Distances are straight-line and approximate. Places from {PLACES_SOURCE}.</p>
+          </section>        </div>
 
         <aside className="hidden lg:block">
           <div className="sticky top-24 rounded-2xl border border-hairline p-6">

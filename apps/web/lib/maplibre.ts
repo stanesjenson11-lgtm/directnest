@@ -7,7 +7,11 @@ export const MAP_LIMITS: [[number, number], [number, number]] = [
   [77.25, 12.7],
   [78.0, 13.3],
 ];
-export const INDIGO = "#4651c6"; // --color-indigo in sRGB; map paint properties don't take oklch
+// Design tokens in sRGB (exact conversions); map paint properties don't take oklch.
+export const INDIGO = "#385bbd"; // --color-indigo
+export const INK = "#151a26"; // --color-ink
+export const VERIFIED = "#0b7643"; // --color-verified
+export const DANGER = "#be2323"; // --color-danger
 
 export async function loadMapLibre() {
   const ml = await import("maplibre-gl");

@@ -2,10 +2,12 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
-import { INDIGO, loadMapLibre, MAP_LIMITS, MAP_STYLE } from "@/lib/maplibre";
+import { DANGER, INDIGO, INK, loadMapLibre, MAP_LIMITS, MAP_STYLE, VERIFIED } from "@/lib/maplibre";
 
-/** Approximate location only: a 400 m circle, never a pin on the building. Loads when scrolled near. */
-export function LocationMap({ lat, lng }: { lat: number; lng: number }) {
+type NearbyPlace = { name: string; lat: number; lng: number; kind: "metro" | "school" | "hospital" };
+
+/** Approximate location only: a 400 m circle, never a pin on the building, plus nearby places. Loads when scrolled near. */
+export function LocationMap({ lat, lng, places = [] }: { lat: number; lng: number; places?: NearbyPlace[] }) {
   const box = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -33,8 +35,37 @@ export function LocationMap({ lat, lng }: { lat: number; lng: number }) {
             map!.addSource("approx", { type: "geojson", data: circle(lng, lat, 400) });
             map!.addLayer({ id: "approx-fill", type: "fill", source: "approx", paint: { "fill-color": INDIGO, "fill-opacity": 0.12 } });
             map!.addLayer({ id: "approx-line", type: "line", source: "approx", paint: { "line-color": INDIGO, "line-width": 2 } });
-          });
-        } catch {
+            if (!places.length) return;
+            map!.addSource("places", {
+              type: "geojson",
+              data: {
+                type: "FeatureCollection",
+                features: places.map((p) => ({ type: "Feature", properties: { name: p.name, kind: p.kind }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })),
+              },
+            });
+            map!.addLayer({
+              id: "places-dot",
+              type: "circle",
+              source: "places",
+              paint: {
+                "circle-radius": 6,
+                "circle-color": ["match", ["get", "kind"], "metro", INK, "school", VERIFIED, DANGER],
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 2,
+              },
+            });
+            map!.addLayer({
+              id: "places-name",
+              type: "symbol",
+              source: "places",
+              layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 12, "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 10 },
+              paint: { "text-color": INK, "text-halo-color": "#ffffff", "text-halo-width": 1.5 },
+            });
+            // Fit the circle and every place, so far-off stations stay on screen.
+            const b = new ml.LngLatBounds([lng, lat], [lng, lat]);
+            for (const p of places) b.extend([p.lng, p.lat]);
+            map!.fitBounds(b, { padding: 48, maxZoom: 14.2, duration: 0 });
+          });        } catch {
           setFailed(true);
         }
       },
@@ -45,6 +76,8 @@ export function LocationMap({ lat, lng }: { lat: number; lng: number }) {
       io.disconnect();
       map?.remove();
     };
+    // places is derived from lat/lng on the server, so it can't change without them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
   return (
