@@ -4,6 +4,14 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
-    "lint": "pnpm --filter web lint"
+    "lint": "pnpm --filter web lint",
+    "test": "pnpm --filter web test",
+    "db:start": "pnpm --filter web db:start",
+    "db:stop": "pnpm --filter web db:stop",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "db:seed": "pnpm --filter web db:seed",
+    "make-admin": "pnpm --filter web make-admin",
+    "maintenance": "pnpm --filter web maintenance"
   }
 }
