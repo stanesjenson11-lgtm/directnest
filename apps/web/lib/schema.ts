@@ -232,7 +232,28 @@ export const plans = pgTable("plans", {
   updatedAt: now(),
 });
 
-export const listingsRelations = relations(listings, ({ one, many }) => ({  owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
+export const pageKind = pgEnum("page_kind", ["post", "area"]);
+
+/** Blog posts and area guides, written by the team. An area page's slug is its locality's slug. */
+export const pages = pgTable(
+  "pages",
+  {
+    id: serial().primaryKey(),
+    kind: pageKind().notNull(),
+    slug: text().notNull(),
+    title: text().notNull(),
+    summary: text().notNull().default(""),
+    body: text().notNull(), // plain text: blank lines between paragraphs, "## " headings, "- " list items
+    published: boolean().notNull().default(false),
+    publishedAt: timestamp({ withTimezone: true }),
+    authorId: text().references(() => user.id, { onDelete: "set null" }),
+    updatedAt: now(),
+  },
+  (t) => [uniqueIndex("pages_kind_slug_idx").on(t.kind, t.slug)],
+);
+
+export const listingsRelations = relations(listings, ({ one, many }) => ({
+  owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),
 }));
 
