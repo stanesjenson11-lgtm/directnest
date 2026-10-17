@@ -232,6 +232,13 @@ export const plans = pgTable("plans", {
   updatedAt: now(),
 });
 
+/** In-app alerts: a line of text and where it leads. WhatsApp copies go out too once the client's account is set up. */
+export const notifications = pgTable(
+  "notifications",
+  { id: serial().primaryKey(), userId: userRef(), text: text().notNull(), href: text().notNull(), readAt: timestamp({ withTimezone: true }), createdAt: now() },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+);
+
 export const pageKind = pgEnum("page_kind", ["post", "area"]);
 
 /** Blog posts and area guides, written by the team. An area page's slug is its locality's slug. */
