@@ -78,6 +78,13 @@
       "when": 1792240657267,
       "tag": "0010_moaning_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792243535317,
+      "tag": "0011_dusty_vindicator",
+      "breakpoints": true
     }
   ]
 }

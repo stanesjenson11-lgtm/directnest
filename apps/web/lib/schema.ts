@@ -285,6 +285,22 @@ export const consents = pgTable(
   (t) => [index("consents_user_idx").on(t.userId)],
 );
 
+/** Security audit trail: immutable logs for administrative actions, account deletions, and auth milestones. */
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: serial().primaryKey(),
+    userId: text().references(() => user.id, { onDelete: "set null" }),
+    action: text().notNull(),
+    targetId: text(),
+    ipAddress: text(),
+    userAgent: text(),
+    details: text(), // JSON-stringified sanitized metadata
+    createdAt: now(),
+  },
+  (t) => [index("audit_logs_user_idx").on(t.userId, t.createdAt), index("audit_logs_action_idx").on(t.action, t.createdAt)],
+);
+
 export const listingsRelations = relations(listings, ({ one, many }) => ({
   owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),

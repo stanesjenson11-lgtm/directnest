@@ -1,5 +1,5 @@
-// The only way an owner's number leaves the server: to a signed-in person, logged, and capped per day against scraping.
 import { and, count, eq, gt, sql } from "drizzle-orm";
+import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
 import { live } from "./listings.ts";
 import { contactReveals, listings, user } from "./schema.ts";
@@ -30,6 +30,7 @@ export async function revealPhone(viewerId: string, listingId: string): Promise<
       .where(and(eq(contactReveals.userId, viewerId), gt(contactReveals.createdAt, sql`now() - interval '1 day'`)));
     if (n >= REVEALS_PER_DAY) return { ok: false, reason: "limit" };
     await db.insert(contactReveals).values({ userId: viewerId, listingId });
+    await logAuditEvent("PHONE_REVEALED", { userId: viewerId, targetId: listingId });
   }
   return { ok: true, phone: l.phone };
 }

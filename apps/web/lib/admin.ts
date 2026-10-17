@@ -1,5 +1,5 @@
-// Staff tools for people: find them, and ban or unban. Admin pages only.
 import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
+import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
 import { session, user } from "./schema.ts";
 
@@ -29,7 +29,7 @@ export async function findUsers(q = "") {
 /** Banning signs the person out everywhere; the session hook in lib/auth.ts stops them signing back in. Admins can't be banned here. */
 export async function setBanned(adminId: string, userId: string, banned: boolean) {
   if (adminId === userId) return false;
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(user)
       .set({ banned, updatedAt: new Date() })
@@ -38,4 +38,14 @@ export async function setBanned(adminId: string, userId: string, banned: boolean
     if (row && banned) await tx.delete(session).where(eq(session.userId, userId));
     return !!row;
   });
+
+  if (result) {
+    await logAuditEvent(banned ? "ADMIN_BAN_USER" : "ADMIN_UNBAN_USER", {
+      userId: adminId,
+      targetId: userId,
+      details: { banned },
+    });
+  }
+
+  return result;
 }

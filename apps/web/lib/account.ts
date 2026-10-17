@@ -1,5 +1,6 @@
 // Privacy and user account operations: DPDP consent and right to erasure (account deletion).
 import { desc, eq } from "drizzle-orm";
+import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
 import { deleteMediaFile } from "./media.ts";
 import { consents, listings, uploads, user } from "./schema.ts";
@@ -10,6 +11,7 @@ export async function recordConsent(userId: string, policyVersion = "2026-10") {
     .insert(consents)
     .values({ userId, policyVersion })
     .returning();
+  await logAuditEvent("CONSENT_RECORDED", { userId, details: { policyVersion } });
   return row;
 }
 
@@ -36,6 +38,7 @@ export async function deleteAccount(userId: string): Promise<{ ok: boolean; dele
   const userUploads = await db.select({ key: uploads.key, kind: uploads.kind, ext: uploads.ext }).from(uploads).where(eq(uploads.ownerId, userId));
   await Promise.all(userUploads.map((u) => deleteMediaFile(u.key, u.kind, u.ext)));
 
+  await logAuditEvent("ACCOUNT_DELETED", { userId, details: { deletedListingsCount: listingIds.length } });
   await db.delete(user).where(eq(user.id, userId));
 
   return { ok: true, deletedListings: listingIds };
