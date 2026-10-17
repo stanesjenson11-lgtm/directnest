@@ -8,7 +8,7 @@ import imageLoader from "@/lib/image-loader";
 import { leadsByRequester, leadsForOwner } from "@/lib/leads";
 import { ownerListings, shortlistedCards } from "@/lib/listings";
 import { savedSearchList } from "@/lib/saved";
-import { SLOTS } from "@/lib/search";
+import { visitTime } from "@/lib/search";
 import { requireUser } from "@/lib/session";
 import { answer, confirmAvailable, markRented, removeSavedSearch, setName } from "./actions";
 
@@ -34,10 +34,7 @@ const secondary = "h-9 cursor-pointer rounded-full border border-hairline px-4 t
 
 /** "Sat 18 Oct, Evening, 4 to 8" for visits; when it was asked for callbacks. */
 function when(r: { kind: string; preferredDate: string | null; preferredSlot: string | null; createdAt?: Date }) {
-  if (r.kind === "visit" && r.preferredDate) {
-    const day = new Date(`${r.preferredDate}T12:00:00+05:30`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
-    return [day, SLOTS.find(([v]) => v === r.preferredSlot)?.[1]].filter(Boolean).join(", ");
-  }
+  if (r.kind === "visit" && r.preferredDate) return visitTime(r.preferredDate, r.preferredSlot);
   return r.createdAt ? `Asked ${daysAgo(Math.floor((Date.now() - r.createdAt.getTime()) / 86_400_000))}` : "";
 }
 

@@ -35,6 +35,12 @@ export const SLOTS = [
   ["evening", "Evening, 4 to 8"],
 ] as const;
 
+/** "Sat, 18 Oct, Evening, 4 to 8" for a visit request. */
+export function visitTime(date: string | null, slot: string | null) {
+  const day = date && new Date(`${date}T12:00:00+05:30`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  return [day, SLOTS.find(([v]) => v === slot)?.[1]].filter(Boolean).join(", ");
+}
+
 export type ListingType = "rent" | "buy";
 export type Furnishing = "full" | "semi" | "none";
 export type Tenant = "family" | "bachelors" | "company";
