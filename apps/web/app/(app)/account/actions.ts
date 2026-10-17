@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { answerLead } from "@/lib/leads";
-import { listings } from "@/lib/schema";
+import { listings, user } from "@/lib/schema";
 import { deleteSavedSearch, saveSearch, setShortlisted, shortlistIds } from "@/lib/saved";
 import { getSession, requireUser } from "@/lib/session";
 
@@ -55,6 +55,15 @@ export async function saveThisSearch(query: string) {
   const session = await getSession();
   if (!session) return { ok: false, reason: "signed-out" } as const;
   return saveSearch(session.user.id, String(query).slice(0, 2000));
+}
+
+/** The name others see in chats and requests. */
+export async function setName(form: FormData) {
+  const me = await requireUser("/account");
+  const name = String(form.get("name") ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+  if (!name) return;
+  await db.update(user).set({ name, updatedAt: new Date() }).where(eq(user.id, me.id));
+  revalidatePath("/account");
 }
 
 export async function removeSavedSearch(id: number) {

@@ -10,7 +10,7 @@ import { ownerListings, shortlistedCards } from "@/lib/listings";
 import { savedSearchList } from "@/lib/saved";
 import { SLOTS } from "@/lib/search";
 import { requireUser } from "@/lib/session";
-import { answer, confirmAvailable, markRented, removeSavedSearch } from "./actions";
+import { answer, confirmAvailable, markRented, removeSavedSearch, setName } from "./actions";
 
 export const metadata: Metadata = { title: "Your account | DirectNest", robots: { index: false } };
 
@@ -69,8 +69,29 @@ async function Account() {
           <h1 className="text-[2rem] leading-tight font-semibold">Your account</h1>
           <p className="mt-1 text-muted tabular-nums">{[me.name, phone].filter(Boolean).join(", ") || "Signed in"}</p>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-2">
+          <Link href="/messages" className="inline-flex h-10 items-center rounded-full border border-hairline px-4 text-[15px] font-medium hover:border-muted">
+            Messages
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
+
+      <form action={setName} className="mt-6 flex flex-wrap items-end gap-2">
+        <label className="grid gap-1.5 text-[14px] font-medium">
+          Your name
+          <input
+            name="name"
+            defaultValue={me.name}
+            required
+            maxLength={60}
+            autoComplete="name"
+            className="h-10 w-64 rounded-lg border border-hairline bg-canvas px-3 text-[15px] focus-visible:border-indigo focus-visible:outline-none"
+          />
+        </label>
+        <button className="h-10 cursor-pointer rounded-full border border-hairline px-4 text-[15px] font-medium hover:border-muted">Save</button>
+        {!me.name && <p className="w-full text-[14px] text-muted">Owners and buyers see this name in chats and requests.</p>}
+      </form>
 
       <section aria-labelledby="homes" className="mt-12">
         <div className="flex items-end justify-between gap-4">
