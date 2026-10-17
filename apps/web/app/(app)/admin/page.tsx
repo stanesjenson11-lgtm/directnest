@@ -97,6 +97,14 @@ async function Queue() {
             </div>
           </dl>
 
+          {l.videoUrl && (
+            <p className="mt-4">
+              <a href={l.videoUrl} target="_blank" rel="noreferrer" className="font-semibold text-indigo hover:underline">
+                Watch the owner&rsquo;s video tour
+              </a>
+            </p>
+          )}
+
           <p className="mt-4">
             {l.proofKey ? (
               <a href={`/api/admin/proof/${l.proofKey}`} target="_blank" rel="noreferrer" className="font-semibold text-indigo hover:underline">

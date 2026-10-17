@@ -7,9 +7,10 @@ import { Gallery } from "@/components/listing/gallery";
 import { LocationMap } from "@/components/listing/location-map";
 import { RequestLead } from "@/components/listing/request-lead";
 import { StartChat } from "@/components/listing/start-chat";
+import { VideoTour } from "@/components/listing/video-tour";
 import { ListingTile } from "@/components/search/listing-tile";
 import { ShortlistButton } from "@/components/shortlist";
-import { bhkLabel, daysAgo, distance, inr, inrShort, sqft } from "@/lib/format";
+import { bhkLabel, daysAgo, distance, inr, inrShort, sqft, youtubeId } from "@/lib/format";
 import { cacheLife, cacheTag } from "next/cache";
 import { getListing, listingIds, similarListings } from "@/lib/listings";
 import { nearestMetro } from "@/lib/places";
@@ -59,6 +60,7 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
   const rent = l.type === "rent";
   const monthly = l.price + l.maintenance;
   const first = l.owner.name.split(" ")[0];
+  const video = l.videoUrl ? youtubeId(l.videoUrl) : null;
 
   const facts: [string, ReactNode][] = [
     ["Type", `${bhkLabel(l.bhk)} ${KIND[l.kind].toLowerCase()}`],
@@ -208,6 +210,15 @@ async function Home({ params }: Pick<PageProps<"/homes/[id]">, "params">) {
             </h2>
             <p className="mt-3 max-w-[68ch]">{l.description}</p>
           </section>
+
+          {video && (
+            <section aria-labelledby="video" className="mt-12">
+              <h2 id="video" className="text-xl font-semibold">
+                Video tour
+              </h2>
+              <VideoTour id={video} title={l.title} />
+            </section>
+          )}
 
           <section aria-labelledby="amenities" className="mt-12">
             <h2 id="amenities" className="text-xl font-semibold">
