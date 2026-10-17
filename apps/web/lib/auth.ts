@@ -6,6 +6,7 @@ import { nextCookies } from "better-auth/next-js";
 import { phoneNumber } from "better-auth/plugins";
 import { db } from "./db.ts";
 import * as schema from "./schema.ts";
+import { sendOtpSms, smsConfigured } from "./sms.ts";
 
 const INDIAN_MOBILE = /^\+91[6-9]\d{9}$/;
 
@@ -55,8 +56,8 @@ export const auth = betterAuth({
         getTempName: () => "",
       },
       sendOTP: async ({ phoneNumber, code }) => {
-        // ponytail: MSG91 with the client's DLT-registered template goes here once their account exists.
-        if (process.env.NODE_ENV === "production") throw new Error("SMS provider is not configured");
+        if (smsConfigured()) return sendOtpSms(phoneNumber, code);
+        if (process.env.NODE_ENV === "production") throw new Error("SMS provider is not configured: set MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID");
         console.log(`[dev] OTP for ${phoneNumber}: ${code}`);
       },
     }),
