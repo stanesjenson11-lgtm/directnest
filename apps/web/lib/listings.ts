@@ -10,8 +10,10 @@ import type { Listing, SearchParams } from "./search.ts";
 export type Card = Pick<
   Listing,
   "id" | "type" | "title" | "locality" | "area" | "lat" | "lng" | "price" | "maintenance" | "deposit" | "bhk" | "carpetSqft" | "furnishing" | "confirmedDaysAgo" | "sample" | "saleCondition"
-> & { photos: string[]; metro: { name: string; metres: number }; visited: boolean };
+> & { photos: string[]; metro: { name: string; metres: number }; visited: boolean; featured: boolean };
 
+// Paid placement: featured homes come first in the default sort, always with a visible badge.
+const isFeatured = sql<boolean>`coalesce(${listings.featuredUntil} > now(), false)`;
 const daysSince = (col: typeof listings.confirmedAt | typeof listings.createdAt) => sql<number>`(current_date - (${col})::date)`.mapWith(Number);
 const monthly = (type: SearchParams["type"]) => (type === "rent" ? sql`(${listings.price} + ${listings.maintenance})` : sql`${listings.price}`);
 
@@ -31,6 +33,7 @@ const cardColumns = {
   sample: listings.sample,
   saleCondition: listings.saleCondition,
   visited: sql<boolean>`(${listings.visitVerifiedAt} is not null)`,
+  featured: isFeatured,
   confirmedDaysAgo: daysSince(listings.confirmedAt),
   // Written qualified on purpose: drizzle renders ${listings.id} as a bare "id", which would bind to p.id here.
   photos: sql<string[]>`coalesce((select array_agg(p.src order by p.position) from ${listingPhotos} p
@@ -89,7 +92,7 @@ function conditions(p: SearchParams): SQL {
 }
 
 const ORDER: Record<SearchParams["sort"], (t: SearchParams["type"]) => SQL[]> = {
-  relevant: () => [desc(listings.confirmedAt), desc(listings.createdAt)],
+  relevant: () => [desc(isFeatured), desc(listings.confirmedAt), desc(listings.createdAt)],
   newest: () => [desc(listings.createdAt)],
   "price-asc": (t) => [asc(monthly(t))],
   "price-desc": (t) => [desc(monthly(t))],
