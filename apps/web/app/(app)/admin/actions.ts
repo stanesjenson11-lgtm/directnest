@@ -3,6 +3,7 @@
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { setBanned } from "@/lib/admin";
+import { isStage, updateCrm } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
 import { listings } from "@/lib/schema";
@@ -72,6 +73,15 @@ export async function importBatch(text: string): Promise<ImportResult[]> {
   const results = await runImport(String(text));
   revalidatePath("/admin");
   return results;
+}
+
+/** The sales team moves a request along its pipeline and keeps notes on it. */
+export async function saveCrm(id: number, form: FormData) {
+  await requireAdmin();
+  const stage = form.get("stage");
+  if (!Number.isInteger(id) || !isStage(stage)) return;
+  await updateCrm(id, stage, String(form.get("note") ?? ""));
+  revalidatePath("/admin/leads");
 }
 
 function done(id: string) {
