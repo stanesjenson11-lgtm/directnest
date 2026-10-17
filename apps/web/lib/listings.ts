@@ -1,7 +1,8 @@
 // The one seam between pages and data. Public queries only ever return active listings and never the private address.
 import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "./db.ts";
-import { LOCALITIES, nearestMetro } from "./places.ts";
+import { nearestMetro } from "./nearby.ts";
+import { LOCALITIES } from "./places.ts";
 import { listingPhotos, listings, shortlists } from "./schema.ts";
 import type { Listing, SearchParams } from "./search.ts";
 
