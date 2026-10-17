@@ -54,6 +54,7 @@ export const listings = pgTable(
     saleCondition: saleCondition(), // sales only
     videoUrl: text(), // YouTube link; we embed it rather than host video
     visitVerifiedAt: timestamp({ withTimezone: true }), // our staff saw the home in person
+    featuredUntil: timestamp({ withTimezone: true }), // shown first, with a "Featured" badge, until then
     ownerVerified: boolean().notNull().default(false),
     proofKey: text(), // private upload; deleted 30 days after review
     riskFlags: text().array().notNull().default(sql`'{}'::text[]`), // e.g. duplicate-photos, for the review queue
@@ -219,8 +220,19 @@ export const ticketMessages = pgTable(
   (t) => [index("ticket_messages_ticket_idx").on(t.ticketId, t.id)],
 );
 
-export const listingsRelations = relations(listings, ({ one, many }) => ({
-  owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
+/** What the team sells to owners. Prices are edited by admins; payment happens offline until online payments go live. */
+export const plans = pgTable("plans", {
+  id: serial().primaryKey(),
+  name: text().notNull(),
+  price: integer().notNull(), // rupees, GST included
+  days: smallint().notNull(), // how long a listing stays featured
+  perks: text().array().notNull().default(sql`'{}'::text[]`),
+  active: boolean().notNull().default(true),
+  position: smallint().notNull().default(0),
+  updatedAt: now(),
+});
+
+export const listingsRelations = relations(listings, ({ one, many }) => ({  owner: one(user, { fields: [listings.ownerId], references: [user.id] }),
   photos: many(listingPhotos),
 }));
 
