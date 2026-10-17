@@ -6,6 +6,7 @@ import { setBanned } from "@/lib/admin";
 import { isStage, updateCrm } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
+import { readPage, savePage } from "@/lib/pages";
 import { featureListing, readPlan, savePlan } from "@/lib/plans";
 import { listings } from "@/lib/schema";
 import { requireAdmin } from "@/lib/session";
@@ -109,6 +110,19 @@ export async function featureAction(_: AdminFormState, form: FormData): Promise<
   if (!(await featureListing(id, days))) return { error: "There's no listing with that link." };
   revalidatePath("/admin/plans");
   return { ok: days ? `Featured for ${days} days.` : "No longer featured." };
+}
+
+/** Creates or edits a blog post or area guide. Public pages are cached under the "pages" tag. */
+export async function savePageAction(id: number | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
+  const me = await requireAdmin();
+  if (id !== null && !Number.isInteger(id)) return { error: "Unknown page." };
+  const r = readPage(form);
+  if ("error" in r) return r;
+  const saved = await savePage(id, r.page, me.id);
+  if (!saved.ok) return { error: saved.error };
+  updateTag("pages");
+  revalidatePath("/admin/pages");
+  return { ok: r.page.published ? "Saved and live." : "Saved as a draft." };
 }
 
 function done(id: string) {

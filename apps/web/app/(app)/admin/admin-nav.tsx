@@ -6,6 +6,7 @@ const PAGES = [
   ["/admin/support", "Support"],
   ["/admin/users", "Users"],
   ["/admin/plans", "Plans"],
+  ["/admin/pages", "Blog and areas"],
   ["/admin/import", "Import"],
 ] as const;
 
