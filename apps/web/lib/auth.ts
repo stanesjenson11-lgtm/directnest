@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { phoneNumber } from "better-auth/plugins";
+import { phoneNumber, twoFactor } from "better-auth/plugins";
 import { db } from "./db.ts";
 import * as schema from "./schema.ts";
 import { sendOtpSms, smsConfigured } from "./sms.ts";
@@ -47,7 +47,20 @@ export const auth = betterAuth({
   // Behind Cloudflare and Caddy the socket IP is the proxy's; without this every visitor would share one limit.
   // Only trust these once the VPS firewall accepts web traffic from Cloudflare alone.
   advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] } },
+  // Staff second factor. The plugin's HTTP routes count wrong codes only at sign-in, which our phone-OTP sign-in never
+  // passes through, so they are closed; admin/mfa-actions.ts calls the same code server-side with its own lockout.
+  disabledPaths: [
+    "/two-factor/enable",
+    "/two-factor/disable",
+    "/two-factor/get-totp-uri",
+    "/two-factor/verify-totp",
+    "/two-factor/verify-backup-code",
+    "/two-factor/generate-backup-codes",
+    "/two-factor/send-otp",
+    "/two-factor/verify-otp",
+  ],
   plugins: [
+    twoFactor({ issuer: "DirectNest", allowPasswordless: true }), // phone sign-in has no password to ask for
     phoneNumber({
       phoneNumberValidator: (n) => INDIAN_MOBILE.test(n),
       allowedAttempts: 3,
