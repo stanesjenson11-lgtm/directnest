@@ -17,7 +17,7 @@ import { REJECT_REASONS } from "./reasons";
 
 // Both only touch listings still pending, so two reviewers can't double-decide one listing.
 export async function approve(id: string) {
-  const me = await requireAdmin();
+  const me = await requireAdmin("queue");
   const [row] = await db
     .update(listings)
     .set({
@@ -38,7 +38,7 @@ export async function approve(id: string) {
 }
 
 export async function reject(id: string, form: FormData) {
-  await requireAdmin();
+  await requireAdmin("queue");
   const reason = String(form.get("reason"));
   if (!(REJECT_REASONS as readonly string[]).includes(reason)) return;
   const [row] = await db
@@ -52,7 +52,7 @@ export async function reject(id: string, form: FormData) {
 
 /** Our staff saw the home in person. Works before or after approval; nobody marks their own listing. */
 export async function markVisited(id: string) {
-  const me = await requireAdmin();
+  const me = await requireAdmin("queue");
   await db
     .update(listings)
     .set({ visitVerifiedAt: sql`now()` })
@@ -62,7 +62,7 @@ export async function markVisited(id: string) {
 
 /** Ban or unban someone. Their cached listing pages are refreshed straight away, so a ban takes them down at once. */
 export async function setUserBanned(userId: string, banned: boolean) {
-  const me = await requireAdmin();
+  const me = await requireAdmin("users");
   if (!(await setBanned(me.id, String(userId), banned === true))) return;
   const theirs = await db.select({ id: listings.id }).from(listings).where(eq(listings.ownerId, String(userId)));
   for (const { id } of theirs) updateTag(`listing:${id}`);
@@ -71,7 +71,7 @@ export async function setUserBanned(userId: string, banned: boolean) {
 
 /** Checks a spreadsheet without writing anything; what the import page shows before anyone commits. */
 export async function previewImport(text: string) {
-  await requireAdmin();
+  await requireAdmin("import");
   const { errors, rows } = readImport(String(text));
   return {
     errors,
@@ -81,7 +81,7 @@ export async function previewImport(text: string) {
 
 /** One batch of rows (header included). The page sends small batches so photo downloads never hit a request time limit. */
 export async function importBatch(text: string): Promise<ImportResult[]> {
-  await requireAdmin();
+  await requireAdmin("import");
   const results = await runImport(String(text));
   revalidatePath("/admin");
   return results;
@@ -89,7 +89,7 @@ export async function importBatch(text: string): Promise<ImportResult[]> {
 
 /** The sales team moves a request along its pipeline and keeps notes on it. */
 export async function saveCrm(id: number, form: FormData) {
-  await requireAdmin();
+  await requireAdmin("leads");
   const stage = form.get("stage");
   if (!Number.isInteger(id) || !isStage(stage)) return;
   await updateCrm(id, stage, String(form.get("note") ?? ""));
@@ -100,7 +100,7 @@ export type AdminFormState = { error?: string; ok?: string };
 
 /** Creates (id null) or edits a plan. The public plans page is cached under the "plans" tag. */
 export async function savePlanAction(id: number | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
-  await requireAdmin();
+  await requireAdmin("plans");
   if (id !== null && !Number.isInteger(id)) return { error: "Unknown plan." };
   const r = readPlan(form);
   if ("error" in r) return r;
@@ -112,7 +112,7 @@ export async function savePlanAction(id: number | null, _: AdminFormState, form:
 
 /** Features a listing for some days (0 stops). Takes the listing's link or its id. */
 export async function featureAction(_: AdminFormState, form: FormData): Promise<AdminFormState> {
-  await requireAdmin();
+  await requireAdmin("plans");
   const raw = String(form.get("listing") ?? "").trim();
   const id = raw.split("/homes/").pop()!.split(/[?#/]/)[0].slice(0, 200);
   const days = Number(form.get("days"));
@@ -124,7 +124,7 @@ export async function featureAction(_: AdminFormState, form: FormData): Promise<
 
 /** Creates or edits a blog post or area guide. Public pages are cached under the "pages" tag. */
 export async function savePageAction(id: number | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
-  const me = await requireAdmin();
+  const me = await requireAdmin("pages");
   if (id !== null && !Number.isInteger(id)) return { error: "Unknown page." };
   const r = readPage(form);
   if ("error" in r) return r;
@@ -137,7 +137,7 @@ export async function savePageAction(id: number | null, _: AdminFormState, form:
 
 /** Creates or edits a builder project and sets its units. Listing pages show the project, so their caches refresh too. */
 export async function saveProjectAction(id: string | null, _: AdminFormState, form: FormData): Promise<AdminFormState> {
-  await requireAdmin();
+  await requireAdmin("projects");
   const r = readProject(form);
   if ("error" in r) return r;
   const projectId = await saveProject(id ? String(id) : null, r.project);

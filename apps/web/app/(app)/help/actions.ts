@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { closeTicket, isTopic, openTicket, replyToTicket } from "@/lib/support";
-import { requireAdmin, requireUser } from "@/lib/session";
+import { requireAdmin, requireUser, staffGate } from "@/lib/session";
 
 // `body` comes back on errors so the form can put the text back (React resets forms after every action).
 export type HelpState = { error?: string; body?: string; sent?: number };
@@ -30,14 +30,14 @@ export async function replyTicket(id: number, prev: HelpState, form: FormData): 
   const me = await requireUser(`/help/${id}`);
   const body = String(form.get("body") ?? "");
   if (!Number.isInteger(id)) return { error: PROBLEM.gone };
-  const r = await replyToTicket(id, { id: me.id, staff: me.role === "admin" }, body);
+  const r = await replyToTicket(id, { id: me.id, staff: (await staffGate("support")).gate === "ok" }, body);
   if (!r.ok) return { error: PROBLEM[r.reason], body };
   revalidatePath(`/help/${id}`);
   return { sent: (prev.sent ?? 0) + 1 };
 }
 
 export async function closeTicketAction(id: number) {
-  await requireAdmin();
+  await requireAdmin("support");
   if (!Number.isInteger(id)) return;
   await closeTicket(id);
   revalidatePath(`/help/${id}`);

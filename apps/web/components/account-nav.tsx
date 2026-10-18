@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { unreadTotal } from "@/lib/chat";
 import { unreadCount } from "@/lib/notify";
+import { homeFor, isStaffRole } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { SignInLink } from "./sign-in-link";
 
@@ -32,9 +33,9 @@ export async function AccountNav() {
           </span>
         )}
       </Link>
-      {session.user.role === "admin" && (
-        <Link href="/admin" className={`hidden md:inline-block ${link}`}>
-          Review queue
+      {isStaffRole(session.user.role) && (
+        <Link href={homeFor(session.user.role)} className={`hidden md:inline-block ${link}`}>
+          Console
         </Link>
       )}
       <Link href="/account" className={link}>

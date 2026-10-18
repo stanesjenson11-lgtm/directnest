@@ -27,7 +27,7 @@ export default function SupportQueuePage({ searchParams }: PageProps<"/admin/sup
 }
 
 async function Queue({ searchParams }: Pick<PageProps<"/admin/support">, "searchParams">) {
-  await requireAdmin();
+  await requireAdmin("support");
   const raw = (await searchParams).status;
   const status = TABS.find(([v]) => v === raw)?.[0] ?? "open";
   const tickets = await supportQueue(status);

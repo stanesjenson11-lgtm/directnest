@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { phone } from "@/lib/format";
-import { requireUser } from "@/lib/session";
+import { requireUser, staffGate } from "@/lib/session";
 import { TICKET_STATUS as STATUS, ticketThread, topicLabel } from "@/lib/support";
 import { closeTicketAction } from "../actions";
 import { ReplyForm } from "../forms";
@@ -25,7 +25,7 @@ export default function TicketPage({ params }: PageProps<"/help/[id]">) {
 async function Ticket({ params }: Pick<PageProps<"/help/[id]">, "params">) {
   const { id: raw } = await params;
   const me = await requireUser(`/help/${raw}`);
-  const staff = me.role === "admin";
+  const staff = (await staffGate("support")).gate === "ok"; // support staff past their authenticator; anyone else sees only their own
   const id = Number(raw);
   const t = Number.isInteger(id) ? await ticketThread(id, { id: me.id, staff }) : undefined;
   if (!t) notFound();

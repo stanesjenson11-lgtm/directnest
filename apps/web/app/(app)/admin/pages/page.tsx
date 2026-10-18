@@ -19,7 +19,7 @@ export default function PagesAdminPage() {
 }
 
 async function Pages() {
-  await requireAdmin();
+  await requireAdmin("pages");
   const pages = await allPages();
   return (
     <>

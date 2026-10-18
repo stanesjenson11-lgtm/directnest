@@ -19,7 +19,7 @@ export default function PlansAdminPage() {
 }
 
 async function Plans() {
-  await requireAdmin();
+  await requireAdmin("plans");
   const [plans, featured] = await Promise.all([allPlans(), featuredListings()]);
   return (
     <>

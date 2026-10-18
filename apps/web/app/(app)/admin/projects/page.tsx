@@ -20,7 +20,7 @@ export default function ProjectsAdminPage() {
 }
 
 async function Projects() {
-  await requireAdmin();
+  await requireAdmin("projects");
   const summaries = await projectSummaries(false);
   const full = await Promise.all(summaries.map(async (s) => ({ s, p: (await projectFor(s.id, false))!, units: await unitIds(s.id) })));
   const localities = Object.keys(LOCALITIES);

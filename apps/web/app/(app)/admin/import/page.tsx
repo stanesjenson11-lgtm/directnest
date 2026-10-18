@@ -18,7 +18,7 @@ export default function ImportPage() {
 }
 
 async function Import() {
-  await requireAdmin();
+  await requireAdmin("import");
   return (
     <>
       <AdminNav current="/admin/import" />

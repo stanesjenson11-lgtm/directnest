@@ -8,6 +8,7 @@ import { MFA_COOKIE, MFA_TTL_MS, mfaToken } from "@/lib/admin-mfa";
 import { logAuditEvent } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { homeFor, type StaffRole } from "@/lib/roles";
 import { twoFactor } from "@/lib/schema";
 import { requireAdminRole } from "@/lib/session";
 
@@ -88,6 +89,7 @@ export async function verifyMfa(_: string | null, form: FormData) {
   }
   await audit("ADMIN_MFA_OK", user.id);
   const { secret } = await auth.$context;
+  const home = homeFor(user.role as StaffRole);
   (await cookies()).set(MFA_COOKIE, mfaToken(secret, session.id), {
     httpOnly: true,
     sameSite: "strict",
@@ -95,5 +97,5 @@ export async function verifyMfa(_: string | null, form: FormData) {
     path: "/",
     maxAge: MFA_TTL_MS / 1000,
   });
-  redirect("/admin");
+  redirect(home);
 }

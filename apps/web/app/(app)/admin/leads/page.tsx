@@ -24,7 +24,7 @@ export default function LeadsPage({ searchParams }: PageProps<"/admin/leads">) {
 }
 
 async function Leads({ searchParams }: Pick<PageProps<"/admin/leads">, "searchParams">) {
-  await requireAdmin();
+  await requireAdmin("leads");
   const raw = (await searchParams).stage;
   const stage = isStage(raw) ? raw : undefined;
   const [rows, counts] = await Promise.all([crmLeads(stage), stageCounts()]);

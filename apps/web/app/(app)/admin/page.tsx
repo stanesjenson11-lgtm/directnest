@@ -26,7 +26,7 @@ export default function AdminPage() {
 }
 
 async function Queue() {
-  await requireAdmin();
+  await requireAdmin("queue");
   const [queue, toVisit] = await Promise.all([pendingListings(), unvisitedListings()]);
 
   return (

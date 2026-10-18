@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { findUsers } from "@/lib/admin";
 import { phone } from "@/lib/format";
+import { isStaffRole, ROLE_LABEL } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
 import { setUserBanned } from "../actions";
 import { AdminNav } from "../admin-nav";
@@ -20,7 +21,7 @@ export default function UsersPage({ searchParams }: PageProps<"/admin/users">) {
 }
 
 async function Users({ searchParams }: Pick<PageProps<"/admin/users">, "searchParams">) {
-  await requireAdmin();
+  await requireAdmin("users");
   const raw = (await searchParams).q;
   const q = typeof raw === "string" ? raw : "";
   const people = await findUsers(q);
@@ -58,7 +59,7 @@ async function Users({ searchParams }: Pick<PageProps<"/admin/users">, "searchPa
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{p.name || "No name"}</span>
-                  {p.role === "admin" && <span className="rounded bg-indigo/10 px-1.5 py-0.5 text-[12px] font-semibold text-indigo">Admin</span>}
+                  {isStaffRole(p.role) && <span className="rounded bg-indigo/10 px-1.5 py-0.5 text-[12px] font-semibold text-indigo">{ROLE_LABEL[p.role]}</span>}
                   {p.banned && <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[12px] font-semibold text-danger">Banned</span>}
                 </p>
                 <p className="text-[14px] text-muted tabular-nums">
@@ -66,7 +67,7 @@ async function Users({ searchParams }: Pick<PageProps<"/admin/users">, "searchPa
                   {p.listings} {p.listings === 1 ? "listing" : "listings"} · {p.reveals} {p.reveals === 1 ? "number" : "numbers"} seen this week
                 </p>
               </div>
-              {p.role !== "admin" && (
+              {!isStaffRole(p.role) && (
                 <form action={setUserBanned.bind(null, p.id, !p.banned)}>
                   <button
                     className={`h-9 cursor-pointer rounded-full px-4 text-[14px] font-semibold ${p.banned ? "border border-hairline hover:border-muted" : "border border-danger text-danger hover:bg-danger/8"}`}
