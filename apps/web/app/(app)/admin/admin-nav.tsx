@@ -9,6 +9,7 @@ const PAGES = [
   ["/admin/plans", "Plans"],
   ["/admin/pages", "Blog and areas"],
   ["/admin/import", "Import"],
+  ["/admin/security", "Security"],
 ] as const;
 
 export function AdminNav({ current }: { current: (typeof PAGES)[number][0] }) {
