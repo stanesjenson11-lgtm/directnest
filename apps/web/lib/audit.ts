@@ -7,6 +7,7 @@ export type AuditAction =
   | "AUTH_SIGN_OUT"
   | "AUTH_OTP_SENT"
   | "ACCOUNT_DELETED"
+  | "ADMIN_ROLE_CHANGED"
   | "ADMIN_MFA_ENROLLED"
   | "ADMIN_MFA_RESET"
   | "ADMIN_MFA_OK"
