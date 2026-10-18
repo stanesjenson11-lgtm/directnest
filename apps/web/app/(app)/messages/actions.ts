@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { MAX_MESSAGE, messagesAfter, sendMessage, startConversation, type ChatMessage } from "@/lib/chat";
-import { getSession } from "@/lib/session";
+import { getMember } from "@/lib/session";
 
 const NOT_STARTED = {
   gone: "This home isn't listed any more.",
@@ -13,7 +13,7 @@ const NOT_STARTED = {
 /** Opens the thread about a home and goes to it. Returns a message when it can't. */
 export async function startChat(listingId: string): Promise<string | undefined> {
   const id = String(listingId).slice(0, 200);
-  const session = await getSession();
+  const session = await getMember();
   if (!session) redirect(`/sign-in?next=${encodeURIComponent(`/homes/${id}`)}`);
   const r = await startConversation(session.user.id, id);
   if (r.ok) redirect(`/messages/${r.id}`);
@@ -21,7 +21,7 @@ export async function startChat(listingId: string): Promise<string | undefined> 
 }
 
 export async function pollMessages(conversationId: number, afterId: number): Promise<ChatMessage[]> {
-  const session = await getSession();
+  const session = await getMember();
   if (!session || !Number.isInteger(conversationId) || !Number.isInteger(afterId)) return [];
   return (await messagesAfter(conversationId, session.user.id, afterId)) ?? [];
 }
@@ -35,7 +35,7 @@ const NOT_SENT = {
 
 /** Returns null when sent, or what went wrong. */
 export async function postMessage(conversationId: number, body: string): Promise<string | null> {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return "Sign in again to send messages.";
   if (!Number.isInteger(conversationId)) return NOT_SENT.gone;
   const r = await sendMessage(conversationId, session.user.id, String(body));

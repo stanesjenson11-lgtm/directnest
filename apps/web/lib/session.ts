@@ -8,10 +8,20 @@ import { can, homeFor, isStaffRole, type Section } from "./roles.ts";
 // One lookup per request: the header, the page and the console shell all ask.
 export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
 
+/**
+ * Someone signed in who has also confirmed their mobile number. Phone sign-in confirms it on the way in; Google and
+ * Apple sign-in add it afterwards (/verify-phone). Everything members do (shortlist, chat, contact, upload) needs it.
+ */
+export async function getMember() {
+  const session = await getSession();
+  return session?.user.phoneNumberVerified ? session : null;
+}
+
 /** For pages and actions that need a signed-in person. `next` is where to come back to. */
 export async function requireUser(next: string) {
   const session = await getSession();
   if (!session) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+  if (!session.user.phoneNumberVerified) redirect(`/verify-phone?next=${encodeURIComponent(next)}`);
   return session.user;
 }
 

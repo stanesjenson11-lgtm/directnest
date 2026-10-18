@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { answerLead } from "@/lib/leads";
 import { listings, user } from "@/lib/schema";
 import { deleteSavedSearch, saveSearch, setShortlisted, shortlistIds } from "@/lib/saved";
-import { getSession, requireUser } from "@/lib/session";
+import { getMember, requireUser } from "@/lib/session";
 
 // Every action checks ownership in the WHERE clause, so a forged id can only ever touch the caller's own rows.
 
@@ -44,19 +44,19 @@ export async function answer(id: number, status: "confirmed" | "declined" | "don
 
 // The heart buttons and the search page call these and handle "signed out" themselves, so no redirects here.
 export async function myShortlist(): Promise<string[]> {
-  const session = await getSession();
+  const session = await getMember();
   return session ? shortlistIds(session.user.id) : [];
 }
 
 export async function shortlist(listingId: string, on: boolean) {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return false;
   await setShortlisted(session.user.id, String(listingId).slice(0, 200), on === true);
   return true;
 }
 
 export async function saveThisSearch(query: string) {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return { ok: false, reason: "signed-out" } as const;
   return saveSearch(session.user.id, String(query).slice(0, 2000));
 }
