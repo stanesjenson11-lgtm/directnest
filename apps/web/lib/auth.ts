@@ -30,9 +30,17 @@ export const auth = betterAuth({
       },
     },
   },
-  socialProviders: process.env.GOOGLE_CLIENT_ID
-    ? { google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET! } }
-    : undefined,
+  // Google and Apple are how most people sign in. Each shows up on the sign-in page only once its keys are set; both then
+  // send people on to confirm their mobile number (/verify-phone), which owners and staff rely on.
+  socialProviders: {
+    ...(process.env.GOOGLE_CLIENT_ID && { google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET! } }),
+    // APPLE_CLIENT_SECRET is a signed token that lasts six months: pnpm apple-secret prints a fresh one.
+    ...(process.env.APPLE_CLIENT_ID && {
+      apple: { clientId: process.env.APPLE_CLIENT_ID, clientSecret: process.env.APPLE_CLIENT_SECRET!, appBundleIdentifier: process.env.APPLE_APP_BUNDLE_ID },
+    }),
+  },
+  // Apple sends people back by posting to our callback from its own site.
+  trustedOrigins: process.env.APPLE_CLIENT_ID ? ["https://appleid.apple.com"] : [],
   // SMS costs money and invites abuse. Limits are per client IP, counted in Postgres; 5 sends leaves room for
   // carrier-grade NAT, where many Jio/Airtel users share one IP.
   // ponytail: per-number throttling arrives with Cloudflare Turnstile on the send step (week 1 security task).

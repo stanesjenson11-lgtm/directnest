@@ -13,6 +13,7 @@
     "db:seed": "pnpm --filter web db:seed",
     "make-admin": "pnpm --filter web make-admin",
     "reset-admin-2fa": "pnpm --filter web reset-admin-2fa",
+    "apple-secret": "pnpm --filter web apple-secret",
     "maintenance": "pnpm --filter web maintenance"
   }
 }
