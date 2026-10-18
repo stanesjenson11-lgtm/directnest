@@ -91,7 +91,7 @@ const unreadIn = (userId: string) =>
 const visibleTo = (userId: string) =>
   or(eq(conversations.buyerId, userId), and(eq(conversations.ownerId, userId), sql`exists (select 1 from messages m where m.conversation_id = conversations.id)`));
 
-export async function inbox(userId: string) {
+export async function inbox(userId: string, limit = 100) {
   const other = aliasedTable(user, "other");
   return db
     .select({
@@ -109,7 +109,7 @@ export async function inbox(userId: string) {
     .innerJoin(other, sql`${other.id} = case when ${conversations.buyerId} = ${userId} then ${conversations.ownerId} else ${conversations.buyerId} end`)
     .where(visibleTo(userId))
     .orderBy(desc(conversations.lastMessageAt), asc(conversations.id))
-    .limit(100);
+    .limit(limit);
 }
 
 /** For the header badge. */

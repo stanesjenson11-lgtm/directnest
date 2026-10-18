@@ -1,38 +1,39 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { AccountNav } from "@/components/account-nav";
-import { Wordmark } from "@/components/home/scenery";
+import { SiteHeader, type Member } from "@/components/nav/site-header";
+import { inbox, unreadTotal } from "@/lib/chat";
+import { latestNotifications, unreadCount } from "@/lib/notify";
+import { homeFor, isStaffRole, ROLE_LABEL } from "@/lib/roles";
 import { RENTALS } from "@/lib/search";
+import { getSession } from "@/lib/session";
 
-// Daylight header for product pages (search, listing, post). Fixed 64px so pages can size against it.
-export function AppHeader() {
+// The header every page shares. The bar itself is static; who is signed in streams into it, so pages stay cacheable.
+// "docked" is a fixed 64px so search and chat can size against it; the home page passes "overlay" to float over its hero.
+export function AppHeader({ variant = "docked" }: { variant?: "overlay" | "docked" }) {
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-hairline bg-canvas">
-      <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-2 px-4 sm:px-6">
-        <Link href="/" aria-label="DirectNest home" className="shrink-0 rounded-md text-ink">
-          <Wordmark />
-        </Link>
-        <nav aria-label="Main" className="flex items-center gap-1 text-[15px] font-medium whitespace-nowrap">
-          {RENTALS && (
-            <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
-              Rent
-            </Link>
-          )}
-          <Link href="/search" className="hidden rounded-full px-3 py-2 text-muted transition-colors hover:text-ink md:inline-block">
-            Buy
-          </Link>
-          <Suspense fallback={<span className="inline-block w-16" />}>
-            <AccountNav />
-          </Suspense>
-          <Link
-            href="/post"
-            className="ml-1 rounded-full border border-indigo px-4 py-2 text-indigo transition-colors duration-150 ease-out-quint hover:bg-indigo hover:text-canvas"
-          >
-            <span className="sm:hidden">Post</span>
-            <span className="hidden sm:inline">Post your property</span>
-          </Link>
-        </nav>
-      </div>
-    </header>
+    <Suspense fallback={<SiteHeader variant={variant} member={undefined} rentals={RENTALS} />}>
+      <WithMember variant={variant} />
+    </Suspense>
   );
+}
+
+const when = (d: Date) => d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+
+async function WithMember({ variant }: { variant: "overlay" | "docked" }) {
+  const session = await getSession();
+  let member: Member | null = null;
+  if (session) {
+    const id = session.user.id;
+    const [alerts, chats, unread, unreadAlerts] = await Promise.all([latestNotifications(id, 5), inbox(id, 5), unreadTotal(id), unreadCount(id)]);
+    const role = session.user.role;
+    member = {
+      name: session.user.name,
+      image: session.user.image ?? null,
+      alerts: unreadAlerts,
+      unread,
+      alertItems: alerts.map((a) => ({ id: a.id, text: a.text, href: a.href, unread: !a.readAt, when: when(a.createdAt) })),
+      chatItems: chats.map((c) => ({ id: c.id, title: c.title, who: c.otherName || "Owner", last: c.last, unread: c.unread, when: when(c.lastMessageAt) })),
+      console: isStaffRole(role) ? { href: homeFor(role), label: ROLE_LABEL[role] } : null,
+    };
+  }
+  return <SiteHeader variant={variant} member={member} rentals={RENTALS} />;
 }
