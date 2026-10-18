@@ -4,7 +4,6 @@ import { phone } from "@/lib/format";
 import { ROLE_LABEL, SECTION_LABEL, sectionsOf, STAFF_ROLES } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
 import { listStaff } from "@/lib/staff";
-import { AdminNav } from "../admin-nav";
 import { changeStaff } from "../staff-actions";
 import { AddStaffForm } from "./add-form";
 
@@ -27,7 +26,6 @@ async function Staff() {
 
   return (
     <>
-      <AdminNav current="/admin/staff" />
       <h1 className="text-[2rem] leading-tight font-semibold">Staff</h1>
       <p className="mt-1 text-muted">Each role opens only its own sections. Everyone sets up an authenticator the first time they sign in to the console.</p>
 

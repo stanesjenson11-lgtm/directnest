@@ -6,7 +6,6 @@ import { daysAgo, inrShort, phone } from "@/lib/format";
 import { visitTime } from "@/lib/search";
 import { requireAdmin } from "@/lib/session";
 import { saveCrm } from "../actions";
-import { AdminNav } from "../admin-nav";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
 
@@ -32,7 +31,6 @@ async function Leads({ searchParams }: Pick<PageProps<"/admin/leads">, "searchPa
 
   return (
     <>
-      <AdminNav current="/admin/leads" />
       <h1 className="text-[2rem] leading-tight font-semibold">Sales leads</h1>
       <p className="mt-1 text-muted">Every callback and visit request, newest first. Stages and notes are for the team only; buyers and owners never see them.</p>
 

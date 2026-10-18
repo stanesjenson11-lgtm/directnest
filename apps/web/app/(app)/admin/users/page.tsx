@@ -5,7 +5,6 @@ import { phone } from "@/lib/format";
 import { isStaffRole, ROLE_LABEL } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
 import { setUserBanned } from "../actions";
-import { AdminNav } from "../admin-nav";
 
 // Neutral title, like the review queue.
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -28,7 +27,6 @@ async function Users({ searchParams }: Pick<PageProps<"/admin/users">, "searchPa
 
   return (
     <>
-      <AdminNav current="/admin/users" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[2rem] leading-tight font-semibold">Users</h1>

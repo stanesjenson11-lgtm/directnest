@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { COLUMNS, TEMPLATE_CSV } from "@/lib/import";
 import { requireAdmin } from "@/lib/session";
-import { AdminNav } from "../admin-nav";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -21,7 +20,6 @@ async function Import() {
   await requireAdmin("import");
   return (
     <>
-      <AdminNav current="/admin/import" />
       <h1 className="text-[2rem] leading-tight font-semibold">Import homes from a spreadsheet</h1>
       <p className="mt-2 max-w-[68ch] text-muted">
         Save the sheet as CSV (in Excel: File, Save As, CSV UTF-8; in Google Sheets: File, Download, CSV) with one home per row. Every imported home goes to the

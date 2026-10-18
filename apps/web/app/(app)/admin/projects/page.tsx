@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { LOCALITIES } from "@/lib/places";
 import { projectFor, projectSummaries, unitIds } from "@/lib/projects";
 import { requireAdmin } from "@/lib/session";
-import { AdminNav } from "../admin-nav";
 import { ProjectForm } from "./form";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -27,7 +26,6 @@ async function Projects() {
 
   return (
     <>
-      <AdminNav current="/admin/projects" />
       <h1 className="text-[2rem] leading-tight font-semibold">Builder projects</h1>
       <p className="mt-1 max-w-[68ch] text-muted">
         A project page groups a builder&rsquo;s units. Import the units as sale listings first (owner: the builder&rsquo;s phone), approve them, then paste their links here.

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { allPlans, featuredListings } from "@/lib/plans";
 import { requireAdmin } from "@/lib/session";
-import { AdminNav } from "../admin-nav";
 import { FeatureForm, PlanForm } from "./forms";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -23,7 +22,6 @@ async function Plans() {
   const [plans, featured] = await Promise.all([allPlans(), featuredListings()]);
   return (
     <>
-      <AdminNav current="/admin/plans" />
       <h1 className="text-[2rem] leading-tight font-semibold">Plans and featured homes</h1>
       <p className="mt-1 max-w-[68ch] text-muted">
         Owners see active plans on the{" "}

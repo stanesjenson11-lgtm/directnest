@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { daysAgo, phone } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { supportQueue, topicLabel } from "@/lib/support";
-import { AdminNav } from "../admin-nav";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
 
@@ -34,7 +33,6 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/support">, "search
 
   return (
     <>
-      <AdminNav current="/admin/support" />
       <h1 className="text-[2rem] leading-tight font-semibold">Support</h1>
       <nav aria-label="Status" className="mt-5 flex flex-wrap gap-2 text-[14px] font-medium">
         {TABS.map(([v, l]) => (

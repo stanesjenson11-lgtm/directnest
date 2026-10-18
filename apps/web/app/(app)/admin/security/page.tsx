@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireAdminRole } from "@/lib/session";
-import { AdminNav } from "../admin-nav";
 import { Enroll } from "./enroll";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -20,7 +19,6 @@ async function Security() {
   const { user } = await requireAdminRole();
   return user.twoFactorEnabled ? (
     <>
-      <AdminNav current="/admin/security" />
       <h1 className="text-[2rem] leading-tight font-semibold">Security</h1>
       <p className="mt-1 text-muted">
         Your authenticator app is on. If you lose the phone and your backup codes, someone with server access resets it with <code>pnpm reset-admin-2fa</code>.

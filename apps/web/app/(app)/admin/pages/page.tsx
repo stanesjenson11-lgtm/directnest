@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { allPages, AREAS } from "@/lib/pages";
 import { requireAdmin } from "@/lib/session";
-import { AdminNav } from "../admin-nav";
 import { PageForm } from "./form";
 
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -23,7 +22,6 @@ async function Pages() {
   const pages = await allPages();
   return (
     <>
-      <AdminNav current="/admin/pages" />
       <h1 className="text-[2rem] leading-tight font-semibold">Blog and area guides</h1>
       <p className="mt-1 max-w-[68ch] text-muted">
         Every area already has a page with live prices and homes; a guide adds your words on top. Drafts stay hidden until you tick Published.
