@@ -12,8 +12,9 @@ after(() => pool.end());
 test("a super admin gives, changes and takes away staff access", async () => {
   const t = `test-staff-${Date.now()}`;
   const [admin, person, suspended] = [`${t}-a`, `${t}-p`, `${t}-s`];
-  const tail = String(Date.now()).slice(-8);
-  const [adminPhone, personPhone, suspendedPhone] = [`+9198${tail}`, `+9196${tail}`, `+9197${tail}`];
+  // Random, not timestamp-based: test files run in parallel and phone numbers are unique.
+  const rand = () => `+919${Math.floor(100000000 + Math.random() * 900000000)}`;
+  const [adminPhone, personPhone, suspendedPhone, nobody] = [rand(), rand(), rand(), rand()];
   const roleOf = async (id: string) => (await db.select({ role: user.role, two: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0];
   await db.insert(user).values([
     { id: admin, name: "Boss", email: `${admin}@test.invalid`, role: "admin", phoneNumber: adminPhone },
@@ -22,7 +23,7 @@ test("a super admin gives, changes and takes away staff access", async () => {
   ]);
   try {
     assert.equal(await setRole(admin, "12345", "sales"), "bad-phone");
-    assert.equal(await setRole(admin, `+9195${tail}`, "sales"), "no-account", "they must have signed in once");
+    assert.equal(await setRole(admin, nobody, "sales"), "no-account", "they must have signed in once");
     assert.equal(await setRole(admin, suspendedPhone, "sales"), "banned");
     assert.equal(await setRole(admin, adminPhone, "member"), "self", "nobody changes their own role");
 
