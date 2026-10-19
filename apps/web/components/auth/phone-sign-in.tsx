@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
+import { signOutAndReload } from "@/lib/sign-out";
 import { Turnstile } from "./turnstile";
 
 type AuthError = { code?: string; status?: number; message?: string };
@@ -113,9 +114,7 @@ export function PhoneSignIn({
 
   const signOut = () =>
     start(async () => {
-      await authClient.signOut();
-      router.replace("/");
-      router.refresh();
+      await signOutAndReload("user");
     });
 
   const turnstile = <Turnstile key={check} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />;

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type CSSProperties, type KeyboardEvent } from "react";
 import { Avatar } from "@/components/nav/avatar";
 import { ICONS } from "@/components/nav/icons";
-import { authClient } from "@/lib/auth-client";
+import { signOutAndReload } from "@/lib/sign-out";
 import { phone } from "@/lib/format";
 import type { NavItem } from "./console-data";
 import { searchClients } from "./palette-actions";
@@ -118,15 +118,12 @@ export function TabBar({ items }: { items: NavItem[] }) {
 
 /** The signed-in person: their photo or initials, and on a phone the tools the rail would hold. */
 export function UserMenu({ name, email, image, roleLabel, tools }: { name: string; email: string; image: string | null; roleLabel: string; tools: NavItem[] }) {
-  const router = useRouter();
   const path = usePathname();
   useEffect(() => document.getElementById("console-user")?.hidePopover?.(), [path]);
 
   const signOut = async () => {
     document.getElementById("console-user")?.hidePopover?.();
-    await authClient.signOut();
-    router.replace("/");
-    router.refresh();
+    await signOutAndReload("user");
   };
 
   const row = "flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium hover:bg-surface";

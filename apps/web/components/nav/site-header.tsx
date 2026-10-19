@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { Wordmark } from "@/components/home/scenery";
-import { authClient } from "@/lib/auth-client";
+import { signOutAndReload } from "@/lib/sign-out";
 import { Avatar } from "./avatar";
 import { ICONS } from "./icons";
 import { NAV_LINKS, RENT_LINK } from "./links";
@@ -34,7 +34,6 @@ const active = (path: string, href: string) => path === href || path.startsWith(
  */
 export function SiteHeader({ variant, member, rentals = false }: { variant: "overlay" | "docked"; member?: Member | null; rentals?: boolean }) {
   const path = usePathname();
-  const router = useRouter();
   const sheet = useRef<HTMLDialogElement>(null);
 
   // Following a link closes whatever was open: the phone menu and both popovers.
@@ -56,9 +55,7 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
   const signOut = async () => {
     document.getElementById("account-menu")?.hidePopover?.();
     sheet.current?.close();
-    await authClient.signOut();
-    router.replace("/");
-    router.refresh();
+    await signOutAndReload("user");
   };
 
   return (
