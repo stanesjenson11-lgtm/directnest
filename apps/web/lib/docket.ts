@@ -226,10 +226,18 @@ async function checkTarget(actor: Viewer, t: Target): Promise<{ role: StaffRole;
 const staffWith = async (role: StaffRole, except: string) =>
   (await db.select({ id: user.id }).from(user).where(and(eq(user.role, role), ne(user.id, except), sql`coalesce(${user.banned}, false) = false`))).map((u) => u.id);
 
+/**
+ * Alerts are best effort: a teammate leaving halfway, or a WhatsApp outage, must never fail the work itself. They go one by
+ * one so a person who has gone doesn't stop the rest hearing.
+ */
+async function alert(to: string | string[], text: string, to_href: string) {
+  await Promise.all([to].flat().map((id) => notify(id, text, to_href).catch((e: Error) => console.error("[docket] alert failed:", e.message))));
+}
+
 async function tell(actor: Viewer, to: { role: StaffRole; userId: string | null }, id: number, title: string) {
   if (to.userId) {
-    if (to.userId !== actor.id) await notify(to.userId, `${firstName(actor.name)} gave you: ${title}`, href(id));
-  } else await notify(await staffWith(to.role, actor.id), `New for ${ROLE_LABEL[to.role]}: ${title}`, href(id));
+    if (to.userId !== actor.id) await alert(to.userId, `${firstName(actor.name)} gave you: ${title}`, href(id));
+  } else await alert(await staffWith(to.role, actor.id), `New for ${ROLE_LABEL[to.role]}: ${title}`, href(id));
 }
 
 export type NewItem = { title: string; detail?: string; priority?: string; repeat?: string; dueAt: Date | null; target: Target; subject?: SubjectRef | null };
@@ -345,7 +353,7 @@ export async function claim(actor: Viewer, id: number): Promise<Result> {
     .returning({ title: docketItems.title, createdBy: docketItems.createdBy });
   if (!row) return fail("gone");
   await log(db, id, actor.id, `Taken by ${actor.name || "a teammate"}`);
-  if (row.createdBy && row.createdBy !== actor.id) await notify(row.createdBy, `${firstName(actor.name)} took: ${row.title}`, href(id));
+  if (row.createdBy && row.createdBy !== actor.id) await alert(row.createdBy, `${firstName(actor.name)} took: ${row.title}`, href(id));
   return { ok: true, id };
 }
 
@@ -381,7 +389,7 @@ export async function setStatus(actor: Viewer, id: number, status: DocketStatus)
     }
   });
   // The person who gave the work hears when someone else finishes it.
-  if (finished && item.createdBy && item.createdBy !== actor.id) await notify(item.createdBy, `${firstName(actor.name)} ${status === "done" ? "finished" : "dropped"}: ${item.title}`, href(id));
+  if (finished && item.createdBy && item.createdBy !== actor.id) await alert(item.createdBy, `${firstName(actor.name)} ${status === "done" ? "finished" : "dropped"}: ${item.title}`, href(id));
   return { ok: true, id };
 }
 
@@ -423,7 +431,7 @@ export async function sendDueReminders(now = new Date()) {
     if (!got) continue;
     const who = d.assigneeId ? [d.assigneeId] : isStaffRole(d.assigneeRole) ? await staffWith(d.assigneeRole, "") : [];
     const late = d.dueAt!.getTime() < now.getTime();
-    await notify(who, `${late ? "Overdue" : "Due soon"}: ${d.title}`, href(d.id));
+    await alert(who, `${late ? "Overdue" : "Due soon"}: ${d.title}`, href(d.id));
   }
   return due.length;
 }
