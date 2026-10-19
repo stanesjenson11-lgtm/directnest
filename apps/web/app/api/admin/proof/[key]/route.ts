@@ -4,12 +4,11 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { MEDIA_DIR } from "@/lib/media";
 import { uploads } from "@/lib/schema";
-import { getSession } from "@/lib/session";
+import { staffGate } from "@/lib/session";
 
-// Ownership proofs, for the review team only. Never cached anywhere.
+// Ownership proofs, for reviewers who have passed their authenticator this session. Never cached anywhere.
 export async function GET(_request: Request, { params }: RouteContext<"/api/admin/proof/[key]">) {
-  const session = await getSession();
-  if (session?.user.role !== "admin") return new Response("Not found", { status: 404 });
+  if ((await staffGate("queue")).gate !== "ok") return new Response("Not found", { status: 404 });
   const { key } = await params;
   const [row] = await db.select({ ext: uploads.ext }).from(uploads).where(eq(uploads.key, key));
   if (!row || !["pdf", "jpg"].includes(row.ext)) return new Response("Not found", { status: 404 });

@@ -2,10 +2,10 @@
 
 import { revealPhone, type Reveal } from "@/lib/contact";
 import { createLead, leadSchema } from "@/lib/leads";
-import { getSession } from "@/lib/session";
+import { getMember } from "@/lib/session";
 
 export async function revealContact(listingId: string): Promise<Reveal | { ok: false; reason: "signed-out" }> {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return { ok: false, reason: "signed-out" };
   return revealPhone(session.user.id, String(listingId).slice(0, 200));
 }
@@ -21,7 +21,7 @@ const NOT_SENT = {
 };
 
 export async function requestLead(_: LeadState, form: FormData): Promise<LeadState> {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return { status: "error", message: "Sign in first, so the owner knows who's asking." };
   const field = (k: string) => form.get(k) || undefined;
   const parsed = leadSchema.safeParse({

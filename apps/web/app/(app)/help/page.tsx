@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { phone } from "@/lib/format";
 import { listings } from "@/lib/schema";
-import { getSession } from "@/lib/session";
+import { getMember } from "@/lib/session";
 import { isTopic, TICKET_STATUS as STATUS, ticketsOf, topicLabel } from "@/lib/support";
 import { TicketForm } from "./forms";
 
@@ -34,7 +34,7 @@ export default function HelpPage({ searchParams }: PageProps<"/help">) {
 
 async function Help({ searchParams }: Pick<PageProps<"/help">, "searchParams">) {
   const { topic, listing: listingId } = await searchParams;
-  const session = await getSession();
+  const session = await getMember();
   const next = `/help${topic || listingId ? `?${new URLSearchParams({ ...(isTopic(topic) && { topic }), ...(typeof listingId === "string" && { listing: listingId }) })}` : ""}`;
   if (!session)
     return (

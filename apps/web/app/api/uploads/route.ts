@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { MediaError, savePhoto, saveProof } from "@/lib/media";
 import { uploads } from "@/lib/schema";
-import { getSession } from "@/lib/session";
+import { getMember } from "@/lib/session";
 
 const DAILY_LIMIT = 60; // a few listings' worth of photos; stops anyone filling the disk
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getMember();
   if (!session) return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
 
   const [{ n }] = await db

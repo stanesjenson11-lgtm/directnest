@@ -6,7 +6,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <AppHeader />
-      {children}
+      {/* The skip link in the header lands here. */}
+      <div id="content" tabIndex={-1} className="outline-none">
+        {children}
+      </div>
       <AppFooter />
     </>
   );

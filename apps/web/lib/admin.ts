@@ -1,7 +1,8 @@
 // Staff tools for people: find them, and ban or unban. Admin pages only.
-import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, notInArray, or, sql } from "drizzle-orm";
 import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
+import { STAFF_ROLES } from "./roles.ts";
 import { session, user } from "./schema.ts";
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -9,7 +10,8 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 /** Newest first; `q` matches a name or any part of a phone number. */
 export async function findUsers(q = "") {
   const term = q.trim().slice(0, 60);
-  const digits = term.replace(/\D/g, "");
+  // A phone search is only a search made of phone-number characters; "Asha 2" is a name.
+  const digits = /^[\d\s+()-]+$/.test(term) ? term.replace(/\D/g, "") : "";
   return db
     .select({
       id: user.id,
@@ -27,14 +29,14 @@ export async function findUsers(q = "") {
     .limit(50);
 }
 
-/** Banning signs the person out everywhere; the session hook in lib/auth.ts stops them signing back in. Admins can't be banned here. */
+/** Banning signs the person out everywhere; the session hook in lib/auth.ts stops them signing back in. Staff can't be banned here: take their role away first. */
 export async function setBanned(adminId: string, userId: string, banned: boolean) {
   if (adminId === userId) return false;
   const result = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(user)
       .set({ banned, updatedAt: new Date() })
-      .where(and(eq(user.id, userId), ne(user.role, "admin")))
+      .where(and(eq(user.id, userId), notInArray(user.role, [...STAFF_ROLES])))
       .returning({ id: user.id });
     if (row && banned) await tx.delete(session).where(eq(session.userId, userId));
     return !!row;

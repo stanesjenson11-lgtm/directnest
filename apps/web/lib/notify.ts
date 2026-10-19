@@ -18,8 +18,8 @@ export async function notify(userIds: string | string[], text: string, href: str
 export const unreadCount = async (userId: string) =>
   (await db.select({ n: count() }).from(notifications).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))))[0].n;
 
-export const latestNotifications = (userId: string) =>
-  db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt), desc(notifications.id)).limit(50);
+export const latestNotifications = (userId: string, limit = 50) =>
+  db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt), desc(notifications.id)).limit(limit);
 
 export const markAllRead = (userId: string) =>
   db.update(notifications).set({ readAt: sql`now()` }).where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));

@@ -24,7 +24,25 @@ export const user = pgTable("user", {
   phoneNumberVerified: boolean("phone_number_verified"),
   role: text("role").default("member"),
   banned: boolean("banned").default(false),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
 });
+
+// Authenticator secret and backup codes for staff, encrypted by better-auth's two-factor plugin.
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    verified: boolean("verified").default(true),
+    failedVerificationCount: integer("failed_verification_count").default(0),
+    lockedUntil: timestamp("locked_until"),
+  },
+  (table) => [index("two_factor_userId_idx").on(table.userId)],
+);
 
 export const session = pgTable(
   "session",

@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
 import { Hero } from "@/components/home/hero";
 import { Wordmark } from "@/components/home/scenery";
 import { ScrollTouches } from "@/components/home/scroll-touches";
-import { RENTALS } from "@/lib/search";
 
 const STEPS = [
   {
@@ -54,40 +54,12 @@ const LOCALITIES = [
   "Yelahanka",
 ];
 
-function SiteHeader() {
-  return (
-    <header className="on-dusk absolute inset-x-0 top-0 z-20 text-moonlight">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-5 sm:px-8 lg:px-14">
-        <Link href="/" aria-label="DirectNest home" className="rounded-md">
-          <Wordmark />
-        </Link>
-        <nav aria-label="Main" className="flex items-center gap-1 text-[15px] font-medium sm:gap-2">
-          {RENTALS && (
-            <Link href="/search?type=rent" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
-              Rent
-            </Link>
-          )}
-          <Link href="/search" className="hidden rounded-full px-3 py-2 text-moonlight-dim transition-colors hover:text-moonlight sm:inline-block">
-            Buy
-          </Link>
-          <Link
-            href="/post"
-            className="rounded-full border border-moonlight/40 px-4 py-2 transition-colors duration-200 ease-out-quint hover:bg-moonlight hover:text-dusk"
-          >
-            Post your property
-          </Link>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
 export default function HomePage() {
   return (
     <>
-      <SiteHeader />
+      <AppHeader variant="overlay" />
       <ScrollTouches />
-      <main>
+      <main id="content" tabIndex={-1} className="outline-none">
         <Hero />
 
         <section id="owners" aria-labelledby="owners-title" className="bg-canvas py-[clamp(96px,13vw,180px)]">

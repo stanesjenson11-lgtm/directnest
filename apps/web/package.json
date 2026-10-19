@@ -16,7 +16,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed-db.ts",
+    "seed-staff": "node --env-file-if-exists=.env.local scripts/seed-staff.ts",
     "make-admin": "node --env-file-if-exists=.env.local scripts/make-admin.ts",
+    "reset-admin-2fa": "node --env-file-if-exists=.env.local scripts/reset-admin-2fa.ts",
+    "apple-secret": "node scripts/apple-secret.ts",
     "maintenance": "node --env-file-if-exists=.env.local scripts/maintenance.ts"
   },
   "dependencies": {
@@ -30,6 +33,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "sharp": "^0.35.5",
+    "uqr": "^0.1.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {
