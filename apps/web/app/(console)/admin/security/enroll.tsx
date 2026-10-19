@@ -1,11 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { encode } from "uqr";
 import { confirmEnrollment, startEnrollment } from "../mfa-actions";
 
 type Started = { uri: string; codes: string[] };
 
 const button = "mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70";
+
+/** The authenticator link as a QR code, drawn here in the browser: the key never goes to a QR service. Always dark on white, so every scanner reads it. */
+function Qr({ value }: { value: string }) {
+  const { data, size } = encode(value, { ecc: "M" });
+  const path = data.flatMap((row, y) => row.flatMap((on, x) => (on ? [`M${x} ${y}h1v1h-1z`] : []))).join("");
+  const margin = 4; // the quiet zone scanners need around a code
+  return (
+    <svg viewBox={`${-margin} ${-margin} ${size + 2 * margin} ${size + 2 * margin}`} role="img" aria-label="QR code to scan with your authenticator app" shapeRendering="crispEdges" className="mx-auto mt-3 h-52 w-52 rounded-lg bg-white">
+      <path d={path} fill="#000" />
+    </svg>
+  );
+}
 
 export function Enroll() {
   const [started, setStarted] = useState<Started | null>(null);
@@ -28,7 +41,6 @@ export function Enroll() {
       </button>
     );
 
-  // No QR image: phones open the otpauth link straight in the authenticator app, desktops type the key.
   const key = new URL(started.uri).searchParams.get("secret");
   return (
     <form
@@ -38,9 +50,11 @@ export function Enroll() {
         start(async () => setError((await confirmEnrollment(code)) ?? null));
       }}
     >
-      <p className="mt-8 text-[14px] font-medium">1. Add it to your authenticator app</p>
-      <p className="mt-1.5 text-muted">
-        On your phone, <a href={started.uri} className="font-medium text-indigo hover:underline">open this link</a>. Otherwise add a time-based account by hand with this key:
+      <p className="mt-8 text-[14px] font-medium">1. Scan this with your authenticator app</p>
+      <p className="mt-1.5 text-muted">Open Google Authenticator, Microsoft Authenticator, Authy or 1Password on your phone, add an account, and point the camera here.</p>
+      <Qr value={started.uri} />
+      <p className="mt-3 text-[14px] text-muted">
+        Can&rsquo;t scan? On this phone, <a href={started.uri} className="font-medium text-indigo hover:underline">open this link</a>, or add a time-based account by hand with this key:
       </p>
       <p className="mt-2 rounded-lg bg-surface p-3 font-mono text-[14px] break-all select-all">{key}</p>
       <p className="mt-6 text-[14px] font-medium">2. Keep these backup codes somewhere safe</p>
