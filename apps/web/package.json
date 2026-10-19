@@ -16,6 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed-db.ts",
+    "seed-staff": "node --env-file-if-exists=.env.local scripts/seed-staff.ts",
     "make-admin": "node --env-file-if-exists=.env.local scripts/make-admin.ts",
     "reset-admin-2fa": "node --env-file-if-exists=.env.local scripts/reset-admin-2fa.ts",
     "apple-secret": "node scripts/apple-secret.ts",
