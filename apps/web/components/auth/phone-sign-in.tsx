@@ -47,12 +47,14 @@ export function PhoneSignIn({
   dev,
   link = false,
   failed = false,
+  notice,
 }: {
   next: string;
   providers: { google: boolean; apple: boolean };
   dev: boolean;
   link?: boolean;
   failed?: boolean;
+  notice?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
@@ -130,11 +132,13 @@ export function PhoneSignIn({
           <h1 className="text-[1.75rem] leading-tight font-semibold">{link ? "Confirm your mobile number" : "Sign in or create an account"}</h1>
           <p className="mt-2 text-muted">
             {link
-              ? "One last step. We'll text you a 6-digit code. Owners never see your number unless you call them."
+              ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code. Owners never see your number unless you call them."
               : withSocial
-                ? "Continue with Google or Apple, then confirm your mobile number with a 6-digit code. Owners never see it unless you call them."
+                ? "Continue with Google or Apple, then confirm your mobile number with a 6-digit code (required). Owners never see it unless you call them."
                 : "We’ll text you a 6-digit code. Owners never see your number unless you call them."}
           </p>
+
+          {notice && <p className="mt-4 rounded-xl bg-surface p-3 text-[14px]">{notice}</p>}
 
           {withSocial && (
             <div className="mt-8 flex flex-col gap-3">
