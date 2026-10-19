@@ -81,6 +81,9 @@ async function Client({ params }: Pick<PageProps<"/admin/clients/[id]">, "params
             <span>Joined {day(person.createdAt)}</span>
           </p>
         </div>
+        <Link href={`/admin/docket?subject=client:${person.id}`} className="inline-flex h-11 items-center rounded-full border border-hairline px-5 font-semibold hover:border-muted">
+          Add to docket
+        </Link>
         {!staffAccount && me.id !== person.id && (
           <form action={setUserBanned.bind(null, person.id, !person.banned)}>
             <button className={`h-11 cursor-pointer rounded-full px-5 font-semibold ${person.banned ? "border border-hairline hover:border-muted" : "border border-danger text-danger hover:bg-danger/8"}`}>

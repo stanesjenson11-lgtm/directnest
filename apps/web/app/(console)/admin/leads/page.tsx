@@ -70,6 +70,11 @@ async function Leads({ searchParams }: Pick<PageProps<"/admin/leads">, "searchPa
                   Owner: {r.ownerName || "No name"}, {r.ownerPhone ? phone(r.ownerPhone) : "no phone"}
                 </p>
                 {r.buyerNote && <p className="mt-2 max-w-prose whitespace-pre-line">&ldquo;{r.buyerNote}&rdquo;</p>}
+                <p className="mt-2">
+                  <Link href={`/admin/docket?subject=lead:${r.id}`} className="text-[14px] font-semibold text-indigo hover:underline">
+                    Add to docket
+                  </Link>
+                </p>
               </div>
               <form action={saveCrm.bind(null, r.id)} className="grid content-start gap-2">
                 <label className="grid gap-1 text-[13px] text-muted">

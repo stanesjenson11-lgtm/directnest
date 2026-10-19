@@ -64,6 +64,9 @@ async function Listing({ params }: Pick<PageProps<"/admin/listings/[id]">, "para
             See it on the site
           </Link>
         )}
+        <Link href={`/admin/docket?subject=listing:${l.id}`} className="text-[15px] font-semibold text-indigo hover:underline">
+          Add to docket
+        </Link>
       </div>
       <p className="mt-1 text-[14px] text-muted">
         {l.id} · posted {day(l.createdAt)}

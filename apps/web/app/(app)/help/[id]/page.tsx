@@ -50,6 +50,10 @@ async function Ticket({ params }: Pick<PageProps<"/help/[id]">, "params">) {
       {staff && t.userId !== me.id && (
         <p className="mt-1 text-muted tabular-nums">
           From {t.personName || "No name"}, {t.personPhone ? phone(t.personPhone) : "no phone"}
+          {" · "}
+          <Link href={`/admin/docket?subject=ticket:${t.id}`} className="font-semibold text-indigo hover:underline">
+            Add to docket
+          </Link>
         </p>
       )}
 
