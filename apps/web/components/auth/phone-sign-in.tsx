@@ -75,10 +75,10 @@ export function PhoneSignIn({
   const goSocial = (provider: "google" | "apple") => {
     setSigningIn(provider);
     setError(null);
-    // The mobile number comes second: /verify-phone lets people who have confirmed theirs straight through.
+    // /after-sign-in sends team members to the console and asks everyone else for their mobile number if it's missing.
     authClient.signIn.social({
       provider,
-      callbackURL: `/verify-phone?next=${encodeURIComponent(next)}`,
+      callbackURL: `/after-sign-in?next=${encodeURIComponent(next)}`,
       errorCallbackURL: `/sign-in?error=1&next=${encodeURIComponent(next)}`,
     });
   };
@@ -104,7 +104,8 @@ export function PhoneSignIn({
       setError(null);
       const { error } = await authClient.phoneNumber.verify({ phoneNumber: e164, code, ...(link && { updatePhoneNumber: true }) });
       if (error) return setError(explain(error));
-      router.replace(next);
+      // Who just signed in decides the page: /after-sign-in redirects to the console or to where they were going.
+      router.replace(`/after-sign-in?next=${encodeURIComponent(next)}`);
       router.refresh();
     });
 

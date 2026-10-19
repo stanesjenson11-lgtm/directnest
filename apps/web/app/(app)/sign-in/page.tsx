@@ -19,9 +19,8 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
 async function SignIn({ searchParams }: Pick<PageProps<"/sign-in">, "searchParams">) {
   const p = await searchParams;
   const next = safeNext(p.next);
-  // Already signed in: on to where they were going, or to confirm their number first.
-  const session = await getSession();
-  if (session) redirect(session.user.phoneNumberVerified ? next : `/verify-phone?next=${encodeURIComponent(next)}`);
+  // Already signed in: /after-sign-in picks the door (console, where they were going, or confirming their number).
+  if (await getSession()) redirect(`/after-sign-in?next=${encodeURIComponent(next)}`);
   return (
     <PhoneSignIn
       next={next}
