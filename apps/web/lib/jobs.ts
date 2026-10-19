@@ -2,6 +2,7 @@
 import { and, eq, gt, gte, isNotNull, like, lte, sql } from "drizzle-orm";
 import { db } from "./db.ts";
 import { deleteMediaFile } from "./media.ts";
+import { sendDueReminders } from "./docket.ts";
 import { notify } from "./notify.ts";
 import { listings, notifications, rateLimit, session, uploads } from "./schema.ts";
 
@@ -10,6 +11,7 @@ export type MaintenanceReport = {
   proofsDeleted: number;
   expiredSessionsDeleted: number;
   expiredRateLimitsDeleted: number;
+  docketRemindersSent: number;
 };
 
 /**
@@ -17,6 +19,7 @@ export type MaintenanceReport = {
  * 1. Alerts owners of active listings expiring within 3 days (once per 3-day window).
  * 2. Deletes ownership proof files and clears proofKey for listings reviewed >30 days ago.
  * 3. Cleans up expired auth sessions and old rate-limit buckets.
+ * 4. Tells staff about docket items due within a day, or already late (once each).
  */
 export async function runMaintenance(): Promise<MaintenanceReport> {
   const report: MaintenanceReport = {
@@ -24,6 +27,7 @@ export async function runMaintenance(): Promise<MaintenanceReport> {
     proofsDeleted: 0,
     expiredSessionsDeleted: 0,
     expiredRateLimitsDeleted: 0,
+    docketRemindersSent: 0,
   };
 
   // 1. Expiry warnings for active listings expiring in <= 3 days
@@ -100,6 +104,9 @@ export async function runMaintenance(): Promise<MaintenanceReport> {
   const oneHourAgo = Date.now() - 3_600_000;
   const rates = await db.delete(rateLimit).where(lte(rateLimit.lastRequest, oneHourAgo)).returning({ id: rateLimit.id });
   report.expiredRateLimitsDeleted = rates.length;
+
+  // 4. Docket reminders
+  report.docketRemindersSent = await sendDueReminders();
 
   return report;
 }
