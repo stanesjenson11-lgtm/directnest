@@ -10,7 +10,8 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 /** Newest first; `q` matches a name or any part of a phone number. */
 export async function findUsers(q = "") {
   const term = q.trim().slice(0, 60);
-  const digits = term.replace(/\D/g, "");
+  // A phone search is only a search made of phone-number characters; "Asha 2" is a name.
+  const digits = /^[\d\s+()-]+$/.test(term) ? term.replace(/\D/g, "") : "";
   return db
     .select({
       id: user.id,

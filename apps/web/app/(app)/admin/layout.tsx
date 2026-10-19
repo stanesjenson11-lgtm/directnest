@@ -1,57 +1,55 @@
-import type { ReactNode } from "react";
-import { can, isStaffRole, ROLE_LABEL, sectionsOf, type Section } from "@/lib/roles";
-import { getSession, staffGate } from "@/lib/session";
-import { ConsoleNav, type NavGroup } from "./console-nav";
-
-// Every console link, grouped; a role sees only the sections it may open. A null section is open to all staff.
-const GROUPS: { label: string; items: { href: string; label: string; section: Section | null }[] }[] = [
-  {
-    label: "Work",
-    items: [
-      { href: "/admin", label: "Review queue", section: "queue" },
-      { href: "/admin/leads", label: "Sales leads", section: "leads" },
-      { href: "/admin/support", label: "Support", section: "support" },
-    ],
-  },
-  {
-    label: "Content",
-    items: [
-      { href: "/admin/projects", label: "Projects", section: "projects" },
-      { href: "/admin/plans", label: "Plans", section: "plans" },
-      { href: "/admin/pages", label: "Blog and areas", section: "pages" },
-      { href: "/admin/import", label: "Import", section: "import" },
-    ],
-  },
-  {
-    label: "People",
-    items: [
-      { href: "/admin/users", label: "Users", section: "users" },
-      { href: "/admin/staff", label: "Staff", section: "staff" },
-    ],
-  },
-  { label: "You", items: [{ href: "/admin/security", label: "Security", section: null }] },
-];
+import { Suspense, type ReactNode } from "react";
+import { CommandPalette, Logo, PillNav, Rail, TabBar, UserMenu } from "./console-chrome";
+import { consoleNav } from "./console-data";
 
 /**
- * The staff console's frame. The sidebar shows once the person has passed their authenticator; before that
- * (setting one up, entering a code) the page stands alone. Presentation only: every page and action still runs
- * its own requireAdmin(section).
+ * The staff console's frame, after the Church CRM's shell. The frame is static and each piece of chrome streams in on its
+ * own, so nothing here blocks the page. Presentation only: every page and action still runs its own requireAdmin(section).
  */
-export default async function ConsoleLayout({ children }: { children: ReactNode }) {
-  const session = await getSession();
-  const role = session?.user.role;
-  if (!session || !isStaffRole(role)) return children; // the pages answer with a plain 404
-  if ((await staffGate(sectionsOf(role)[0])).gate !== "ok") return children;
-
-  const groups: NavGroup[] = GROUPS.map((g) => ({
-    label: g.label,
-    items: g.items.filter((i) => !i.section || can(role, i.section)).map(({ href, label }) => ({ href, label })),
-  })).filter((g) => g.items.length);
-
+export default function ConsoleLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex max-w-[1500px] flex-col md:flex-row">
-      <ConsoleNav groups={groups} name={session.user.name} roleLabel={ROLE_LABEL[role]} />
-      <div className="min-w-0 flex-1">{children}</div>
+    <div className="flex min-h-dvh flex-col">
+      <Suspense fallback={<div className="h-[4.25rem]" />}>
+        <Header />
+      </Suspense>
+      <div className="flex flex-1 gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:px-6 md:pb-8">
+        <Suspense fallback={<div aria-hidden="true" className="hidden w-14 shrink-0 md:block" />}>
+          <Sidebar />
+        </Suspense>
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+      <Suspense fallback={null}>
+        <Tabs />
+      </Suspense>
     </div>
   );
+}
+
+async function Header() {
+  const nav = await consoleNav();
+  if (!nav) return null; // not staff: the pages answer with a plain 404
+  return (
+    <header className="sticky top-0 z-40 bg-canvas px-3 pt-3 pb-2 md:px-6">
+      <div className="flex h-12 items-center gap-3">
+        <Logo />
+        <div className="hidden min-w-0 flex-1 justify-center md:flex">
+          <PillNav items={nav.top} />
+        </div>
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
+          {nav.ready && <CommandPalette pages={[...nav.top, ...nav.rail.flat()]} clients={nav.canSearchClients} />}
+          <UserMenu name={nav.name} email={nav.email} image={nav.image} roleLabel={nav.roleLabel} tools={nav.tools} />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+async function Sidebar() {
+  const nav = await consoleNav();
+  return nav && nav.rail.length > 0 ? <Rail groups={nav.rail} /> : null;
+}
+
+async function Tabs() {
+  const nav = await consoleNav();
+  return nav && nav.tabs.length > 0 ? <TabBar items={nav.tabs} /> : null;
 }

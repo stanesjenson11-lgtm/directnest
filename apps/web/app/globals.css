@@ -170,7 +170,26 @@
   color: var(--color-ink);
 }
 
-html:has(.sheet[open]) {
+/* The console's search box, a native modal dialog sitting near the top like Church's command palette. */
+.palette {
+  margin: max(4.5rem, 12dvh) auto auto;
+  width: min(36rem, calc(100vw - 1.5rem));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: 22px;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  box-shadow: 0 24px 64px -24px oklch(0.22 0.025 266 / 0.45);
+  overflow: hidden;
+}
+
+.palette::backdrop {
+  background: oklch(0.22 0.025 266 / 0.3);
+}
+
+html:has(.sheet[open]),
+html:has(.palette[open]) {
   overflow: hidden;
 }
 

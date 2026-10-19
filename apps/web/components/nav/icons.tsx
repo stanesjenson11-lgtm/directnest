@@ -102,6 +102,23 @@ export const ICONS = {
     </>,
   ),
   more: icon(<path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3} />),
+  dashboard: icon(
+    <>
+      <rect x="3.5" y="3.5" width="7" height="8" rx="2" />
+      <rect x="13.5" y="3.5" width="7" height="5" rx="2" />
+      <rect x="13.5" y="11.5" width="7" height="9" rx="2" />
+      <rect x="3.5" y="14.5" width="7" height="6" rx="2" />
+    </>,
+  ),
+  arrow: icon(<path d="M7 17 17 7M8 7h9v9" />),
+  home: icon(<path d="M3 11 12 4l9 7M5.5 9.5V20h13V9.5M10 20v-5h4v5" />),
+  chart: icon(<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />),
+  clock: icon(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>,
+  ),
 } satisfies Record<string, (p: P) => ReactNode>;
 
 export type IconName = keyof typeof ICONS;

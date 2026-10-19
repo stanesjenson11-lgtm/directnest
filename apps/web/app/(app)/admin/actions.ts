@@ -84,6 +84,7 @@ export async function importBatch(text: string): Promise<ImportResult[]> {
   await requireAdmin("import");
   const results = await runImport(String(text));
   revalidatePath("/admin");
+  revalidatePath("/admin/queue");
   return results;
 }
 
@@ -153,4 +154,5 @@ function done(id: string) {
   // ponytail: proofs are due for deletion 30 days after reviewed_at; a nightly job does that once pg-boss is in.
   updateTag(`listing:${id}`);
   revalidatePath("/admin");
+  revalidatePath("/admin/queue");
 }

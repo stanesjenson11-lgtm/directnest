@@ -101,7 +101,7 @@ export function ImportForm() {
           <p className="mt-4">
             Imported <strong>{results.filter((r) => r.status === "imported").length}</strong>, skipped {results.filter((r) => r.status === "skipped").length}, failed{" "}
             {results.filter((r) => r.status === "failed").length}.{" "}
-            <Link href="/admin" className="font-semibold text-indigo hover:underline">
+            <Link href="/admin/queue" className="font-semibold text-indigo hover:underline">
               Open the review queue
             </Link>
           </p>

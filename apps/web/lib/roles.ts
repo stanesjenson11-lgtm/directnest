@@ -12,21 +12,24 @@ export const ROLE_LABEL: Record<StaffRole, string> = {
   sales: "Sales",
 };
 
-export const SECTIONS = ["queue", "leads", "support", "users", "projects", "plans", "pages", "import", "staff"] as const;
+export const SECTIONS = ["overview", "queue", "leads", "support", "users", "listings", "projects", "plans", "pages", "import", "staff"] as const;
 export type Section = (typeof SECTIONS)[number];
 
+// "overview" is the dashboard: every role opens it and sees the cards for its own sections.
 const ACCESS: Record<StaffRole, readonly Section[]> = {
   admin: SECTIONS,
-  reviewer: ["queue", "projects", "pages"],
-  support: ["support", "users"],
-  sales: ["leads"],
+  reviewer: ["overview", "queue", "listings", "projects", "pages"],
+  support: ["overview", "support", "users"],
+  sales: ["overview", "leads", "users"],
 };
 
 export const SECTION_LABEL: Record<Section, string> = {
+  overview: "Dashboard",
   queue: "Review queue",
   leads: "Sales leads",
   support: "Support",
-  users: "Users",
+  users: "Clients",
+  listings: "Properties",
   projects: "Projects",
   plans: "Plans",
   pages: "Blog and areas",
@@ -40,11 +43,6 @@ export const isStaffRole = (role: unknown): role is StaffRole => STAFF_ROLES.inc
 
 export const can = (role: unknown, section: Section) => isStaffRole(role) && ACCESS[role].includes(section);
 
-/** Where each role lands in the console: the first section it may open. */
-const HOME: Record<StaffRole, string> = {
-  admin: "/admin",
-  reviewer: "/admin",
-  support: "/admin/support",
-  sales: "/admin/leads",
-};
+/** Where each role lands in the console: its dashboard. */
+const HOME: Record<StaffRole, string> = { admin: "/admin", reviewer: "/admin", support: "/admin", sales: "/admin" };
 export const homeFor = (role: StaffRole) => HOME[role];
