@@ -18,6 +18,7 @@ import {
   reviewStats,
   ticketStats,
 } from "@/lib/dashboard";
+import { summary as docketSummary } from "@/lib/docket";
 import { daysAgo } from "@/lib/format";
 import { can, isStaffRole, ROLE_LABEL, type Section } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
@@ -54,7 +55,7 @@ async function Dashboard() {
   const has = (s: Section) => can(role, s);
   const none = Promise.resolve(null);
 
-  const [review, byStatus, perDay, clients, perWeek, leadS, weekday, tix, attn, activity] = await Promise.all([
+  const [review, byStatus, perDay, clients, perWeek, leadS, weekday, tix, attn, activity, docket] = await Promise.all([
     has("queue") ? reviewStats() : none,
     has("queue") ? listingsByStatus() : none,
     has("queue") ? listingsPerDay(14) : none,
@@ -65,6 +66,7 @@ async function Dashboard() {
     has("support") ? ticketStats() : none,
     attention(),
     has("staff") ? recentActivity(8) : none,
+    docketSummary({ id: me.id, role, name: me.name }),
   ]);
 
   const firstName = me.name.trim().split(/\s+/)[0];
@@ -153,6 +155,20 @@ async function Dashboard() {
               </p>
             </section>
           )}
+
+          <Card>
+            <CardHead icon="docket" title="Your docket" description="Work handed to you" href="/admin/docket" />
+            <div className="mt-5">
+              <Figure value={docket.open} label={docket.open === 1 ? "item open" : "items open"} />
+              <p className="mt-4 text-[14px] text-muted">
+                <span className={`font-medium tabular-nums ${docket.overdue ? "text-danger" : "text-ink"}`}>{docket.overdue}</span> late
+                {" · "}
+                <span className="font-medium text-ink tabular-nums">{docket.today}</span> due today
+                {" · "}
+                <span className="font-medium text-ink tabular-nums">{docket.pool}</span> up for grabs
+              </p>
+            </div>
+          </Card>
 
           {review && (
             <Card>
