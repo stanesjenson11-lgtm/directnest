@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { phone } from "@/lib/format";
 import { ROLE_LABEL, SECTION_LABEL, sectionsOf, STAFF_ROLES } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
-import { listStaff } from "@/lib/staff";
-import { changeStaff } from "../staff-actions";
-import { AddStaffForm } from "./add-form";
+import { listInvites, listStaff } from "@/lib/staff";
+import { changeStaff, withdrawInvite } from "../staff-actions";
+import { AddStaffForm, InviteForm } from "./add-form";
 
 // Neutral title, like the review queue.
 export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
@@ -22,7 +22,7 @@ export default function StaffPage() {
 
 async function Staff() {
   const me = await requireAdmin("staff");
-  const people = await listStaff();
+  const [people, invites] = await Promise.all([listStaff(), listInvites()]);
 
   return (
     <>
@@ -38,8 +38,29 @@ async function Staff() {
         ))}
       </dl>
 
-      <h2 className="mt-10 text-[1.25rem] font-semibold">Give someone access</h2>
-      <p className="mt-1 mb-4 text-muted">They must have signed in to DirectNest once with this number.</p>
+      <h2 className="mt-10 text-[1.25rem] font-semibold">Invite by email</h2>
+      <p className="mt-1 mb-4 text-muted">For someone who hasn&rsquo;t signed in yet. They sign in with Google or Apple under this address and land in the console.</p>
+      <InviteForm />
+      {invites.length > 0 && (
+        <ul className="mt-4">
+          {invites.map((i) => (
+            <li key={i.email} className="flex flex-wrap items-center gap-4 border-t border-hairline py-3">
+              <p className="min-w-0 flex-1 text-[15px]">
+                <span className="font-medium break-all">{i.email}</span>
+                <span className="ml-2 rounded bg-indigo/10 px-1.5 py-0.5 text-[12px] font-semibold text-indigo">{ROLE_LABEL[i.role as keyof typeof ROLE_LABEL]}</span>
+                <span className="ml-2 text-[14px] text-muted">waiting for their first sign-in</span>
+              </p>
+              <form action={withdrawInvite}>
+                <input type="hidden" name="email" value={i.email} />
+                <button className="h-9 cursor-pointer rounded-full border border-hairline px-4 text-[14px] font-semibold hover:border-muted">Withdraw</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="mt-10 text-[1.25rem] font-semibold">Give access by mobile number</h2>
+      <p className="mt-1 mb-4 text-muted">For someone who already has an account. They must have signed in to DirectNest once with this number.</p>
       <AddStaffForm />
 
       <ul className="mt-10">
