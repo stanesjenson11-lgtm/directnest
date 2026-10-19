@@ -9,6 +9,12 @@ import { consoleNav } from "./console-data";
 export default function ConsoleLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-[15px] focus:font-semibold focus:text-canvas"
+      >
+        Skip to content
+      </a>
       <Suspense fallback={<div className="h-[4.25rem]" />}>
         <Header />
       </Suspense>
@@ -16,7 +22,9 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
         <Suspense fallback={<div aria-hidden="true" className="hidden w-14 shrink-0 md:block" />}>
           <Sidebar />
         </Suspense>
-        <div className="min-w-0 flex-1">{children}</div>
+        <div id="content" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+          {children}
+        </div>
       </div>
       <Suspense fallback={null}>
         <Tabs />

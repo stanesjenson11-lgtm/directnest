@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/home/scenery";
 import { authClient } from "@/lib/auth-client";
 import { Avatar } from "./avatar";
 import { ICONS } from "./icons";
+import { NAV_LINKS, RENT_LINK } from "./links";
 
 export type AlertItem = { id: number; text: string; href: string; unread: boolean; when: string };
 export type ChatItem = { id: number; title: string; who: string; last: string | null; unread: number; when: string };
@@ -21,13 +22,6 @@ export type Member = {
   chatItems: ChatItem[];
   console: { href: string; label: string } | null; // staff only
 };
-
-const LINKS = [
-  { href: "/search", label: "Buy" },
-  { href: "/projects", label: "New projects" },
-  { href: "/areas", label: "Area guides" },
-  { href: "/help", label: "Help" },
-] as const;
 
 const active = (path: string, href: string) => path === href || path.startsWith(`${href}/`);
 
@@ -50,12 +44,9 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
     document.getElementById("inbox-menu")?.hidePopover?.();
   }, [path]);
 
-  // The staff console draws its own frame.
-  if (path.startsWith("/admin")) return null;
-
   const onDusk = variant === "overlay";
   const next = path === "/sign-in" || path === "/verify-phone" ? "/" : path;
-  const links = rentals ? [{ href: "/search?type=rent", label: "Rent" }, ...LINKS] : LINKS;
+  const links = rentals ? [RENT_LINK, ...NAV_LINKS] : NAV_LINKS;
 
   const tone = onDusk ? "text-moonlight-dim hover:text-moonlight" : "text-muted hover:text-ink";
   const here = onDusk ? "text-moonlight" : "text-ink";

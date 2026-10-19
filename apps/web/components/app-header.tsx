@@ -1,4 +1,6 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
+import { HeaderShell } from "@/components/nav/header-shell";
 import { SiteHeader, type Member } from "@/components/nav/site-header";
 import { inbox, unreadTotal } from "@/lib/chat";
 import { latestNotifications, unreadCount } from "@/lib/notify";
@@ -10,7 +12,7 @@ import { getSession } from "@/lib/session";
 // "docked" is a fixed 64px so search and chat can size against it; the home page passes "overlay" to float over its hero.
 export function AppHeader({ variant = "docked" }: { variant?: "overlay" | "docked" }) {
   return (
-    <Suspense fallback={<SiteHeader variant={variant} member={undefined} rentals={RENTALS} />}>
+    <Suspense fallback={<HeaderShell variant={variant} rentals={RENTALS} />}>
       <WithMember variant={variant} />
     </Suspense>
   );
@@ -19,6 +21,7 @@ export function AppHeader({ variant = "docked" }: { variant?: "overlay" | "docke
 const when = (d: Date) => d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 async function WithMember({ variant }: { variant: "overlay" | "docked" }) {
+  await connection(); // who is signed in is decided per request, never prerendered
   const session = await getSession();
   let member: Member | null = null;
   if (session) {
