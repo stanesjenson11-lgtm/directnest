@@ -11,6 +11,7 @@ type Entry = NavItem & { section: Section | null };
 // what it may open. A null section is open to every staff member.
 const TOP: Entry[] = [
   { href: "/admin", label: "Dashboard", icon: "dashboard", section: "overview" },
+  { href: "/admin/docket", label: "Docket", icon: "docket", section: "docket" },
   { href: "/admin/queue", label: "Review queue", icon: "queue", section: "queue" },
   { href: "/admin/leads", label: "Sales leads", icon: "leads", section: "leads" },
   { href: "/admin/support", label: "Support", icon: "support", section: "support" },

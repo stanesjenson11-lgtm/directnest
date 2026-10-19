@@ -44,6 +44,7 @@ export const ICONS = {
   menu: icon(<path d="M4 8h16M4 16h16" />),
   chevron: icon(<path d="m9 6 6 6-6 6" />),
   // Staff console
+  docket: icon(<path d="M9 6.5h11M9 12h11M9 17.5h11M3.8 6.5l1.2 1.2 2.2-2.4M3.8 12l1.2 1.2 2.2-2.4M3.8 17.5l1.2 1.2 2.2-2.4" />),
   queue: icon(
     <>
       <rect x="5" y="4" width="14" height="17" rx="2.5" />
