@@ -22,6 +22,11 @@ export function Gallery({ photos, title, sample = false }: { photos: Photo[]; ti
     if (s) s.scrollBy({ left: dir * s.clientWidth, behavior: "smooth" });
   };
 
+  // A home whose photos were all taken down shows a plain panel rather than breaking the page.
+  if (photos.length === 0) {
+    return <div className="grid aspect-[4/3] place-items-center rounded-xl bg-surface text-muted md:h-[min(58vh,520px)] md:aspect-auto">Photos are being updated.</div>;
+  }
+
   return (
     <>
       {/* Desktop: one large photo and four small ones. Phones: a swipeable strip. */}
