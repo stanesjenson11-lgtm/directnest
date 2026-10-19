@@ -66,7 +66,8 @@ export async function setUserBanned(userId: string, banned: boolean) {
   if (!(await setBanned(me.id, String(userId), banned === true))) return;
   const theirs = await db.select({ id: listings.id }).from(listings).where(eq(listings.ownerId, String(userId)));
   for (const { id } of theirs) updateTag(`listing:${id}`);
-  revalidatePath("/admin/users");
+  revalidatePath("/admin/clients");
+  revalidatePath(`/admin/clients/${String(userId)}`);
 }
 
 /** Checks a spreadsheet without writing anything; what the import page shows before anyone commits. */

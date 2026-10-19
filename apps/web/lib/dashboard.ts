@@ -154,7 +154,7 @@ export async function attention() {
 
 // ---------- Activity (super admin) ----------
 
-const ACTION_TEXT: Record<string, string> = {
+export const ACTION_TEXT: Record<string, string> = {
   AUTH_SIGN_IN: "signed in",
   AUTH_SIGN_OUT: "signed out",
   ACCOUNT_DELETED: "deleted their account",

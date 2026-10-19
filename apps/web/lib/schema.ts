@@ -285,6 +285,19 @@ export const consents = pgTable(
   (t) => [index("consents_user_idx").on(t.userId)],
 );
 
+/** What the team writes down about a client: a call, a promise, a worry. Staff only; the client never sees it. */
+export const clientNotes = pgTable(
+  "client_notes",
+  {
+    id: serial().primaryKey(),
+    clientId: userRef(),
+    authorId: text().references(() => user.id, { onDelete: "set null" }),
+    body: text().notNull(),
+    createdAt: now(),
+  },
+  (t) => [index("client_notes_client_idx").on(t.clientId, t.createdAt)],
+);
+
 /** Security audit trail: immutable logs for administrative actions, account deletions, and auth milestones. */
 export const auditLogs = pgTable(
   "audit_logs",
