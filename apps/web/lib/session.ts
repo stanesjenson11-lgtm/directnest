@@ -4,6 +4,7 @@ import { cache } from "react";
 import { MFA_COOKIE, mfaValid } from "./admin-mfa.ts";
 import { auth } from "./auth.ts";
 import { can, homeFor, isStaffRole, type Section } from "./roles.ts";
+import { startedToday } from "./staff-day.ts";
 
 // One lookup per request: the header, the page and the console shell all ask.
 export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
@@ -28,6 +29,8 @@ export async function requireUser(next: string) {
 /**
  * Staff access to one section of the console, without redirecting, so routes that aren't pages can answer 404 themselves.
  *   none      not staff at all.
+ *   expired   the session began on an earlier day: a new day starts with a text-message code again (/new-day).
+ *   phone     hasn't confirmed their mobile number by a code yet.
  *   forbidden staff, but this isn't a section their role opens.
  *   enrol     hasn't set up an authenticator yet.
  *   verify    hasn't entered a code in this session.
@@ -36,6 +39,8 @@ export async function staffGate(section: Section) {
   const session = await getSession();
   const role = session?.user.role;
   if (!session || !isStaffRole(role)) return { gate: "none" } as const;
+  if (!startedToday(session.session.createdAt)) return { gate: "expired" } as const;
+  if (!session.user.phoneNumberVerified) return { gate: "phone" } as const;
   if (!can(role, section)) return { gate: "forbidden", role } as const;
   if (!session.user.twoFactorEnabled) return { gate: "enrol" } as const;
   const { secret } = await auth.$context;
@@ -47,6 +52,8 @@ export async function staffGate(section: Section) {
 export async function requireAdminRole() {
   const session = await getSession();
   if (!session || !isStaffRole(session.user.role)) notFound();
+  if (!startedToday(session.session.createdAt)) redirect("/new-day");
+  if (!session.user.phoneNumberVerified) redirect("/verify-phone?next=%2Fadmin");
   return session;
 }
 
@@ -57,6 +64,8 @@ export async function requireAdminRole() {
 export async function requireAdmin(section: Section) {
   const g = await staffGate(section);
   if (g.gate === "none") notFound();
+  if (g.gate === "expired") redirect("/new-day");
+  if (g.gate === "phone") redirect("/verify-phone?next=%2Fadmin");
   if (g.gate === "forbidden") redirect(homeFor(g.role));
   if (g.gate === "enrol") redirect("/admin/security");
   if (g.gate === "verify") redirect("/admin/verify");

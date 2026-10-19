@@ -5,8 +5,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber, twoFactor } from "better-auth/plugins";
 import { db } from "./db.ts";
+import { isStaffRole } from "./roles.ts";
 import * as schema from "./schema.ts";
 import { sendOtpSms, smsConfigured } from "./sms.ts";
+import { DAY_COOKIE, dayToken } from "./staff-day.ts";
+import { dayCookieOptions, staffDay } from "./staff-day-plugin.ts";
 
 const INDIAN_MOBILE = /^\+91[6-9]\d{9}$/;
 
@@ -69,9 +72,15 @@ export const auth = betterAuth({
   ],
   plugins: [
     twoFactor({ issuer: "DirectNest", allowPasswordless: true }), // phone sign-in has no password to ask for
+    staffDay(),
     phoneNumber({
       phoneNumberValidator: (n) => INDIAN_MOBILE.test(n),
       allowedAttempts: 3,
+      // A staff member's text-message code, checked here, is what lets them sign in with the authenticator alone for the
+      // rest of the day (lib/staff-day.ts). Clients get no such cookie. Runs for sign-in and for confirming a number alike.
+      callbackOnVerification: async ({ user }, ctx) => {
+        if (ctx && isStaffRole((user as { role?: unknown }).role)) ctx.setCookie(DAY_COOKIE, dayToken(ctx.context.secret, user.id), dayCookieOptions());
+      },
       signUpOnVerification: {
         getTempEmail: (n) => `${n.slice(1)}@phone.directnest.invalid`,
         getTempName: () => "",
