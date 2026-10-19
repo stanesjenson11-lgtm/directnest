@@ -298,6 +298,14 @@ export const clientNotes = pgTable(
   (t) => [index("client_notes_client_idx").on(t.clientId, t.createdAt)],
 );
 
+/** A staff role waiting for whoever signs in with this email (Google or Apple). Claimed once, at their first verified sign-in. */
+export const staffInvites = pgTable("staff_invites", {
+  email: text().primaryKey(), // lowercase
+  role: text().notNull(),
+  invitedBy: text().references(() => user.id, { onDelete: "set null" }),
+  createdAt: now(),
+});
+
 /** Security audit trail: immutable logs for administrative actions, account deletions, and auth milestones. */
 export const auditLogs = pgTable(
   "audit_logs",

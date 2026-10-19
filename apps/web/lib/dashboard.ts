@@ -167,6 +167,8 @@ export const ACTION_TEXT: Record<string, string> = {
   ADMIN_LISTING_PHOTOS: "changed a listing's photos",
   ADMIN_DELETE_LISTING: "deleted a listing",
   ADMIN_ROLE_CHANGED: "changed someone's staff role",
+  ADMIN_STAFF_INVITED: "invited someone to the team",
+  ADMIN_STAFF_INVITE_REVOKED: "withdrew a team invite",
   ADMIN_MFA_OK: "passed the authenticator check",
   ADMIN_MFA_FAILED: "entered a wrong authenticator code",
   ADMIN_MFA_LOCKED: "was locked out after wrong codes",

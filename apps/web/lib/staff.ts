@@ -1,9 +1,9 @@
 // Staff accounts: who has a role, and giving or taking one. Super admin pages only.
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { logAuditEvent } from "./audit.ts";
 import { db } from "./db.ts";
-import { STAFF_ROLES, type StaffRole } from "./roles.ts";
-import { twoFactor, user } from "./schema.ts";
+import { isStaffRole, STAFF_ROLES, type StaffRole } from "./roles.ts";
+import { staffInvites, twoFactor, user } from "./schema.ts";
 
 export const listStaff = () =>
   db
@@ -31,4 +31,45 @@ export async function setRole(adminId: string, phone: string, role: StaffRole | 
   });
   await logAuditEvent("ADMIN_ROLE_CHANGED", { userId: adminId, targetId: target.id, details: { from: target.role, to: role } });
   return "ok";
+}
+
+export type InviteResult = "ok" | "bad-email" | "self" | "has-role";
+
+/**
+ * Reserves a staff role for an email address. It is claimed when someone signs in with Google or Apple under that
+ * address (claimInvite), so it works for people who have never signed in. Phone sign-ups have no real email and can't claim.
+ */
+export async function inviteStaff(adminId: string, email: string, role: StaffRole): Promise<InviteResult> {
+  const e = email.trim().toLowerCase();
+  if (e.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return "bad-email";
+  const [existing] = await db.select({ id: user.id, role: user.role }).from(user).where(sql`lower(${user.email}) = ${e}`);
+  if (existing?.id === adminId) return "self";
+  if (isStaffRole(existing?.role)) return "has-role"; // already staff: change the role from the list instead
+  await db.insert(staffInvites).values({ email: e, role, invitedBy: adminId }).onConflictDoUpdate({ target: staffInvites.email, set: { role, invitedBy: adminId } });
+  await logAuditEvent("ADMIN_STAFF_INVITED", { userId: adminId, details: { email: e, role } });
+  return "ok";
+}
+
+export const listInvites = () => db.select({ email: staffInvites.email, role: staffInvites.role, at: staffInvites.createdAt }).from(staffInvites).orderBy(asc(staffInvites.createdAt));
+
+export async function revokeInvite(adminId: string, email: string) {
+  const [gone] = await db.delete(staffInvites).where(eq(staffInvites.email, email.trim().toLowerCase())).returning({ email: staffInvites.email });
+  if (gone) await logAuditEvent("ADMIN_STAFF_INVITE_REVOKED", { userId: adminId, details: { email: gone.email } });
+}
+
+/**
+ * Run when someone has just signed in: turns a waiting invite into the role, once. Only an email the provider has
+ * verified counts, so nobody can claim a role by typing someone else's address. Returns the role given, or null.
+ */
+export async function claimInvite(u: { id: string; email: string; emailVerified: boolean; role?: string | null }): Promise<StaffRole | null> {
+  if (!u.emailVerified || isStaffRole(u.role)) return null;
+  const claimed = await db.transaction(async (tx) => {
+    const [invite] = await tx.delete(staffInvites).where(eq(staffInvites.email, u.email.toLowerCase())).returning({ role: staffInvites.role, by: staffInvites.invitedBy });
+    if (!invite || !isStaffRole(invite.role)) return null;
+    await tx.update(user).set({ role: invite.role, updatedAt: new Date() }).where(eq(user.id, u.id));
+    return { role: invite.role, by: invite.by };
+  });
+  if (!claimed) return null;
+  await logAuditEvent("ADMIN_ROLE_CHANGED", { userId: claimed.by, targetId: u.id, details: { from: u.role ?? "member", to: claimed.role, via: "invite" } });
+  return claimed.role;
 }
