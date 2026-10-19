@@ -1,14 +1,15 @@
-// Proof that this session passed the staff second factor in the last 12 hours.
-// Bound to the session id, so signing in again (or a stolen cookie on another session) must pass it again.
+// Proof that this session passed the staff second factor today.
+// It lasts until the day ends in India (lib/staff-day.ts), and is bound to the session id, so signing in again (or a
+// stolen cookie on another session) must pass it again.
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { endOfDay } from "./staff-day.ts";
 
 export const MFA_COOKIE = "dn_admin_mfa";
-export const MFA_TTL_MS = 12 * 60 * 60 * 1000;
 
 const sign = (secret: string, sessionId: string, exp: number) => createHmac("sha256", secret).update(`${sessionId}.${exp}`).digest("base64url");
 
 export function mfaToken(secret: string, sessionId: string, now = Date.now()) {
-  const exp = now + MFA_TTL_MS;
+  const exp = endOfDay(new Date(now)).getTime();
   return `${exp}.${sign(secret, sessionId, exp)}`;
 }
 

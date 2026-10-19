@@ -1,35 +1,15 @@
 "use server";
 
 import { APIError } from "better-auth/api";
-import { eq, sql } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { MFA_COOKIE, MFA_TTL_MS, mfaToken } from "@/lib/admin-mfa";
+import { MFA_COOKIE, mfaToken } from "@/lib/admin-mfa";
 import { logAuditEvent } from "@/lib/audit";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { homeFor, type StaffRole } from "@/lib/roles";
-import { twoFactor } from "@/lib/schema";
+import { clearTries, spendTry } from "@/lib/mfa-lock";
 import { requireAdminRole } from "@/lib/session";
-
-const MAX_TRIES = 5;
-
-/**
- * Spends one try before the code is checked, so parallel guesses can't outrun the counter. After MAX_TRIES wrong
- * codes the account is locked for 15 minutes; a lock that has run out restarts the count at 1.
- */
-async function spendTry(userId: string) {
-  const next = sql`case when ${twoFactor.lockedUntil} is not null then 1 else ${twoFactor.failedVerificationCount} + 1 end`;
-  const rows = await db
-    .update(twoFactor)
-    .set({
-      failedVerificationCount: next,
-      lockedUntil: sql`case when ${next} >= ${MAX_TRIES} then now() + interval '15 minutes' else null end`,
-    })
-    .where(sql`${twoFactor.userId} = ${userId} and (${twoFactor.lockedUntil} is null or ${twoFactor.lockedUntil} <= now())`)
-    .returning({ id: twoFactor.id });
-  return rows.length > 0;
-}
+import { secondsLeftToday } from "@/lib/staff-day";
 
 /** Six digits = authenticator code, anything else = a backup code (single use). */
 async function checkCode(userId: string, raw: string): Promise<"ok" | "wrong" | "locked"> {
@@ -43,7 +23,7 @@ async function checkCode(userId: string, raw: string): Promise<"ok" | "wrong" | 
     if (e instanceof APIError) return "wrong";
     throw e;
   }
-  await db.update(twoFactor).set({ failedVerificationCount: 0, lockedUntil: null }).where(eq(twoFactor.userId, userId));
+  await clearTries(userId);
   return "ok";
 }
 
@@ -51,6 +31,18 @@ const audit = async (action: string, userId: string) => {
   const h = await headers();
   await logAuditEvent(action, { userId, ipAddress: h.get("cf-connecting-ip") || h.get("x-forwarded-for"), userAgent: h.get("user-agent") });
 };
+
+/** Records that this session has passed the second factor, until the day ends. */
+async function openConsole(sessionId: string) {
+  const { secret } = await auth.$context;
+  (await cookies()).set(MFA_COOKIE, mfaToken(secret, sessionId), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: secondsLeftToday(),
+  });
+}
 
 /** Step 1 of enrolling: a secret for the authenticator app and single-use backup codes. Shown once. */
 export async function startEnrollment() {
@@ -63,7 +55,7 @@ export async function startEnrollment() {
   return { uri, codes: r.backupCodes };
 }
 
-/** Step 2: the first code from the app turns it on. The session is replaced, so the next page asks for a fresh code. */
+/** Step 2: the first code from the app turns it on and opens the console: the code just entered is today's second factor. */
 export async function confirmEnrollment(code: string) {
   const { user } = await requireAdminRole();
   if (user.twoFactorEnabled || !/^\d{6}$/.test(code.trim())) return "Enter the 6-digit code from your authenticator app.";
@@ -71,10 +63,14 @@ export async function confirmEnrollment(code: string) {
   if (result === "locked") return "Too many wrong codes. Try again in 15 minutes.";
   if (result === "wrong") return "That code doesn't match. Check the time on your phone and try again.";
   await audit("ADMIN_MFA_ENROLLED", user.id);
-  redirect("/admin/verify?enrolled=1");
+  // Turning it on replaced the session. Read the new one from the cookies just set, and open the console for it.
+  const fresh = await auth.api.getSession({ headers: new Headers({ cookie: (await cookies()).toString() }) });
+  if (!fresh) redirect("/admin/verify");
+  await openConsole(fresh.session.id);
+  return "ok"; // the page then opens the console itself: a redirect from here would be followed with the old session's cookies
 }
 
-/** Once per session: a code, or a backup code, then the review pages open for 12 hours. */
+/** Once per session: a code, or a backup code, then the console is open until the day ends. */
 export async function verifyMfa(_: string | null, form: FormData) {
   const { user, session } = await requireAdminRole();
   if (!user.twoFactorEnabled) redirect("/admin/security");
@@ -88,14 +84,6 @@ export async function verifyMfa(_: string | null, form: FormData) {
     return "That code doesn't match. Try again, or use a backup code.";
   }
   await audit("ADMIN_MFA_OK", user.id);
-  const { secret } = await auth.$context;
-  const home = homeFor(user.role as StaffRole);
-  (await cookies()).set(MFA_COOKIE, mfaToken(secret, session.id), {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MFA_TTL_MS / 1000,
-  });
-  redirect(home);
+  await openConsole(session.id);
+  redirect(homeFor(user.role as StaffRole));
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { encode } from "uqr";
 import { confirmEnrollment, startEnrollment } from "../mfa-actions";
@@ -21,6 +22,7 @@ function Qr({ value }: { value: string }) {
 }
 
 export function Enroll() {
+  const router = useRouter();
   const [started, setStarted] = useState<Started | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -47,7 +49,12 @@ export function Enroll() {
       onSubmit={(e) => {
         e.preventDefault();
         const code = String(new FormData(e.currentTarget).get("code"));
-        start(async () => setError((await confirmEnrollment(code)) ?? null));
+        start(async () => {
+          const result = await confirmEnrollment(code);
+          if (result !== "ok") return setError(result ?? null);
+          router.replace("/admin");
+          router.refresh();
+        });
       }}
     >
       <p className="mt-8 text-[14px] font-medium">1. Scan this with your authenticator app</p>
