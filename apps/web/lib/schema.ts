@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, boolean, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, date, index, integer, pgEnum, pgTable, point, primaryKey, serial, smallint, text, timestamp, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export * from "./auth-schema.ts";
@@ -296,6 +296,61 @@ export const clientNotes = pgTable(
     createdAt: now(),
   },
   (t) => [index("client_notes_client_idx").on(t.clientId, t.createdAt)],
+);
+
+export const docketStatus = pgEnum("docket_status", ["open", "doing", "waiting", "done", "dropped"]);
+export const docketPriority = pgEnum("docket_priority", ["low", "normal", "high", "urgent"]); // in this order, so sorting by it works
+export const docketRepeat = pgEnum("docket_repeat", ["none", "daily", "weekly", "monthly"]);
+export const docketSubject = pgEnum("docket_subject", ["client", "listing", "lead", "ticket"]);
+
+/**
+ * The team's docket: a piece of work with an owner, a due date and a next step, handed between staff. It belongs to one
+ * person, or to a role's shared pool that anyone in that role may claim, and can point at the client, listing, request or
+ * ticket it is about.
+ */
+export const docketItems = pgTable(
+  "docket_items",
+  {
+    id: serial().primaryKey(),
+    title: text().notNull(),
+    detail: text(),
+    status: docketStatus().notNull().default("open"),
+    priority: docketPriority().notNull().default("normal"),
+    createdBy: text().references(() => user.id, { onDelete: "set null" }),
+    assigneeId: text().references(() => user.id, { onDelete: "set null" }),
+    assigneeRole: text(), // the pool: set while nobody has claimed it, null once someone does
+    assignedAt: now(),
+    dueAt: timestamp({ withTimezone: true }),
+    remindedAt: timestamp({ withTimezone: true }), // when the assignee was last told it is due, so they hear it once
+    repeat: docketRepeat().notNull().default("none"), // finishing a repeating item opens the next one
+    subjectKind: docketSubject(),
+    subjectId: text(), // a user id, listing id, or the number of a lead or ticket
+    doneAt: timestamp({ withTimezone: true }),
+    createdAt: now(),
+    updatedAt: now(),
+  },
+  (t) => [
+    index("docket_assignee_idx").on(t.assigneeId, t.status, t.dueAt),
+    index("docket_pool_idx").on(t.assigneeRole, t.status),
+    index("docket_subject_idx").on(t.subjectKind, t.subjectId),
+    check("docket_one_owner", sql`not (${t.assigneeId} is not null and ${t.assigneeRole} is not null)`),
+  ],
+);
+
+/** What happened on an item: notes and logged calls written by people, and events the system records. */
+export const docketNotes = pgTable(
+  "docket_notes",
+  {
+    id: serial().primaryKey(),
+    itemId: integer()
+      .notNull()
+      .references(() => docketItems.id, { onDelete: "cascade" }),
+    authorId: text().references(() => user.id, { onDelete: "set null" }),
+    kind: text().notNull(), // note | call | whatsapp | visit | event
+    body: text().notNull(),
+    createdAt: now(),
+  },
+  (t) => [index("docket_notes_item_idx").on(t.itemId, t.createdAt)],
 );
 
 /** A staff role waiting for whoever signs in with this email (Google or Apple). Claimed once, at their first verified sign-in. */
