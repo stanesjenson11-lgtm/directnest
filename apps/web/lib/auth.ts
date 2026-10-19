@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber, twoFactor } from "better-auth/plugins";
 import { db } from "./db.ts";
+import { otpThrottle } from "./otp-throttle.ts";
 import { isStaffRole } from "./roles.ts";
 import * as schema from "./schema.ts";
 import { sendOtpSms, smsConfigured } from "./sms.ts";
@@ -22,6 +23,9 @@ export const auth = betterAuth({
       banned: { type: "boolean", defaultValue: false, input: false },
     },
   },
+  // A session lasts at most 7 days from sign-in, and is never extended by use. Its updatedAt therefore means "last seen"
+  // (moved only by /api/session/touch), which is what idle sign-out reads (lib/idle.ts).
+  session: { expiresIn: 60 * 60 * 24 * 7, disableSessionRefresh: true },
   databaseHooks: {
     session: {
       create: {
@@ -46,7 +50,7 @@ export const auth = betterAuth({
   trustedOrigins: process.env.APPLE_CLIENT_ID ? ["https://appleid.apple.com"] : [],
   // SMS costs money and invites abuse. Limits are per client IP, counted in Postgres; 5 sends leaves room for
   // carrier-grade NAT, where many Jio/Airtel users share one IP.
-  // ponytail: per-number throttling arrives with Cloudflare Turnstile on the send step (week 1 security task).
+  // Per-number limits are in lib/otp-throttle.ts.
   rateLimit: {
     enabled: true,
     storage: "database",
@@ -73,6 +77,7 @@ export const auth = betterAuth({
   plugins: [
     twoFactor({ issuer: "DirectNest", allowPasswordless: true }), // phone sign-in has no password to ask for
     staffDay(),
+    otpThrottle(), // a few codes per number, on top of the per-connection limit above
     phoneNumber({
       phoneNumberValidator: (n) => INDIAN_MOBILE.test(n),
       allowedAttempts: 3,

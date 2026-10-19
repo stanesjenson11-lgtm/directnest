@@ -4,10 +4,20 @@ import { cache } from "react";
 import { MFA_COOKIE, mfaValid } from "./admin-mfa.ts";
 import { auth } from "./auth.ts";
 import { can, homeFor, isStaffRole, type Section } from "./roles.ts";
+import { logAuditEvent } from "./audit.ts";
+import { idleTooLong } from "./idle.ts";
 import { startedToday } from "./staff-day.ts";
 
 // One lookup per request: the header, the page and the console shell all ask.
-export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
+// A session nobody has touched for longer than the idle limit (lib/idle.ts) is over: the browser signs people out after
+// a warning, and this is the backstop for tabs that were closed or devices that slept.
+export const getSession = cache(async () => {
+  const found = await auth.api.getSession({ headers: await headers() });
+  if (!found || !idleTooLong(found.session.updatedAt)) return found;
+  await (await auth.$context).internalAdapter.deleteSession(found.session.token);
+  await logAuditEvent("AUTH_SESSION_IDLE", { userId: found.user.id, details: { by: "server" } });
+  return null;
+});
 
 /**
  * Someone signed in who has also confirmed their mobile number. Phone sign-in confirms it on the way in; Google and

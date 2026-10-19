@@ -5,6 +5,7 @@ import { auditLogs } from "./schema.ts";
 export type AuditAction =
   | "AUTH_SIGN_IN"
   | "AUTH_SIGN_OUT"
+  | "AUTH_SESSION_IDLE"
   | "AUTH_OTP_SENT"
   | "ACCOUNT_DELETED"
   | "ADMIN_ROLE_CHANGED"

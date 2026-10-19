@@ -157,6 +157,7 @@ export async function attention() {
 export const ACTION_TEXT: Record<string, string> = {
   AUTH_SIGN_IN: "signed in",
   AUTH_SIGN_OUT: "signed out",
+  AUTH_SESSION_IDLE: "was signed out after sitting idle",
   ACCOUNT_DELETED: "deleted their account",
   ADMIN_BAN_USER: "suspended a client",
   ADMIN_UNBAN_USER: "lifted a suspension",
