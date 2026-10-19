@@ -3,6 +3,7 @@
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { setBanned } from "@/lib/admin";
+import { logAuditEvent } from "@/lib/audit";
 import { isStage, updateCrm } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { readImport, runImport, type ImportResult } from "@/lib/import";
@@ -32,13 +33,14 @@ export async function approve(id: string) {
     .returning({ ownerId: listings.ownerId, title: listings.title });
   done(id);
   if (!row) return;
+  await logAuditEvent("ADMIN_APPROVE_LISTING", { userId: me.id, targetId: id });
   await notify(row.ownerId, `Your home is live: ${row.title}`, `/homes/${id}`);
   // Everyone whose saved search now includes this home hears about it once.
   for (const m of await savedSearchMatches(id, row.ownerId)) await notify(m.userId, `New home for your search "${m.label}": ${row.title}`, `/homes/${id}`);
 }
 
 export async function reject(id: string, form: FormData) {
-  await requireAdmin("queue");
+  const me = await requireAdmin("queue");
   const reason = String(form.get("reason"));
   if (!(REJECT_REASONS as readonly string[]).includes(reason)) return;
   const [row] = await db
@@ -47,6 +49,7 @@ export async function reject(id: string, form: FormData) {
     .where(and(eq(listings.id, id), eq(listings.status, "pending_review")))
     .returning({ ownerId: listings.ownerId, title: listings.title });
   done(id);
+  if (row) await logAuditEvent("ADMIN_REJECT_LISTING", { userId: me.id, targetId: id, details: { reason } });
   if (row) await notify(row.ownerId, `${row.title} wasn't approved: ${reason}. You can fix it and post it again.`, "/account");
 }
 
@@ -156,4 +159,6 @@ function done(id: string) {
   updateTag(`listing:${id}`);
   revalidatePath("/admin");
   revalidatePath("/admin/queue");
+  revalidatePath("/admin/listings");
+  revalidatePath(`/admin/listings/${id}`);
 }
