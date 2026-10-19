@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { IdleGuard } from "@/components/auth/idle-guard";
 import { CommandPalette, Logo, PillNav, Rail, TabBar, UserMenu } from "./console-chrome";
 import { consoleNav } from "./console-data";
 
@@ -37,18 +38,21 @@ async function Header() {
   const nav = await consoleNav();
   if (!nav) return null; // not staff: the pages answer with a plain 404
   return (
-    <header className="sticky top-0 z-40 bg-canvas px-3 pt-3 pb-2 md:px-6">
-      <div className="flex h-12 items-center gap-3">
-        <Logo />
-        <div className="hidden min-w-0 flex-1 justify-center md:flex">
-          <PillNav items={nav.top} />
+    <>
+      <IdleGuard />
+      <header className="sticky top-0 z-40 bg-canvas px-3 pt-3 pb-2 md:px-6">
+        <div className="flex h-12 items-center gap-3">
+          <Logo />
+          <div className="hidden min-w-0 flex-1 justify-center md:flex">
+            <PillNav items={nav.top} />
+          </div>
+          <div className="ml-auto flex items-center gap-2 md:ml-0">
+            {nav.ready && <CommandPalette pages={[...nav.top, ...nav.rail.flat()]} clients={nav.canSearchClients} />}
+            <UserMenu name={nav.name} email={nav.email} image={nav.image} roleLabel={nav.roleLabel} tools={nav.tools} />
+          </div>
         </div>
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
-          {nav.ready && <CommandPalette pages={[...nav.top, ...nav.rail.flat()]} clients={nav.canSearchClients} />}
-          <UserMenu name={nav.name} email={nav.email} image={nav.image} roleLabel={nav.roleLabel} tools={nav.tools} />
-        </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 

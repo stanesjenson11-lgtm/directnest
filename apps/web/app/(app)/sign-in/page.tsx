@@ -38,15 +38,16 @@ async function SignIn({ searchParams }: Pick<PageProps<"/sign-in">, "searchParam
   const [person] = id
     ? await db.select({ name: user.name, phone: user.phoneNumber, role: user.role, banned: user.banned, on: user.twoFactorEnabled, verified: user.phoneNumberVerified }).from(user).where(eq(user.id, id))
     : [];
+  const idle = p.idle === "1" ? "You were signed out after a few minutes without activity. Sign in to carry on." : undefined;
   if (person && person.phone && !person.banned && person.on && person.verified && isStaffRole(person.role)) {
-    return <AuthenticatorSignIn name={person.name.trim().split(/\s+/)[0]} phone={`+91 ••••• ••${person.phone.slice(-3)}`} next={next} />;
+    return <AuthenticatorSignIn name={person.name.trim().split(/\s+/)[0]} phone={`+91 ••••• ••${person.phone.slice(-3)}`} next={next} notice={idle} />;
   }
   return (
     <PhoneSignIn
       next={next}
       providers={{ google: !!process.env.GOOGLE_CLIENT_ID, apple: !!process.env.APPLE_CLIENT_ID }}
       failed={p.error === "1"}
-      notice={p.team === "1" ? "Team accounts sign in with a mobile number and an authenticator code. A new day starts with a text message." : undefined}
+      notice={idle ?? (p.team === "1" ? "Team accounts sign in with a mobile number and an authenticator code. A new day starts with a text message." : undefined)}
       dev={process.env.NODE_ENV === "development"}
     />
   );

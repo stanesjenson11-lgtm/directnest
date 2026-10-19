@@ -13,7 +13,7 @@ const PROBLEM: Record<string, string> = {
  * For a team member who already had today's text-message code in this browser: just the authenticator code.
  * The server checks everything again (lib/staff-day-plugin.ts); this only asks for it.
  */
-export function AuthenticatorSignIn({ name, phone, next }: { name: string; phone: string; next: string }) {
+export function AuthenticatorSignIn({ name, phone, next, notice }: { name: string; phone: string; next: string; notice?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -45,6 +45,7 @@ export function AuthenticatorSignIn({ name, phone, next }: { name: string; phone
       <p className="mt-2 text-muted">
         You confirmed <span className="tabular-nums">{phone}</span> by text message earlier today. Enter the 6-digit code from your authenticator app to sign in.
       </p>
+      {notice && <p className="mt-4 rounded-xl bg-surface p-3 text-[14px]">{notice}</p>}
       <label htmlFor="code" className="mt-8 block text-[14px] font-medium">
         Authenticator code
       </label>

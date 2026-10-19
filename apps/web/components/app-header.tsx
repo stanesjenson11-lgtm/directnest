@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { IdleGuard } from "@/components/auth/idle-guard";
 import { HeaderShell } from "@/components/nav/header-shell";
 import { SiteHeader, type Member } from "@/components/nav/site-header";
 import { inbox, unreadTotal } from "@/lib/chat";
@@ -38,5 +39,10 @@ async function WithMember({ variant }: { variant: "overlay" | "docked" }) {
       console: isStaffRole(role) ? { href: homeFor(role), label: ROLE_LABEL[role] } : null,
     };
   }
-  return <SiteHeader variant={variant} member={member} rentals={RENTALS} />;
+  return (
+    <>
+      <SiteHeader variant={variant} member={member} rentals={RENTALS} />
+      {session && <IdleGuard />}
+    </>
+  );
 }
