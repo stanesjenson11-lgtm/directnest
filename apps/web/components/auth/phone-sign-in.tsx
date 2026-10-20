@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { signOutAndReload } from "@/lib/sign-out";
 import { Turnstile } from "./turnstile";
-import { authCode, authError, authField, authInput, authLabel, authLead, authNotice, authPrimary, authQuiet, authSecondary, authTitle, rise } from "./ui";
+import { anim, authCode, authError, authField, authInput, authLabel, authLead, authLink, authNotice, authOutline, authPrimary, authTitle, authTitleText } from "./ui";
 
 type AuthError = { code?: string; status?: number; message?: string };
 
@@ -20,12 +20,13 @@ function explain(e: AuthError) {
   return e.message || "Something went wrong. Try again.";
 }
 
-const GoogleMark = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
-    <path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h5.9a5.05 5.05 0 0 1-2.19 3.31v2.75h3.54c2.07-1.91 3.25-4.72 3.25-8.09Z" />
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.54-2.75c-.98.66-2.24 1.05-3.74 1.05-2.87 0-5.3-1.94-6.17-4.55H2.17v2.84A11 11 0 0 0 12 23Z" />
-    <path fill="#FBBC05" d="M5.83 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.17a11 11 0 0 0 0 9.86l3.66-2.84Z" />
-    <path fill="#EA4335" d="M12 5.36c1.62 0 3.07.56 4.21 1.65l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.17 7.07l3.66 2.84C6.7 7.3 9.13 5.36 12 5.36Z" />
+// The design's Google mark.
+const GoogleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-5 w-5" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s12-5.373 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-2.641-.21-5.236-.611-7.743z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.022 35.026 44 30.038 44 24c0-2.641-.21-5.236-.611-7.743z" />
   </svg>
 );
 const AppleMark = () => (
@@ -35,8 +36,8 @@ const AppleMark = () => (
 );
 
 /**
- * Sign in, or (link) confirm the mobile number of someone who signed in with Google or Apple.
- * Both end in the same 6-digit SMS code. Signing in for the first time is signing up: there is nothing else to fill in.
+ * Sign in, sign up, or (link) confirm the mobile number of someone who signed in with Google or Apple. All three end in
+ * the same 6-digit SMS code: creating an account is signing in for the first time, so "sign up" only changes the words.
  */
 export function PhoneSignIn({
   next,
@@ -55,6 +56,7 @@ export function PhoneSignIn({
 }) {
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [phone, setPhone] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [check, setCheck] = useState(0); // a Turnstile token works once; a new key remounts the widget for a fresh one
@@ -63,7 +65,6 @@ export function PhoneSignIn({
   const [pending, start] = useTransition();
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const e164 = `+91${phone}`;
-  const withSocial = !link && (providers.google || providers.apple);
 
   useEffect(() => {
     if (!cooldown) return;
@@ -72,8 +73,10 @@ export function PhoneSignIn({
   }, [cooldown]);
 
   const goSocial = (provider: "google" | "apple") => {
-    setSigningIn(provider);
     setError(null);
+    // The button is always shown, as in the design; until the client's Google keys are set it says so instead of failing.
+    if (!providers[provider]) return setError(`${provider === "google" ? "Google" : "Apple"} sign-in isn't switched on yet. Use your mobile number for now.`);
+    setSigningIn(provider);
     // /after-sign-in sends team members to the console and asks everyone else for their mobile number if it's missing.
     authClient.signIn.social({
       provider,
@@ -122,31 +125,36 @@ export function PhoneSignIn({
 
   if (step === "code") {
     return (
-      <div key="code">
-        <h1 className={authTitle} style={rise(1)}>
-          Enter the code
+      <>
+        <h1 key="code-title" className={`${anim(1)} ${authTitle}`}>
+          <span className={authTitleText}>Enter the code</span>
         </h1>
-        <p className={`${authLead} tabular-nums`} style={rise(2)}>
-          We sent a 6-digit code to +91 {phone.slice(0, 5)} {phone.slice(5)}.{" "}
+        <p className={`${anim(2)} ${authLead} tabular-nums`}>
+          We sent a 6-digit code to{" "}
+          <span className="whitespace-nowrap">
+            +91 {phone.slice(0, 5)} {phone.slice(5)}
+          </span>
+          .{" "}
           <button
             type="button"
             onClick={() => {
               setStep("phone");
               setError(null);
             }}
-            className="cursor-pointer font-medium text-indigo hover:underline"
+            className={authLink}
           >
             Change number
           </button>
         </p>
+
         <form
-          className="mt-8 space-y-5"
+          className="space-y-5"
           onSubmit={(e) => {
             e.preventDefault();
             verify(String(new FormData(e.currentTarget).get("code")));
           }}
         >
-          <div className="auth-rise" style={rise(3)}>
+          <div className={anim(3)}>
             <label htmlFor="code" className={authLabel}>
               6-digit code
             </label>
@@ -161,6 +169,7 @@ export function PhoneSignIn({
                 required
                 pattern="[0-9]{6}"
                 maxLength={6}
+                placeholder="Enter the code from the SMS"
                 aria-invalid={!!error}
                 aria-describedby={error ? "auth-error" : undefined}
                 onChange={(e) => e.target.value.length === 6 && !pending && verify(e.target.value)}
@@ -169,48 +178,52 @@ export function PhoneSignIn({
             </div>
             {errorLine}
           </div>
-          <button type="submit" disabled={pending} className={`auth-rise ${authPrimary}`} style={rise(4)}>
-            {pending ? "Checking…" : link ? "Confirm" : "Sign in"}
+
+          <div className={`${anim(4)} flex items-center justify-between text-sm`}>
+            <span className="text-ink/90">Didn&rsquo;t get it?</span>
+            <button type="button" disabled={cooldown > 0 || pending || !turnstileToken} onClick={send} className={`${authLink} disabled:cursor-default disabled:text-muted disabled:no-underline`}>
+              {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
+            </button>
+          </div>
+
+          <button type="submit" disabled={pending} className={`${anim(5)} ${authPrimary}`}>
+            {pending ? "Checking…" : link ? "Confirm" : mode === "sign-up" ? "Create account" : "Sign In"}
           </button>
         </form>
         {turnstile}
-        <button type="button" disabled={cooldown > 0 || pending || !turnstileToken} onClick={send} className={`auth-rise mt-3 ${authQuiet} text-indigo disabled:text-muted`} style={rise(5)}>
-          {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
-        </button>
-        {dev && <p className="mt-6 rounded-2xl bg-surface p-4 text-[13px] text-muted">Development: the code is printed in the terminal running the dev server.</p>}
-      </div>
+        {dev && <p className={`${anim(6)} text-center text-xs text-muted`}>Development: the code is printed in the terminal running the dev server.</p>}
+      </>
     );
   }
 
+  const title = link ? "Confirm your number" : mode === "sign-up" ? "Create account" : "Welcome";
   return (
-    <div key="phone">
-      <h1 className={authTitle} style={rise(1)}>
-        {link ? "Confirm your number" : "Welcome"}
+    <>
+      <h1 key={title} className={`${anim(1)} ${authTitle}`}>
+        <span className={authTitleText}>{title}</span>
       </h1>
-      <p className={authLead} style={rise(2)}>
+      <p className={`${anim(2)} ${authLead}`}>
         {link
-          ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code. Owners never see your number unless you call them."
-          : "Sign in or create your account with your mobile number. We'll text you a 6-digit code. Owners never see your number unless you call them."}
+          ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code."
+          : mode === "sign-up"
+            ? "Join with your mobile number. We'll text you a 6-digit code, and that's all it takes."
+            : "Access your account and continue your journey with us"}
       </p>
-      {notice && (
-        <p className={authNotice} style={rise(3)}>
-          {notice}
-        </p>
-      )}
+      {notice && <p className={`${anim(2)} ${authNotice}`}>{notice}</p>}
 
       <form
-        className="mt-8 space-y-5"
+        className="space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
           send();
         }}
       >
-        <div className="auth-rise" style={rise(3)}>
+        <div className={anim(3)}>
           <label htmlFor="phone" className={authLabel}>
-            Mobile number
+            Mobile Number
           </label>
-          <div className={authField}>
-            <span className="pl-4 text-muted tabular-nums">+91</span>
+          <div className={`${authField} flex items-center`}>
+            <span className="pl-4 text-sm text-muted tabular-nums">+91</span>
             <input
               id="phone"
               type="tel"
@@ -221,7 +234,7 @@ export function PhoneSignIn({
               pattern="[6-9][0-9]{9}"
               maxLength={10}
               title="A 10-digit Indian mobile number"
-              placeholder="10-digit mobile number"
+              placeholder="Enter your mobile number"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               aria-invalid={!!error}
@@ -232,42 +245,45 @@ export function PhoneSignIn({
           {errorLine}
         </div>
         {turnstile}
-        <button type="submit" disabled={pending || !turnstileToken} className={`auth-rise ${authPrimary}`} style={rise(4)}>
+        <button type="submit" disabled={pending || !turnstileToken} className={`${anim(4)} ${authPrimary}`}>
           {pending ? "Sending…" : "Send code"}
         </button>
       </form>
 
-      {withSocial && (
+      {!link && (
         <>
-          <p className="auth-rise mt-6 flex items-center gap-4 text-[14px] text-muted before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline" style={rise(5)}>
-            Or continue with
-          </p>
-          <div className="auth-rise mt-6 grid gap-3" style={rise(6)}>
-            {providers.google && (
-              <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={authSecondary}>
-                <GoogleMark />
-                {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
-              </button>
-            )}
-            {providers.apple && (
-              <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${authSecondary} border-black bg-black text-white hover:bg-black/85`}>
-                <AppleMark />
-                {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
-              </button>
-            )}
+          <div className={`${anim(5)} relative flex items-center justify-center`}>
+            <span className="w-full border-t border-hairline" />
+            <span className="absolute bg-canvas px-4 text-sm text-muted">Or continue with</span>
           </div>
+          <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={`${anim(6)} ${authOutline}`}>
+            <GoogleIcon />
+            {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
+          </button>
+          {providers.apple && (
+            <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${anim(7)} ${authOutline}`}>
+              <AppleMark />
+              {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
+            </button>
+          )}
         </>
       )}
 
       {link ? (
-        <button type="button" onClick={signOut} disabled={pending} className={`auth-rise mt-4 ${authQuiet}`} style={rise(7)}>
-          Not you? Sign out
-        </button>
+        <p className={`${anim(8)} text-center text-sm text-muted`}>
+          Not you?{" "}
+          <button type="button" onClick={signOut} disabled={pending} className={authLink}>
+            Sign out
+          </button>
+        </p>
       ) : (
-        <p className="auth-rise mt-8 text-center text-[14px] text-muted" style={rise(7)}>
-          New to DirectNest? There&rsquo;s nothing to fill in: your account is made when you confirm your number.
+        <p className={`${anim(8)} text-center text-sm text-muted`}>
+          {mode === "sign-in" ? "New to DirectNest? " : "Already have an account? "}
+          <button type="button" onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")} className={authLink}>
+            {mode === "sign-in" ? "Create Account" : "Sign In"}
+          </button>
         </p>
       )}
-    </div>
+    </>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { authCode, authError, authField, authLabel, authLead, authNotice, authPrimary, authQuiet, authTitle, rise } from "./ui";
+import { anim, authCode, authError, authField, authLabel, authLead, authLink, authNotice, authPrimary, authTitle, authTitleText } from "./ui";
 
 const PROBLEM: Record<string, string> = {
   WRONG_CODE: "That code doesn't match. Check the time on your phone and try again.",
@@ -35,28 +35,24 @@ export function AuthenticatorSignIn({ name, phone, next, notice }: { name: strin
     });
 
   return (
-    <div>
-      <h1 className={authTitle} style={rise(1)}>
-        Welcome back{name ? `, ${name}` : ""}
+    <>
+      <h1 className={`${anim(1)} ${authTitle}`}>
+        <span className={authTitleText}>Welcome back{name ? `, ${name}` : ""}</span>
       </h1>
-      <p className={authLead} style={rise(2)}>
-        You confirmed <span className="tabular-nums">{phone}</span> by text message earlier today. Enter the 6-digit code from your authenticator app to sign in.
+      <p className={`${anim(2)} ${authLead}`}>
+        You confirmed <span className="tabular-nums">{phone}</span> by text message earlier today. Enter the code from your authenticator app to sign in.
       </p>
-      {notice && (
-        <p className={authNotice} style={rise(3)}>
-          {notice}
-        </p>
-      )}
+      {notice && <p className={`${anim(2)} ${authNotice}`}>{notice}</p>}
       <form
-        className="mt-8 space-y-5"
+        className="space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
           submit(String(new FormData(e.currentTarget).get("code")));
         }}
       >
-        <div className="auth-rise" style={rise(3)}>
+        <div className={anim(3)}>
           <label htmlFor="code" className={authLabel}>
-            Authenticator code
+            Authenticator Code
           </label>
           <div className={authField}>
             <input
@@ -68,6 +64,7 @@ export function AuthenticatorSignIn({ name, phone, next, notice }: { name: strin
               pattern="[0-9]{6}"
               maxLength={6}
               required
+              placeholder="Enter the 6-digit code"
               aria-invalid={!!error}
               aria-describedby={error ? "day-error" : undefined}
               className={authCode}
@@ -79,13 +76,16 @@ export function AuthenticatorSignIn({ name, phone, next, notice }: { name: strin
             </p>
           )}
         </div>
-        <button disabled={pending} className={`auth-rise ${authPrimary}`} style={rise(4)}>
-          {pending ? "Checking…" : "Sign in"}
+        <button disabled={pending} className={`${anim(4)} ${authPrimary}`}>
+          {pending ? "Checking…" : "Sign In"}
         </button>
       </form>
-      <Link href={other} className={`auth-rise mt-4 ${authQuiet}`} style={rise(5)}>
-        Use a mobile number or a backup code instead
-      </Link>
-    </div>
+      <p className={`${anim(5)} text-center text-sm text-muted`}>
+        Lost your phone?{" "}
+        <Link href={other} className={authLink}>
+          Use your number or a backup code
+        </Link>
+      </p>
+    </>
   );
 }
