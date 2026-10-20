@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { homeFor, isStaffRole } from "@/lib/roles";
 import { getSession, safeNext } from "@/lib/session";
-import { DAY_COOKIE, dayUser, startedToday } from "@/lib/staff-day";
+import { DAY_COOKIE, dayUser, skipPhoneOtp, startedToday } from "@/lib/staff-day";
 import { claimInvite } from "@/lib/staff";
 
 // The one place every sign-in ends up, whether by mobile number, Google or Apple. The account decides the door:
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   if (isStaffRole(role)) {
     // Staff need today's text-message code, checked in this browser (lib/staff-day.ts); anything else starts again at /new-day.
     const { secret } = await auth.$context;
-    if (!startedToday(session.session.createdAt) || dayUser(secret, (await cookies()).get(DAY_COOKIE)?.value) !== session.user.id) redirect("/new-day");
+    if (!startedToday(session.session.createdAt) || (!skipPhoneOtp() && dayUser(secret, (await cookies()).get(DAY_COOKIE)?.value) !== session.user.id)) redirect("/new-day");
     redirect(next.startsWith("/admin") ? next : homeFor(role));
   }
   redirect(next);

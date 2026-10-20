@@ -9,6 +9,10 @@ import { istDate, todayRange } from "./docket-meta.ts";
 
 export const DAY_COOKIE = "dn_staff_day";
 
+// Test servers only (SKIP_PHONE_OTP=1, never on the real one): no text-message codes. A signed-in person counts as having
+// confirmed their number, and staff skip the morning code. Staff still pass the authenticator.
+export const skipPhoneOtp = () => process.env.SKIP_PHONE_OTP === "1";
+
 // ponytail: the day ends at midnight in India. A later hour (say 4 am) would suit a team that works past midnight: change it here.
 export const endOfDay = (now = new Date()) => todayRange(now)[1];
 export const secondsLeftToday = (now = new Date()) => Math.max(1, Math.ceil((endOfDay(now).getTime() - now.getTime()) / 1000));

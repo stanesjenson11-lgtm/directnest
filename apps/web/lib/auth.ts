@@ -9,7 +9,7 @@ import { otpThrottle } from "./otp-throttle.ts";
 import { isStaffRole } from "./roles.ts";
 import * as schema from "./schema.ts";
 import { sendOtpSms, smsConfigured } from "./sms.ts";
-import { DAY_COOKIE, dayToken } from "./staff-day.ts";
+import { DAY_COOKIE, dayToken, skipPhoneOtp } from "./staff-day.ts";
 import { dayCookieOptions, staffDay } from "./staff-day-plugin.ts";
 
 const INDIAN_MOBILE = /^\+91[6-9]\d{9}$/;
@@ -31,6 +31,7 @@ export const auth = betterAuth({
       create: {
         // Banning also deletes a person's sessions (admin action); this stops them signing back in.
         before: async (s) => {
+          if (skipPhoneOtp()) await db.update(schema.user).set({ phoneNumberVerified: true }).where(eq(schema.user.id, s.userId));
           const [u] = await db.select({ banned: schema.user.banned }).from(schema.user).where(eq(schema.user.id, s.userId));
           if (u?.banned) throw new APIError("FORBIDDEN", { message: "This account has been suspended. Call us if you think this is a mistake." });
         },
