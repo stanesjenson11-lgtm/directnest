@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { authLead, authTitle, rise } from "@/components/auth/ui";
+import { anim, authLead, authTitle, authTitleText } from "@/components/auth/ui";
 import { requireAdminRole } from "@/lib/session";
 import { Enroll } from "./enroll";
 
@@ -27,12 +27,10 @@ async function Security() {
   ) : (
     // Part of signing in for the first time, so it looks like the sign-in screens.
     <AuthShell inset>
-      <h1 className={authTitle} style={rise(1)}>
-        Set up your authenticator
+      <h1 className={`${anim(1)} ${authTitle}`}>
+        <span className={authTitleText}>Set up your authenticator</span>
       </h1>
-      <p className={authLead} style={rise(2)}>
-        Team accounts need a code from an authenticator app on top of the text message. It takes a minute, once.
-      </p>
+      <p className={`${anim(2)} ${authLead}`}>Team accounts need a code from an authenticator app on top of the text message. It takes a minute, once.</p>
       <Enroll />
     </AuthShell>
   );

@@ -1,28 +1,29 @@
 "use client";
 
 import { useActionState } from "react";
-import { authError, authField, authInput, authLabel, authPrimary, rise } from "@/components/auth/ui";
+import { anim, authError, authField, authInput, authLabel, authPrimary } from "@/components/auth/ui";
 import { verifyMfa } from "../mfa-actions";
 
 export function VerifyForm() {
   const [error, action, pending] = useActionState(verifyMfa, null);
   return (
-    <form action={action} className="mt-8 space-y-5">
-      <div className="auth-rise" style={rise(3)}>
+    <form action={action} className="space-y-5">
+      <div className={anim(3)}>
         <label htmlFor="code" className={authLabel}>
-          Authenticator or backup code
+          Authenticator or Backup Code
         </label>
         <div className={authField}>
           <input
-        id="code"
-        name="code"
-        autoComplete="one-time-code"
-        inputMode="text"
-        autoFocus
-        required
-        aria-invalid={!!error}
-        aria-describedby={error ? "mfa-error" : undefined}
-            className={`${authInput} text-[1.25rem] tracking-[0.2em] tabular-nums`}
+            id="code"
+            name="code"
+            autoComplete="one-time-code"
+            inputMode="text"
+            autoFocus
+            required
+            placeholder="Enter your code"
+            aria-invalid={!!error}
+            aria-describedby={error ? "mfa-error" : undefined}
+            className={`${authInput} text-base tracking-[0.2em] tabular-nums placeholder:tracking-normal`}
           />
         </div>
         {error && (
@@ -31,7 +32,7 @@ export function VerifyForm() {
           </p>
         )}
       </div>
-      <button disabled={pending} className={`auth-rise ${authPrimary}`} style={rise(4)}>
+      <button disabled={pending} className={`${anim(4)} ${authPrimary}`}>
         {pending ? "Checking…" : "Continue"}
       </button>
     </form>

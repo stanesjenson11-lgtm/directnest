@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { authLead, authTitle, rise } from "@/components/auth/ui";
+import { anim, authLead, authTitle, authTitleText } from "@/components/auth/ui";
 import { requireAdminRole } from "@/lib/session";
 import { VerifyForm } from "./verify-form";
 
@@ -23,10 +23,10 @@ async function Verify() {
   if (!user.twoFactorEnabled) redirect("/admin/security");
   return (
     <>
-      <h1 className={authTitle} style={rise(1)}>
-        One more step
+      <h1 className={`${anim(1)} ${authTitle}`}>
+        <span className={authTitleText}>One more step</span>
       </h1>
-      <p className={authLead} style={rise(2)}>
+      <p className={`${anim(2)} ${authLead}`}>
         Enter the 6-digit code from your authenticator app, or one of your backup codes. The console then stays open until the end of the day.
       </p>
       <VerifyForm />
