@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { signOutAndReload } from "@/lib/sign-out";
 import { Turnstile } from "./turnstile";
+import { authCode, authError, authField, authInput, authLabel, authLead, authNotice, authPrimary, authQuiet, authSecondary, authTitle, rise } from "./ui";
 
 type AuthError = { code?: string; status?: number; message?: string };
 
@@ -18,11 +19,6 @@ function explain(e: AuthError) {
   if (e.code === "BOT_DETECTED" || e.status === 403) return "Security verification failed. Please try again.";
   return e.message || "Something went wrong. Try again.";
 }
-
-const field =
-  "flex h-12 items-center rounded-xl border border-hairline bg-canvas focus-within:border-indigo has-[[aria-invalid=true]]:border-danger";
-const social =
-  "flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full border font-semibold transition-colors disabled:cursor-wait disabled:opacity-70";
 
 const GoogleMark = () => (
   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
@@ -40,7 +36,7 @@ const AppleMark = () => (
 
 /**
  * Sign in, or (link) confirm the mobile number of someone who signed in with Google or Apple.
- * Both end in the same 6-digit SMS code; Google and Apple just come first when they are set up.
+ * Both end in the same 6-digit SMS code. Signing in for the first time is signing up: there is nothing else to fill in.
  */
 export function PhoneSignIn({
   next,
@@ -118,152 +114,159 @@ export function PhoneSignIn({
     });
 
   const turnstile = <Turnstile key={check} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />;
+  const errorLine = error && (
+    <p id="auth-error" role="alert" className={authError}>
+      {error}
+    </p>
+  );
 
-  return (
-    <div className="mx-auto w-full max-w-sm">
-      {step === "phone" ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-        >
-          <h1 className="text-[1.75rem] leading-tight font-semibold">{link ? "Confirm your mobile number" : "Sign in or create an account"}</h1>
-          <p className="mt-2 text-muted">
-            {link
-              ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code. Owners never see your number unless you call them."
-              : withSocial
-                ? "Continue with Google or Apple, then confirm your mobile number with a 6-digit code (required). Owners never see it unless you call them."
-                : "We’ll text you a 6-digit code. Owners never see your number unless you call them."}
-          </p>
-
-          {notice && <p className="mt-4 rounded-xl bg-surface p-3 text-[14px]">{notice}</p>}
-
-          {withSocial && (
-            <div className="mt-8 flex flex-col gap-3">
-              {providers.google && (
-                <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={`${social} border-hairline hover:border-muted`}>
-                  <GoogleMark />
-                  {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
-                </button>
-              )}
-              {providers.apple && (
-                <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${social} border-black bg-black text-white hover:bg-black/85`}>
-                  <AppleMark />
-                  {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
-                </button>
-              )}
-              <p className="mt-2 flex items-center gap-3 text-[13px] text-muted before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline">
-                or use your mobile number
-              </p>
-            </div>
-          )}
-
-          <label htmlFor="phone" className={`${withSocial ? "mt-3" : "mt-8"} block text-[14px] font-medium`}>
-            Mobile number
-          </label>
-          <div className={`mt-1.5 ${field}`}>
-            <span className="px-3 text-muted tabular-nums">+91</span>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              autoFocus={!withSocial}
-              required
-              pattern="[6-9][0-9]{9}"
-              maxLength={10}
-              title="A 10-digit Indian mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              aria-invalid={!!error}
-              aria-describedby={error ? "auth-error" : undefined}
-              className="h-full min-w-0 flex-1 bg-transparent pr-3 tabular-nums focus-visible:outline-none"
-            />
-          </div>
-          {error && (
-            <p id="auth-error" role="alert" className="mt-2 text-[14px] text-danger">
-              {error}
-            </p>
-          )}
-          {turnstile}
+  if (step === "code") {
+    return (
+      <div key="code">
+        <h1 className={authTitle} style={rise(1)}>
+          Enter the code
+        </h1>
+        <p className={`${authLead} tabular-nums`} style={rise(2)}>
+          We sent a 6-digit code to +91 {phone.slice(0, 5)} {phone.slice(5)}.{" "}
           <button
-            type="submit"
-            disabled={pending || !turnstileToken}
-            className="mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas transition-colors hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70"
+            type="button"
+            onClick={() => {
+              setStep("phone");
+              setError(null);
+            }}
+            className="cursor-pointer font-medium text-indigo hover:underline"
           >
-            {pending ? "Sending…" : "Send code"}
+            Change number
           </button>
-          {link && (
-            <button type="button" onClick={signOut} disabled={pending} className="mt-3 h-10 w-full cursor-pointer rounded-full text-[15px] font-medium text-muted hover:text-ink">
-              Not you? Sign out
-            </button>
-          )}
-        </form>
-      ) : (
+        </p>
         <form
+          className="mt-8 space-y-5"
           onSubmit={(e) => {
             e.preventDefault();
             verify(String(new FormData(e.currentTarget).get("code")));
           }}
         >
-          <h1 className="text-[1.75rem] leading-tight font-semibold">Enter the code</h1>
-          <p className="mt-2 text-muted tabular-nums">
-            Sent to +91 {phone.slice(0, 5)} {phone.slice(5)}.{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setStep("phone");
-                setError(null);
-              }}
-              className="cursor-pointer font-medium text-indigo hover:underline"
-            >
-              Change number
-            </button>
-          </p>
-          <label htmlFor="code" className="mt-8 block text-[14px] font-medium">
-            6-digit code
-          </label>
-          <div className={`mt-1.5 ${field}`}>
-            <input
-              id="code"
-              name="code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              pattern="[0-9]{6}"
-              maxLength={6}
-              aria-invalid={!!error}
-              aria-describedby={error ? "auth-error" : undefined}
-              onChange={(e) => e.target.value.length === 6 && !pending && verify(e.target.value)}
-              className="h-full w-full bg-transparent px-4 text-[1.25rem] tracking-[0.4em] tabular-nums focus-visible:outline-none"
-            />
+          <div className="auth-rise" style={rise(3)}>
+            <label htmlFor="code" className={authLabel}>
+              6-digit code
+            </label>
+            <div className={authField}>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                pattern="[0-9]{6}"
+                maxLength={6}
+                aria-invalid={!!error}
+                aria-describedby={error ? "auth-error" : undefined}
+                onChange={(e) => e.target.value.length === 6 && !pending && verify(e.target.value)}
+                className={authCode}
+              />
+            </div>
+            {errorLine}
           </div>
-          {error && (
-            <p id="auth-error" role="alert" className="mt-2 text-[14px] text-danger">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={pending}
-            className="mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas transition-colors hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70"
-          >
+          <button type="submit" disabled={pending} className={`auth-rise ${authPrimary}`} style={rise(4)}>
             {pending ? "Checking…" : link ? "Confirm" : "Sign in"}
           </button>
-          {turnstile}
-          <button
-            type="button"
-            disabled={cooldown > 0 || pending || !turnstileToken}
-            onClick={send}
-            className="mt-3 h-10 w-full cursor-pointer rounded-full text-[15px] font-medium text-indigo disabled:cursor-default disabled:text-muted"
-          >
-            {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
-          </button>
-          {dev && <p className="mt-6 rounded-lg bg-surface p-3 text-[13px] text-muted">Development: the code is printed in the terminal running the dev server.</p>}
         </form>
+        {turnstile}
+        <button type="button" disabled={cooldown > 0 || pending || !turnstileToken} onClick={send} className={`auth-rise mt-3 ${authQuiet} text-indigo disabled:text-muted`} style={rise(5)}>
+          {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
+        </button>
+        {dev && <p className="mt-6 rounded-2xl bg-surface p-4 text-[13px] text-muted">Development: the code is printed in the terminal running the dev server.</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div key="phone">
+      <h1 className={authTitle} style={rise(1)}>
+        {link ? "Confirm your number" : "Welcome"}
+      </h1>
+      <p className={authLead} style={rise(2)}>
+        {link
+          ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code. Owners never see your number unless you call them."
+          : "Sign in or create your account with your mobile number. We'll text you a 6-digit code. Owners never see your number unless you call them."}
+      </p>
+      {notice && (
+        <p className={authNotice} style={rise(3)}>
+          {notice}
+        </p>
+      )}
+
+      <form
+        className="mt-8 space-y-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+      >
+        <div className="auth-rise" style={rise(3)}>
+          <label htmlFor="phone" className={authLabel}>
+            Mobile number
+          </label>
+          <div className={authField}>
+            <span className="pl-4 text-muted tabular-nums">+91</span>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              autoFocus
+              required
+              pattern="[6-9][0-9]{9}"
+              maxLength={10}
+              title="A 10-digit Indian mobile number"
+              placeholder="10-digit mobile number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              aria-invalid={!!error}
+              aria-describedby={error ? "auth-error" : undefined}
+              className={`${authInput} pl-2 tabular-nums`}
+            />
+          </div>
+          {errorLine}
+        </div>
+        {turnstile}
+        <button type="submit" disabled={pending || !turnstileToken} className={`auth-rise ${authPrimary}`} style={rise(4)}>
+          {pending ? "Sending…" : "Send code"}
+        </button>
+      </form>
+
+      {withSocial && (
+        <>
+          <p className="auth-rise mt-6 flex items-center gap-4 text-[14px] text-muted before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline" style={rise(5)}>
+            Or continue with
+          </p>
+          <div className="auth-rise mt-6 grid gap-3" style={rise(6)}>
+            {providers.google && (
+              <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={authSecondary}>
+                <GoogleMark />
+                {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
+              </button>
+            )}
+            {providers.apple && (
+              <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${authSecondary} border-black bg-black text-white hover:bg-black/85`}>
+                <AppleMark />
+                {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {link ? (
+        <button type="button" onClick={signOut} disabled={pending} className={`auth-rise mt-4 ${authQuiet}`} style={rise(7)}>
+          Not you? Sign out
+        </button>
+      ) : (
+        <p className="auth-rise mt-8 text-center text-[14px] text-muted" style={rise(7)}>
+          New to DirectNest? There&rsquo;s nothing to fill in: your account is made when you confirm your number.
+        </p>
       )}
     </div>
   );
