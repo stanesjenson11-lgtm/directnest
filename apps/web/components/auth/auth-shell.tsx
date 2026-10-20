@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { Wordmark } from "@/components/home/scenery";
 
 // The photo from the design. ponytail: served from 21st.dev's CDN; swap in one of the client's own photos before launch.
 const HERO = "https://cdn.21st.dev/assets/mirror/ec/ecff1664e7fc3185d0e947571f984ea5fa3de9580fb0e73a03cd9c9b3461cb09.jpg";
@@ -40,7 +42,16 @@ export function AuthShell({ children, inset = false }: { children: ReactNode; in
       {/* Left column: the form */}
       <section className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="flex flex-col gap-6">{children}</div>
+          <div className="flex flex-col gap-6">
+            {/* The DirectNest logo and name, in the site's own font, leading back home. The staff steps inside the console
+                already have it in the console's top bar. */}
+            {!inset && (
+              <Link href="/" aria-label="DirectNest home" className="animate-element self-start rounded-full font-sans text-ink">
+                <Wordmark />
+              </Link>
+            )}
+            {children}
+          </div>
         </div>
       </section>
 
