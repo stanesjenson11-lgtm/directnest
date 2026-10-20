@@ -60,8 +60,9 @@ export const auth = betterAuth({
     },
   },
   // Behind Cloudflare and Caddy the socket IP is the proxy's; without this every visitor would share one limit.
-  // Only trust these once the VPS firewall accepts web traffic from Cloudflare alone.
-  advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] } },
+  // Only trust these once the VPS firewall accepts web traffic from Cloudflare alone. Vercel overwrites x-forwarded-for
+  // but passes a visitor's own cf-connecting-ip through, so there only x-forwarded-for is trusted.
+  advanced: { ipAddress: { ipAddressHeaders: process.env.VERCEL ? ["x-forwarded-for"] : ["cf-connecting-ip", "x-forwarded-for"] } },
   // Staff second factor. The plugin's HTTP routes count wrong codes only at sign-in, which our phone-OTP sign-in never
   // passes through, so they are closed; admin/mfa-actions.ts calls the same code server-side with its own lockout.
   disabledPaths: [
@@ -92,7 +93,8 @@ export const auth = betterAuth({
       },
       sendOTP: async ({ phoneNumber, code }) => {
         if (smsConfigured()) return sendOtpSms(phoneNumber, code);
-        if (process.env.NODE_ENV === "production") throw new Error("SMS provider is not configured: set MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID");
+        // OTP_IN_LOGS=1 is for test deploys before MSG91 exists: codes go to the host's log, which only the team can read.
+        if (process.env.NODE_ENV === "production" && process.env.OTP_IN_LOGS !== "1") throw new Error("SMS provider is not configured: set MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID");
         console.log(`[dev] OTP for ${phoneNumber}: ${code}`);
       },
     }),
