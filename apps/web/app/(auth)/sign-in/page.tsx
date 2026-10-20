@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthenticatorSignIn } from "@/components/auth/authenticator-sign-in";
 import { PhoneSignIn } from "@/components/auth/phone-sign-in";
 import { auth } from "@/lib/auth";
@@ -17,11 +18,11 @@ export const metadata: Metadata = { title: "Sign in | DirectNest", robots: { ind
 
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
-    <main className="px-4 pt-16 pb-24 sm:pt-24">
+    <AuthShell>
       <Suspense>
         <SignIn searchParams={searchParams} />
       </Suspense>
-    </main>
+    </AuthShell>
   );
 }
 
