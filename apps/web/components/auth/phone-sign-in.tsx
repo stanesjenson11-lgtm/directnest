@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { signOutAndReload } from "@/lib/sign-out";
 import { Turnstile } from "./turnstile";
+import { anim, authCode, authError, authField, authInput, authLabel, authLead, authLink, authNotice, authOutline, authPrimary, authTitle, authTitleText } from "./ui";
 
 type AuthError = { code?: string; status?: number; message?: string };
 
@@ -19,17 +20,13 @@ function explain(e: AuthError) {
   return e.message || "Something went wrong. Try again.";
 }
 
-const field =
-  "flex h-12 items-center rounded-xl border border-hairline bg-canvas focus-within:border-indigo has-[[aria-invalid=true]]:border-danger";
-const social =
-  "flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full border font-semibold transition-colors disabled:cursor-wait disabled:opacity-70";
-
-const GoogleMark = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
-    <path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h5.9a5.05 5.05 0 0 1-2.19 3.31v2.75h3.54c2.07-1.91 3.25-4.72 3.25-8.09Z" />
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.54-2.75c-.98.66-2.24 1.05-3.74 1.05-2.87 0-5.3-1.94-6.17-4.55H2.17v2.84A11 11 0 0 0 12 23Z" />
-    <path fill="#FBBC05" d="M5.83 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.17a11 11 0 0 0 0 9.86l3.66-2.84Z" />
-    <path fill="#EA4335" d="M12 5.36c1.62 0 3.07.56 4.21 1.65l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.17 7.07l3.66 2.84C6.7 7.3 9.13 5.36 12 5.36Z" />
+// The design's Google mark.
+const GoogleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="h-5 w-5" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s12-5.373 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-2.641-.21-5.236-.611-7.743z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.022 35.026 44 30.038 44 24c0-2.641-.21-5.236-.611-7.743z" />
   </svg>
 );
 const AppleMark = () => (
@@ -39,8 +36,8 @@ const AppleMark = () => (
 );
 
 /**
- * Sign in, or (link) confirm the mobile number of someone who signed in with Google or Apple.
- * Both end in the same 6-digit SMS code; Google and Apple just come first when they are set up.
+ * Sign in, sign up, or (link) confirm the mobile number of someone who signed in with Google or Apple. All three end in
+ * the same 6-digit SMS code: creating an account is signing in for the first time, so "sign up" only changes the words.
  */
 export function PhoneSignIn({
   next,
@@ -59,6 +56,7 @@ export function PhoneSignIn({
 }) {
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [phone, setPhone] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [check, setCheck] = useState(0); // a Turnstile token works once; a new key remounts the widget for a fresh one
@@ -67,7 +65,6 @@ export function PhoneSignIn({
   const [pending, start] = useTransition();
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const e164 = `+91${phone}`;
-  const withSocial = !link && (providers.google || providers.apple);
 
   useEffect(() => {
     if (!cooldown) return;
@@ -76,8 +73,10 @@ export function PhoneSignIn({
   }, [cooldown]);
 
   const goSocial = (provider: "google" | "apple") => {
-    setSigningIn(provider);
     setError(null);
+    // The button is always shown, as in the design; until the client's Google keys are set it says so instead of failing.
+    if (!providers[provider]) return setError(`${provider === "google" ? "Google" : "Apple"} sign-in isn't switched on yet. Use your mobile number for now.`);
+    setSigningIn(provider);
     // /after-sign-in sends team members to the console and asks everyone else for their mobile number if it's missing.
     authClient.signIn.social({
       provider,
@@ -118,153 +117,173 @@ export function PhoneSignIn({
     });
 
   const turnstile = <Turnstile key={check} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />;
+  const errorLine = error && (
+    <p id="auth-error" role="alert" className={authError}>
+      {error}
+    </p>
+  );
 
-  return (
-    <div className="mx-auto w-full max-w-sm">
-      {step === "phone" ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-        >
-          <h1 className="text-[1.75rem] leading-tight font-semibold">{link ? "Confirm your mobile number" : "Sign in or create an account"}</h1>
-          <p className="mt-2 text-muted">
-            {link
-              ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code. Owners never see your number unless you call them."
-              : withSocial
-                ? "Continue with Google or Apple, then confirm your mobile number with a 6-digit code (required). Owners never see it unless you call them."
-                : "We’ll text you a 6-digit code. Owners never see your number unless you call them."}
-          </p>
-
-          {notice && <p className="mt-4 rounded-xl bg-surface p-3 text-[14px]">{notice}</p>}
-
-          {withSocial && (
-            <div className="mt-8 flex flex-col gap-3">
-              {providers.google && (
-                <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={`${social} border-hairline hover:border-muted`}>
-                  <GoogleMark />
-                  {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
-                </button>
-              )}
-              {providers.apple && (
-                <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${social} border-black bg-black text-white hover:bg-black/85`}>
-                  <AppleMark />
-                  {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
-                </button>
-              )}
-              <p className="mt-2 flex items-center gap-3 text-[13px] text-muted before:h-px before:flex-1 before:bg-hairline after:h-px after:flex-1 after:bg-hairline">
-                or use your mobile number
-              </p>
-            </div>
-          )}
-
-          <label htmlFor="phone" className={`${withSocial ? "mt-3" : "mt-8"} block text-[14px] font-medium`}>
-            Mobile number
-          </label>
-          <div className={`mt-1.5 ${field}`}>
-            <span className="px-3 text-muted tabular-nums">+91</span>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              autoFocus={!withSocial}
-              required
-              pattern="[6-9][0-9]{9}"
-              maxLength={10}
-              title="A 10-digit Indian mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              aria-invalid={!!error}
-              aria-describedby={error ? "auth-error" : undefined}
-              className="h-full min-w-0 flex-1 bg-transparent pr-3 tabular-nums focus-visible:outline-none"
-            />
-          </div>
-          {error && (
-            <p id="auth-error" role="alert" className="mt-2 text-[14px] text-danger">
-              {error}
-            </p>
-          )}
-          {turnstile}
+  if (step === "code") {
+    return (
+      <>
+        <h1 key="code-title" className={`${anim(1)} ${authTitle}`}>
+          <span className={authTitleText}>Enter the code</span>
+        </h1>
+        <p className={`${anim(2)} ${authLead} tabular-nums`}>
+          We sent a 6-digit code to{" "}
+          <span className="whitespace-nowrap">
+            +91 {phone.slice(0, 5)} {phone.slice(5)}
+          </span>
+          .{" "}
           <button
-            type="submit"
-            disabled={pending || !turnstileToken}
-            className="mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas transition-colors hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70"
+            type="button"
+            onClick={() => {
+              setStep("phone");
+              setError(null);
+            }}
+            className={authLink}
           >
-            {pending ? "Sending…" : "Send code"}
+            Change number
           </button>
-          {link && (
-            <button type="button" onClick={signOut} disabled={pending} className="mt-3 h-10 w-full cursor-pointer rounded-full text-[15px] font-medium text-muted hover:text-ink">
-              Not you? Sign out
-            </button>
-          )}
-        </form>
-      ) : (
+        </p>
+
         <form
+          className="space-y-5"
           onSubmit={(e) => {
             e.preventDefault();
             verify(String(new FormData(e.currentTarget).get("code")));
           }}
         >
-          <h1 className="text-[1.75rem] leading-tight font-semibold">Enter the code</h1>
-          <p className="mt-2 text-muted tabular-nums">
-            Sent to +91 {phone.slice(0, 5)} {phone.slice(5)}.{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setStep("phone");
-                setError(null);
-              }}
-              className="cursor-pointer font-medium text-indigo hover:underline"
-            >
-              Change number
+          <div className={anim(3)}>
+            <label htmlFor="code" className={authLabel}>
+              6-digit code
+            </label>
+            <div className={authField}>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                pattern="[0-9]{6}"
+                maxLength={6}
+                placeholder="Enter the code from the SMS"
+                aria-invalid={!!error}
+                aria-describedby={error ? "auth-error" : undefined}
+                onChange={(e) => e.target.value.length === 6 && !pending && verify(e.target.value)}
+                className={authCode}
+              />
+            </div>
+            {errorLine}
+          </div>
+
+          <div className={`${anim(4)} flex items-center justify-between text-sm`}>
+            <span className="text-ink/90">Didn&rsquo;t get it?</span>
+            <button type="button" disabled={cooldown > 0 || pending || !turnstileToken} onClick={send} className={`${authLink} disabled:cursor-default disabled:text-muted disabled:no-underline`}>
+              {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
             </button>
-          </p>
-          <label htmlFor="code" className="mt-8 block text-[14px] font-medium">
-            6-digit code
+          </div>
+
+          <button type="submit" disabled={pending} className={`${anim(5)} ${authPrimary}`}>
+            {pending ? "Checking…" : link ? "Confirm" : mode === "sign-up" ? "Create account" : "Sign In"}
+          </button>
+        </form>
+        {turnstile}
+        {dev && <p className={`${anim(6)} text-center text-xs text-muted`}>Development: the code is printed in the terminal running the dev server.</p>}
+      </>
+    );
+  }
+
+  const title = link ? "Confirm your number" : mode === "sign-up" ? "Create account" : "Welcome";
+  return (
+    <>
+      <h1 key={title} className={`${anim(1)} ${authTitle}`}>
+        <span className={authTitleText}>{title}</span>
+      </h1>
+      <p className={`${anim(2)} ${authLead}`}>
+        {link
+          ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code."
+          : mode === "sign-up"
+            ? "Join with your mobile number. We'll text you a 6-digit code, and that's all it takes."
+            : "Access your account and continue your journey with us"}
+      </p>
+      {notice && <p className={`${anim(2)} ${authNotice}`}>{notice}</p>}
+
+      <form
+        className="space-y-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+      >
+        <div className={anim(3)}>
+          <label htmlFor="phone" className={authLabel}>
+            Mobile Number
           </label>
-          <div className={`mt-1.5 ${field}`}>
+          <div className={`${authField} flex items-center`}>
+            <span className="pl-4 text-sm text-muted tabular-nums">+91</span>
             <input
-              id="code"
-              name="code"
-              type="text"
+              id="phone"
+              type="tel"
               inputMode="numeric"
-              autoComplete="one-time-code"
+              autoComplete="tel-national"
               autoFocus
               required
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[6-9][0-9]{9}"
+              maxLength={10}
+              title="A 10-digit Indian mobile number"
+              placeholder="Enter your mobile number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               aria-invalid={!!error}
               aria-describedby={error ? "auth-error" : undefined}
-              onChange={(e) => e.target.value.length === 6 && !pending && verify(e.target.value)}
-              className="h-full w-full bg-transparent px-4 text-[1.25rem] tracking-[0.4em] tabular-nums focus-visible:outline-none"
+              className={`${authInput} pl-2 tabular-nums`}
             />
           </div>
-          {error && (
-            <p id="auth-error" role="alert" className="mt-2 text-[14px] text-danger">
-              {error}
-            </p>
+          {errorLine}
+        </div>
+        {turnstile}
+        <button type="submit" disabled={pending || !turnstileToken} className={`${anim(4)} ${authPrimary}`}>
+          {pending ? "Sending…" : "Send code"}
+        </button>
+      </form>
+
+      {!link && (
+        <>
+          <div className={`${anim(5)} relative flex items-center justify-center`}>
+            <span className="w-full border-t border-hairline" />
+            <span className="absolute bg-canvas px-4 text-sm text-muted">Or continue with</span>
+          </div>
+          <button type="button" disabled={!!signingIn} onClick={() => goSocial("google")} className={`${anim(6)} ${authOutline}`}>
+            <GoogleIcon />
+            {signingIn === "google" ? "Opening Google…" : "Continue with Google"}
+          </button>
+          {providers.apple && (
+            <button type="button" disabled={!!signingIn} onClick={() => goSocial("apple")} className={`${anim(7)} ${authOutline}`}>
+              <AppleMark />
+              {signingIn === "apple" ? "Opening Apple…" : "Continue with Apple"}
+            </button>
           )}
-          <button
-            type="submit"
-            disabled={pending}
-            className="mt-5 h-12 w-full cursor-pointer rounded-full bg-indigo font-semibold text-canvas transition-colors hover:bg-indigo-deep disabled:cursor-wait disabled:opacity-70"
-          >
-            {pending ? "Checking…" : link ? "Confirm" : "Sign in"}
-          </button>
-          {turnstile}
-          <button
-            type="button"
-            disabled={cooldown > 0 || pending || !turnstileToken}
-            onClick={send}
-            className="mt-3 h-10 w-full cursor-pointer rounded-full text-[15px] font-medium text-indigo disabled:cursor-default disabled:text-muted"
-          >
-            {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
-          </button>
-          {dev && <p className="mt-6 rounded-lg bg-surface p-3 text-[13px] text-muted">Development: the code is printed in the terminal running the dev server.</p>}
-        </form>
+        </>
       )}
-    </div>
+
+      {link ? (
+        <p className={`${anim(8)} text-center text-sm text-muted`}>
+          Not you?{" "}
+          <button type="button" onClick={signOut} disabled={pending} className={authLink}>
+            Sign out
+          </button>
+        </p>
+      ) : (
+        <p className={`${anim(8)} text-center text-sm text-muted`}>
+          {mode === "sign-in" ? "New to DirectNest? " : "Already have an account? "}
+          <button type="button" onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")} className={authLink}>
+            {mode === "sign-in" ? "Create Account" : "Sign In"}
+          </button>
+        </p>
+      )}
+    </>
   );
 }
