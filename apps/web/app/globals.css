@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
-/* Tokens mirror DESIGN.md frontmatter. Change them there first. */
+/* Gharaana brand kit (July 2024): white, #FFDA1A yellow, #1560BD blue, #001238 navy; the rest are oklab mixes of
+   those four, the same ones the home page tour uses (components/tour/tour.css). The old names stay so no screen changes:
+   indigo = brand blue, dusk = night navy, streetlight = brand yellow, moonlight = sky. */
 @theme {
-  --color-dusk: oklch(0.27 0.09 266);
-  --color-dusk-deep: oklch(0.2 0.06 266);
-  --color-moonlight: oklch(0.97 0.012 266);
-  --color-moonlight-dim: oklch(0.82 0.04 266);
-  --color-indigo: oklch(0.5 0.16 266);
-  --color-indigo-deep: oklch(0.42 0.15 266);
-  --color-streetlight: oklch(0.82 0.15 78);
-  --color-canvas: oklch(1 0 0);
-  --color-surface: oklch(0.97 0.006 266);
-  --color-hairline: oklch(0.91 0.01 266);
-  --color-ink: oklch(0.22 0.025 266);
-  --color-muted: oklch(0.47 0.02 266);
+  --color-dusk: #011c49; /* blue 14% into navy */
+  --color-dusk-deep: #001238; /* navy */
+  --color-moonlight: #eff4fb; /* blue 7% into white */
+  --color-moonlight-dim: #d5e3f5; /* blue 18% into white */
+  --color-indigo: #1560bd;
+  --color-indigo-deep: #094087; /* blue 62% into navy */
+  --color-streetlight: #ffda1a;
+  --color-canvas: #ffffff;
+  --color-surface: #eff4fb;
+  --color-hairline: #dee9f7; /* blue 14% into white */
+  --color-ink: #001238;
+  --color-muted: #586984; /* navy 60% into white: 5:1 on surface */
   --color-verified: oklch(0.5 0.12 155);
   --color-verified-wash: oklch(0.95 0.04 155);
   --color-danger: oklch(0.52 0.19 27);

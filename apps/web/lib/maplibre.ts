@@ -8,8 +8,8 @@ export const MAP_LIMITS: [[number, number], [number, number]] = [
   [78.0, 13.3],
 ];
 // Design tokens in sRGB (exact conversions); map paint properties don't take oklch.
-export const INDIGO = "#385bbd"; // --color-indigo
-export const INK = "#151a26"; // --color-ink
+export const INDIGO = "#1560bd"; // --color-indigo
+export const INK = "#001238"; // --color-ink
 export const VERIFIED = "#0b7643"; // --color-verified
 export const DANGER = "#be2323"; // --color-danger
 
