@@ -45,6 +45,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     loader: "custom",
     loaderFile: "./lib/image-loader.ts",
