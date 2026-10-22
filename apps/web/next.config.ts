@@ -31,7 +31,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https:",
-      "connect-src 'self' https://challenges.cloudflare.com https://tiles.openfreemap.org https://*.openfreemap.org https://*.tiles.mapbox.com https://api.msg91.com ws: wss:",
+      // dl.polyhaven.org: the home page tour's 3D textures and furniture (components/world/assets.ts).
+      "connect-src 'self' https://dl.polyhaven.org https://challenges.cloudflare.com https://tiles.openfreemap.org https://*.openfreemap.org https://*.tiles.mapbox.com https://api.msg91.com ws: wss:",
       "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com",
       "worker-src 'self' blob:",
       "child-src 'self' blob:",
