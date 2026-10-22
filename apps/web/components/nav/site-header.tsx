@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { Wordmark } from "@/components/home/scenery";
+import { Logo } from "@/components/brand/Logo";
 import { signOutAndReload } from "@/lib/sign-out";
 import { Avatar } from "./avatar";
 import { ICONS } from "./icons";
@@ -26,13 +26,11 @@ export type Member = {
 const active = (path: string, href: string) => path === href || path.startsWith(`${href}/`);
 
 /**
- * The site navigation. Two plain looks, one component:
- *  - overlay (home): a flat bar over the dusk hero that scrolls away with the page.
- *  - docked (everywhere else): a solid white 64px bar that stays in the page, because search and chat size against it.
+ * The site navigation: a solid white 64px bar that stays in the page, because search and chat size against it.
  * The inbox and account menus are native popovers and the phone menu a native modal dialog, so Escape, focus and
  * "everything behind is inert" come from the browser instead of from us.
  */
-export function SiteHeader({ variant, member, rentals = false }: { variant: "overlay" | "docked"; member?: Member | null; rentals?: boolean }) {
+export function SiteHeader({ member, rentals = false }: { member?: Member | null; rentals?: boolean }) {
   const path = usePathname();
   const sheet = useRef<HTMLDialogElement>(null);
 
@@ -43,12 +41,11 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
     document.getElementById("inbox-menu")?.hidePopover?.();
   }, [path]);
 
-  const onDusk = variant === "overlay";
   const next = path === "/sign-in" || path === "/verify-phone" ? "/" : path;
   const links = rentals ? [RENT_LINK, ...NAV_LINKS] : NAV_LINKS;
 
-  const tone = onDusk ? "text-moonlight-dim hover:text-moonlight" : "text-muted hover:text-ink";
-  const here = onDusk ? "text-moonlight" : "text-ink";
+  const tone = "text-muted hover:text-ink";
+  const here = "text-ink";
   const touch = "inline-flex h-11 items-center justify-center rounded-full transition-colors duration-150";
   const total = member ? member.alerts + member.unread : 0;
 
@@ -66,16 +63,10 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
       >
         Skip to content
       </a>
-      <header className={variant === "overlay" ? "on-dusk absolute inset-x-0 top-0 z-20 text-moonlight" : "sticky top-0 z-30 h-16 border-b border-hairline bg-canvas"}>
-        <div
-          className={
-            variant === "overlay"
-              ? "mx-auto flex h-20 max-w-[1440px] items-center justify-between gap-2 px-4 sm:px-8 lg:px-14"
-              : "mx-auto flex h-full max-w-[1600px] items-center justify-between gap-2 px-4 text-ink sm:px-6"
-          }
-        >
-          <Link href="/" aria-label="DirectNest home" className="shrink-0 rounded-full">
-            <Wordmark />
+      <header className="sticky top-0 z-30 h-16 border-b border-hairline bg-canvas">
+        <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-2 px-4 text-ink sm:px-6">
+          <Link href="/" aria-label="Gharaana home" className="shrink-0 rounded-full">
+            <Logo className="block h-8 w-auto" />
           </Link>
 
           <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
@@ -92,9 +83,7 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
           <div className="flex items-center gap-1 sm:gap-1.5">
             <Link
               href="/post"
-              className={`${touch} px-4 text-[15px] font-semibold ${
-                onDusk ? "border border-moonlight/40 hover:bg-moonlight hover:text-dusk" : "border border-indigo text-indigo hover:bg-indigo hover:text-canvas"
-              }`}
+              className={`${touch} px-4 text-[15px] font-semibold border border-indigo text-indigo hover:bg-indigo hover:text-canvas`}
             >
               <span className="sm:hidden">Post</span>
               <span className="hidden sm:inline">Post your property</span>
@@ -135,7 +124,7 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
                   style={{ anchorName: "--account-menu" } as CSSProperties}
                   className={`${touch} hidden w-11 md:inline-flex`}
                 >
-                  <Avatar name={member.name} image={member.image} className={onDusk ? "ring-1 ring-moonlight/50" : "ring-1 ring-hairline"} />
+                  <Avatar name={member.name} image={member.image} className="ring-1 ring-hairline" />
                 </button>
                 <div id="account-menu" popover="auto" className="menu-pop" style={{ positionAnchor: "--account-menu" } as CSSProperties}>
                   <p className="px-3 pt-2 pb-1">
@@ -176,7 +165,7 @@ export function SiteHeader({ variant, member, rentals = false }: { variant: "ove
       <dialog ref={sheet} id="site-menu" aria-label="Menu" className="sheet" onClick={(e) => e.target === sheet.current && sheet.current?.close()}>
         <div data-lenis-prevent className="mx-auto flex h-full max-w-xl flex-col overflow-y-auto px-5 pb-10">
           <div className="flex h-16 shrink-0 items-center justify-between">
-            <Wordmark />
+            <Logo className="block h-8 w-auto" />
             <button type="button" onClick={() => sheet.current?.close()} className="-mr-2 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-surface">
               <span className="sr-only">Close menu</span>
               <ICONS.close className="h-6 w-6" />

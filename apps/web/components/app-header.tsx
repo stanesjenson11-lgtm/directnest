@@ -10,18 +10,18 @@ import { RENTALS } from "@/lib/search";
 import { getSession } from "@/lib/session";
 
 // The header every page shares. The bar itself is static; who is signed in streams into it, so pages stay cacheable.
-// "docked" is a fixed 64px so search and chat can size against it; the home page passes "overlay" to float over its hero.
-export function AppHeader({ variant = "docked" }: { variant?: "overlay" | "docked" }) {
+// A fixed 64px bar, so search and chat can size against it.
+export function AppHeader() {
   return (
-    <Suspense fallback={<HeaderShell variant={variant} rentals={RENTALS} />}>
-      <WithMember variant={variant} />
+    <Suspense fallback={<HeaderShell rentals={RENTALS} />}>
+      <WithMember />
     </Suspense>
   );
 }
 
 const when = (d: Date) => d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
-async function WithMember({ variant }: { variant: "overlay" | "docked" }) {
+async function WithMember() {
   await connection(); // who is signed in is decided per request, never prerendered
   const session = await getSession();
   let member: Member | null = null;
@@ -41,7 +41,7 @@ async function WithMember({ variant }: { variant: "overlay" | "docked" }) {
   }
   return (
     <>
-      <SiteHeader variant={variant} member={member} rentals={RENTALS} />
+      <SiteHeader member={member} rentals={RENTALS} />
       {session && <IdleGuard />}
     </>
   );

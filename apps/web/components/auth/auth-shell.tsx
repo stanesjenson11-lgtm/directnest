@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Wordmark } from "@/components/home/scenery";
+import { Logo } from "@/components/brand/Logo";
 
 // The photo from the design. ponytail: served from 21st.dev's CDN; swap in one of the client's own photos before launch.
 const HERO = "https://cdn.21st.dev/assets/mirror/ec/ecff1664e7fc3185d0e947571f984ea5fa3de9580fb0e73a03cd9c9b3461cb09.jpg";
 
-// The design shows customer quotes here. DirectNest has no real ones yet and made-up reviews would mislead buyers, so the
+// The design shows customer quotes here. Gharaana has no real ones yet and made-up reviews would mislead buyers, so the
 // same cards carry what the site promises. Replace with real testimonials when the client has them.
 const CARDS = [
   { name: "Owner verified", handle: "Every home", text: "Owners show an electricity bill or property tax receipt before their home goes live." },
@@ -43,11 +43,11 @@ export function AuthShell({ children, inset = false }: { children: ReactNode; in
       <section className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
-            {/* The DirectNest logo and name, in the site's own font, leading back home. The staff steps inside the console
+            {/* The Gharaana logo, leading back home. The staff steps inside the console
                 already have it in the console's top bar. */}
             {!inset && (
-              <Link href="/" aria-label="DirectNest home" className="animate-element self-start rounded-full font-sans text-ink">
-                <Wordmark />
+              <Link href="/" aria-label="Gharaana home" className="animate-element self-start rounded-full">
+                <Logo className="block h-8 w-auto" />
               </Link>
             )}
             {children}
@@ -56,7 +56,7 @@ export function AuthShell({ children, inset = false }: { children: ReactNode; in
       </section>
 
       {/* Right column: photo and cards. Held in view while a long step (the authenticator setup) scrolls beside it. */}
-      <section aria-label="Why DirectNest" className={`relative hidden flex-1 overflow-hidden p-4 md:sticky md:block md:self-start ${inset ? "md:top-[4.75rem] md:h-[calc(100dvh-5.5rem)]" : "md:top-0 md:h-[100dvh]"}`}>
+      <section aria-label="Why Gharaana" className={`relative hidden flex-1 overflow-hidden p-4 md:sticky md:block md:self-start ${inset ? "md:top-[4.75rem] md:h-[calc(100dvh-5.5rem)]" : "md:top-0 md:h-[100dvh]"}`}>
         <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center" style={{ backgroundImage: `url(${HERO})` }} />
         <div className="absolute bottom-8 left-1/2 flex w-full -translate-x-1/2 justify-center gap-4 px-8">
           <Card card={CARDS[0]} delay="animate-delay-1000" />

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type CSSProperties, type KeyboardEvent } from "react";
+import { Logo as Lockup } from "@/components/brand/Logo";
 import { Avatar } from "@/components/nav/avatar";
 import { ICONS } from "@/components/nav/icons";
 import { signOutAndReload } from "@/lib/sign-out";
@@ -20,11 +21,8 @@ const capsule = "rounded-full bg-surface";
 
 export function Logo() {
   return (
-    <Link href="/admin" aria-label="DirectNest console home" className={`flex shrink-0 items-center gap-2.5 p-1 pr-4 ${capsule}`}>
-      <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-full bg-indigo text-canvas">
-        <ICONS.home className="h-[18px] w-[18px]" />
-      </span>
-      <span className="text-[17px] font-semibold tracking-[-0.02em]">DirectNest</span>
+    <Link href="/admin" aria-label="Gharaana console home" className={`flex h-11 shrink-0 items-center px-4 ${capsule}`}>
+      <Lockup className="block h-7 w-auto" />
     </Link>
   );
 }
@@ -158,7 +156,7 @@ export function UserMenu({ name, email, image, roleLabel, tools }: { name: strin
         <div className="mt-1 border-t border-hairline pt-1">
           <Link href="/" className={row}>
             <ICONS.home className="h-5 w-5 text-muted" />
-            Back to DirectNest
+            Back to Gharaana
           </Link>
           <button type="button" onClick={signOut} className={`${row} w-full cursor-pointer text-left text-muted hover:text-ink`}>
             <ICONS.signout className="h-5 w-5" />
