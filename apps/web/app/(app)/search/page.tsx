@@ -7,7 +7,7 @@ import { parseSearch } from "@/lib/parse-search";
 import { RENTALS } from "@/lib/search";
 
 export const metadata: Metadata = {
-  title: `Homes for ${RENTALS ? "rent and sale" : "sale"} in Bengaluru, straight from owners | DirectNest`,
+  title: `Homes for ${RENTALS ? "rent and sale" : "sale"} in Bengaluru, straight from owners | Gharaana`,
   description: "Search flats and houses in Bengaluru on a map. Every listing is approved by a person and comes straight from its owner.",
 };
 

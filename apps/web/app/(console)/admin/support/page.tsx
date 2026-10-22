@@ -5,7 +5,7 @@ import { daysAgo, phone } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { supportQueue, topicLabel } from "@/lib/support";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 const TABS = [
   ["open", "Waiting for us"],

@@ -1,5 +1,5 @@
 // The sign-in screens' parts, copied from the sign-in design the team chose (a 21st.dev "sign-in" component) and mapped
-// onto DirectNest's colour names: shadcn's border/foreground/muted/primary become hairline/ink/muted/ink. Shared by every
+// onto Gharaana's colour names: shadcn's border/foreground/muted/primary become hairline/ink/muted/ink. Shared by every
 // sign-in step (number, code, authenticator, staff check, setup).
 
 /** Enters with a short fade and blur, after the steps before it (see .animate-element in globals.css). */

@@ -37,7 +37,7 @@ export function RequestLead({ listingId, owner, sample, kind }: { listingId: str
           <>
             <p className="mt-2 text-muted" aria-live="polite">
               {sample
-                ? "This is a sample listing that shows how DirectNest works. There's no real owner to ask."
+                ? "This is a sample listing that shows how Gharaana works. There's no real owner to ask."
                 : !session
                   ? `Sign in with your phone so ${first} knows who's asking and can reach you.`
                   : `Sent. ${first} will ${kind === "visit" ? "confirm the visit" : "call you back"}, and you can see their answer in your account.`}

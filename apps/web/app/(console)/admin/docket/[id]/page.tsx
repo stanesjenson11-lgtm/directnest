@@ -13,7 +13,7 @@ import { AssigneeSelect } from "../add-form";
 import { ItemForm, NoteForm } from "./item-form";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function ItemPage({ params }: PageProps<"/admin/docket/[id]">) {
   return (

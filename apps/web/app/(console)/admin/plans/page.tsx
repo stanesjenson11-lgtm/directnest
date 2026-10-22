@@ -5,7 +5,7 @@ import { allPlans, featuredListings } from "@/lib/plans";
 import { requireAdmin } from "@/lib/session";
 import { FeatureForm, PlanForm } from "./forms";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function PlansAdminPage() {
   return (

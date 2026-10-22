@@ -4,7 +4,7 @@ import { PostForm } from "@/components/post/post-form";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Post your property for free | DirectNest",
+  title: "Post your property for free | Gharaana",
   description: "List your flat or house for rent or sale in Bengaluru. Free for owners, reviewed by a person, no broker calls.",
 };
 

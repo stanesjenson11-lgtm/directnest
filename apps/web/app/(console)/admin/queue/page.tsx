@@ -8,7 +8,7 @@ import { approve, markVisited, reject } from "../actions";
 import { FLAG_TEXT, REJECT_REASONS } from "../reasons";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 const visitButton = "h-11 cursor-pointer rounded-full border border-hairline px-5 font-semibold hover:border-muted";
 

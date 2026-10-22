@@ -6,7 +6,7 @@ import { IdleGuard } from "@/components/auth/idle-guard";
 import { PhoneSignIn } from "@/components/auth/phone-sign-in";
 import { getSession, safeNext } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Confirm your number | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Confirm your number | Gharaana", robots: { index: false } };
 
 // The second step after Google or Apple: a 6-digit SMS code that attaches a mobile number to the account.
 export default function VerifyPhonePage({ searchParams }: PageProps<"/verify-phone">) {

@@ -20,7 +20,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: `DirectNest: ${RENTALS ? "rent or buy" : "buy"} straight from verified owners`,
+  title: `Gharaana: ${RENTALS ? "rent or buy" : "buy"} straight from verified owners`,
   description:
     `Homes for ${RENTALS ? "rent and sale" : "sale"} from verified owners in Bengaluru. A person approves every listing before it goes live.`,
 };

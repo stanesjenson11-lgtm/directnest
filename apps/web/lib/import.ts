@@ -162,7 +162,7 @@ const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\
 async function fetchPhoto(link: string) {
   const u = new URL(link);
   if (u.protocol !== "https:" || PRIVATE_HOST.test(u.hostname)) throw new Error("only public https links work");
-  const res = await fetch(u, { signal: AbortSignal.timeout(20_000), headers: { "user-agent": "DirectNest importer" } });
+  const res = await fetch(u, { signal: AbortSignal.timeout(20_000), headers: { "user-agent": "Gharaana importer" } });
   if (!res.ok) throw new Error(`the link answered ${res.status}`);
   if (!(res.headers.get("content-type") ?? "").startsWith("image/")) throw new Error("the link is a web page, not a photo; use the direct image link");
   const bytes = Buffer.from(await res.arrayBuffer());

@@ -5,7 +5,7 @@ import { allPages, AREAS } from "@/lib/pages";
 import { requireAdmin } from "@/lib/session";
 import { PageForm } from "./form";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function PagesAdminPage() {
   return (

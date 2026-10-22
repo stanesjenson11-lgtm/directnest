@@ -8,7 +8,7 @@ import { TICKET_STATUS as STATUS, ticketThread, topicLabel } from "@/lib/support
 import { closeTicketAction } from "../actions";
 import { ReplyForm } from "../forms";
 
-export const metadata: Metadata = { title: "Support request | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Support request | Gharaana", robots: { index: false } };
 
 const stamp = (d: Date) => d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
@@ -61,7 +61,7 @@ async function Ticket({ params }: Pick<PageProps<"/help/[id]">, "params">) {
         {t.messages.map((m) => (
           <li key={m.id} className={`rounded-xl p-4 ${m.fromStaff ? "bg-surface" : "border border-hairline"}`}>
             <p className="text-[13px] font-semibold text-muted">
-              {m.fromStaff ? "DirectNest team" : staff && t.userId !== me.id ? t.personName || "Them" : "You"} · {stamp(m.createdAt)}
+              {m.fromStaff ? "Gharaana team" : staff && t.userId !== me.id ? t.personName || "Them" : "You"} · {stamp(m.createdAt)}
             </p>
             <p className="mt-1 break-words whitespace-pre-wrap">{m.body}</p>
           </li>

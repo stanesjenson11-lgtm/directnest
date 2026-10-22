@@ -6,7 +6,7 @@ import { projectFor, projectSummaries, unitIds } from "@/lib/projects";
 import { requireAdmin } from "@/lib/session";
 import { ProjectForm } from "./form";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function ProjectsAdminPage() {
   return (

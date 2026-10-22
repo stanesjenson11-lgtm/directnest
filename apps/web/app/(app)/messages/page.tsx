@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { inbox } from "@/lib/chat";
 import { requireUser } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Messages | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Messages | Gharaana", robots: { index: false } };
 
 const IST = "Asia/Kolkata";
 const when = (d: Date) =>

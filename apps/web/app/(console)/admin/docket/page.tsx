@@ -12,7 +12,7 @@ import { AddForm } from "./add-form";
 import { claimAction, statusAction } from "./actions";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function DocketPage({ searchParams }: PageProps<"/admin/docket">) {
   return (

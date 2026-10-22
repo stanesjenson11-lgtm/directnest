@@ -9,7 +9,7 @@ import { getMember } from "@/lib/session";
 import { isTopic, TICKET_STATUS as STATUS, ticketsOf, topicLabel } from "@/lib/support";
 import { TicketForm } from "./forms";
 
-export const metadata: Metadata = { title: "Help and support | DirectNest", description: "Call us, or write to our team about your account, a listing, or a broker posing as an owner." };
+export const metadata: Metadata = { title: "Help and support | Gharaana", description: "Call us, or write to our team about your account, a listing, or a broker posing as an owner." };
 
 export default function HelpPage({ searchParams }: PageProps<"/help">) {
   const support = process.env.SUPPORT_PHONE;

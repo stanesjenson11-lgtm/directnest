@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AREAS } from "@/lib/pages";
 
 export const metadata: Metadata = {
-  title: "Area guides for Bengaluru | DirectNest",
+  title: "Area guides for Bengaluru | Gharaana",
   description: "Prices, homes for sale, metro stations, schools and hospitals in Bengaluru's localities.",
 };
 

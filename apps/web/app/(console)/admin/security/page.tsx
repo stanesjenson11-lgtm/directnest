@@ -5,7 +5,7 @@ import { anim, authLead, authTitle, authTitleText } from "@/components/auth/ui";
 import { requireAdminRole } from "@/lib/session";
 import { Enroll } from "./enroll";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function SecurityPage() {
   return (

@@ -7,7 +7,7 @@ import { visitTime } from "@/lib/search";
 import { requireAdmin } from "@/lib/session";
 import { saveCrm } from "../actions";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 const OWNER_ANSWER = { new: "Owner hasn't answered", confirmed: "Owner confirmed", declined: "Owner declined", done: "Owner marked done" } as const;
 const ago = (d: Date) => daysAgo(Math.floor((Date.now() - d.getTime()) / 86_400_000));

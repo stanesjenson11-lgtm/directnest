@@ -31,7 +31,7 @@ export function ContactOwner({ listingId, owner, sample, label, className = "" }
   };
 
   let body: ReactNode;
-  if (sample) body = <p className="text-muted">This is a sample listing that shows how DirectNest works. There&rsquo;s no real owner to call.</p>;
+  if (sample) body = <p className="text-muted">This is a sample listing that shows how Gharaana works. There&rsquo;s no real owner to call.</p>;
   else if (signedOut)
     body = <p className="text-muted">Sign in with your phone to see the number and call {first} directly. We never share your number with owners or anyone else.</p>;
   else if (pending || !result) body = <p className="text-muted">Getting {first}&rsquo;s number&hellip;</p>;
@@ -41,7 +41,7 @@ export function ContactOwner({ listingId, owner, sample, label, className = "" }
         <a href={`tel:${result.phone}`} className="mt-1 inline-block text-[1.75rem] font-semibold text-indigo tabular-nums hover:underline">
           {phone(result.phone)}
         </a>
-        <p className="mt-2 text-muted">Say you found the home on DirectNest. Your number reaches {first} only if you call.</p>
+        <p className="mt-2 text-muted">Say you found the home on Gharaana. Your number reaches {first} only if you call.</p>
       </>
     );
   else if (result.reason !== "signed-out" && result.reason !== "sample") body = <p className="text-muted">{WHY[result.reason]}</p>;

@@ -28,8 +28,8 @@ async function project(id: string) {
 export async function generateMetadata({ params }: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const p = await project((await params).slug);
   return p
-    ? { title: `${p.name} by ${p.builder}, ${p.locality} | DirectNest`, description: `New homes in ${p.locality} by ${p.builder}. RERA ${p.rera}.` }
-    : { title: "Project not found | DirectNest" };
+    ? { title: `${p.name} by ${p.builder}, ${p.locality} | Gharaana`, description: `New homes in ${p.locality} by ${p.builder}. RERA ${p.rera}.` }
+    : { title: "Project not found | Gharaana" };
 }
 
 export default function ProjectPage({ params }: PageProps<"/projects/[slug]">) {

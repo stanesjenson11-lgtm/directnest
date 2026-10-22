@@ -6,7 +6,7 @@ import { anim, authLead, authTitle, authTitleText } from "@/components/auth/ui";
 import { requireAdminRole } from "@/lib/session";
 import { VerifyForm } from "./verify-form";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function VerifyPage() {
   return (

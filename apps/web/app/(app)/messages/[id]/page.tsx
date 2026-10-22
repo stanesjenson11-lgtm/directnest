@@ -6,7 +6,7 @@ import { ChatThread } from "@/components/chat/chat-thread";
 import { conversationFor, messagesAfter } from "@/lib/chat";
 import { requireUser } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Messages | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Messages | Gharaana", robots: { index: false } };
 
 export default function ThreadPage({ params }: PageProps<"/messages/[id]">) {
   return (

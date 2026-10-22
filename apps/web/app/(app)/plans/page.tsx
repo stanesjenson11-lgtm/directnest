@@ -5,7 +5,7 @@ import { inr } from "@/lib/format";
 import { activePlans } from "@/lib/plans";
 
 export const metadata: Metadata = {
-  title: "Plans for owners | DirectNest",
+  title: "Plans for owners | Gharaana",
   description: "Listing your home is free. A plan puts it first in search with a Featured badge, for as many days as you choose.",
 };
 

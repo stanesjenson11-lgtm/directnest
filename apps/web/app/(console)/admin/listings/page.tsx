@@ -7,7 +7,7 @@ import { isListingFilter, LISTINGS_PAGE, listAllListings, listingStatusCounts, t
 import { requireAdmin } from "@/lib/session";
 
 // Neutral title: the static shell is served to everyone, and the page shouldn't advertise itself.
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function ListingsPage({ searchParams }: PageProps<"/admin/listings">) {
   return (

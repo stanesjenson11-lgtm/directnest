@@ -13,7 +13,7 @@ import { visitTime } from "@/lib/search";
 import { requireUser } from "@/lib/session";
 import { answer, confirmAvailable, markRented, removeSavedSearch, setName } from "./actions";
 
-export const metadata: Metadata = { title: "Your account | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Your account | Gharaana", robots: { index: false } };
 
 const STATUS = {
   pending_review: ["Waiting for review", "bg-surface text-muted"],

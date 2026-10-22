@@ -41,9 +41,9 @@ async function area(slug: string) {
 
 export async function generateMetadata({ params }: PageProps<"/areas/[slug]">): Promise<Metadata> {
   const a = await area((await params).slug);
-  if (!a) return { title: "Area not found | DirectNest" };
+  if (!a) return { title: "Area not found | Gharaana" };
   return {
-    title: `Homes for sale in ${a.name}, Bengaluru | DirectNest`,
+    title: `Homes for sale in ${a.name}, Bengaluru | Gharaana`,
     description: a.guide?.summary || `${a.count} homes for sale in ${a.name} from verified owners${a.medianPerSqft ? `, around ${inr(a.medianPerSqft)} per sq ft` : ""}.`,
   };
 }
@@ -88,7 +88,7 @@ async function Area({ params }: Pick<PageProps<"/areas/[slug]">, "params">) {
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-[13px] text-muted">From homes listed on DirectNest within about 3 km, updated hourly.</p>
+      <p className="mt-2 text-[13px] text-muted">From homes listed on Gharaana within about 3 km, updated hourly.</p>
 
       <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">

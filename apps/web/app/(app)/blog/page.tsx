@@ -4,7 +4,7 @@ import Link from "next/link";
 import { publishedPosts } from "@/lib/pages";
 
 export const metadata: Metadata = {
-  title: "Blog | DirectNest",
+  title: "Blog | Gharaana",
   description: "Guides to buying a home in Bengaluru: paperwork, prices, localities and what to check before you pay.",
 };
 

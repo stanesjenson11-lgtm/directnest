@@ -30,10 +30,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/homes/[id]">): Promise<Metadata> {
   const l = await cachedListing((await params).id);
-  if (!l) return { title: "Home not found | DirectNest" };
+  if (!l) return { title: "Home not found | Gharaana" };
   const price = l.type === "rent" ? `${inr(l.price + l.maintenance)} a month` : inrShort(l.price);
   return {
-    title: `${l.title} | ${price} | DirectNest`,
+    title: `${l.title} | ${price} | Gharaana`,
     description: `${l.description} Listed by its owner and approved by our team.`,
   };
 }

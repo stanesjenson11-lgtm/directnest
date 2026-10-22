@@ -5,7 +5,7 @@ import { RefreshOnMount } from "@/components/refresh-on-mount";
 import { latestNotifications, markAllRead } from "@/lib/notify";
 import { requireUser } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Alerts | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Alerts | Gharaana", robots: { index: false } };
 
 const stamp = (d: Date) => d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 

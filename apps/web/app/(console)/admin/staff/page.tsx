@@ -8,7 +8,7 @@ import { changeStaff, withdrawInvite } from "../staff-actions";
 import { AddStaffForm, InviteForm } from "./add-form";
 
 // Neutral title, like the review queue.
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function StaffPage() {
   return (
@@ -60,7 +60,7 @@ async function Staff() {
       )}
 
       <h2 className="mt-10 text-[1.25rem] font-semibold">Give access by mobile number</h2>
-      <p className="mt-1 mb-4 text-muted">For someone who already has an account. They must have signed in to DirectNest once with this number.</p>
+      <p className="mt-1 mb-4 text-muted">For someone who already has an account. They must have signed in to Gharaana once with this number.</p>
       <AddStaffForm />
 
       <ul className="mt-10">

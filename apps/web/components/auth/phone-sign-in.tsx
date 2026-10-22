@@ -15,7 +15,7 @@ function explain(e: AuthError) {
   if (e.code === "OTP_EXPIRED") return "That code has expired. Send a new one.";
   if (e.code === "TOO_MANY_ATTEMPTS") return "Too many wrong codes. Send a new one.";
   if (e.code === "INVALID_PHONE_NUMBER") return "Enter a 10-digit Indian mobile number.";
-  if (e.code === "PHONE_NUMBER_EXIST") return "That number already has a DirectNest account. Sign in with it, or use another number.";
+  if (e.code === "PHONE_NUMBER_EXIST") return "That number already has a Gharaana account. Sign in with it, or use another number.";
   if (e.code === "BOT_DETECTED" || e.status === 403) return "Security verification failed. Please try again.";
   return e.message || "Something went wrong. Try again.";
 }
@@ -204,7 +204,7 @@ export function PhoneSignIn({
       </h1>
       <p className={`${anim(2)} ${authLead}`}>
         {link
-          ? "A confirmed mobile number is required to use DirectNest. We'll text you a 6-digit code."
+          ? "A confirmed mobile number is required to use Gharaana. We'll text you a 6-digit code."
           : mode === "sign-up"
             ? "Join with your mobile number. We'll text you a 6-digit code, and that's all it takes."
             : "Access your account and continue your journey with us"}
@@ -278,7 +278,7 @@ export function PhoneSignIn({
         </p>
       ) : (
         <p className={`${anim(8)} text-center text-sm text-muted`}>
-          {mode === "sign-in" ? "New to DirectNest? " : "Already have an account? "}
+          {mode === "sign-in" ? "New to Gharaana? " : "Already have an account? "}
           <button type="button" onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")} className={authLink}>
             {mode === "sign-in" ? "Create Account" : "Sign In"}
           </button>

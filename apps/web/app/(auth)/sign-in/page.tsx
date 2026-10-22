@@ -14,7 +14,7 @@ import { user } from "@/lib/schema";
 import { getSession, safeNext } from "@/lib/session";
 import { DAY_COOKIE, dayUser } from "@/lib/staff-day";
 
-export const metadata: Metadata = { title: "Sign in | DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Sign in | Gharaana", robots: { index: false } };
 
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (

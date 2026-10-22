@@ -77,7 +77,7 @@ export const auth = betterAuth({
     "/two-factor/verify-otp",
   ],
   plugins: [
-    twoFactor({ issuer: "DirectNest", allowPasswordless: true }), // phone sign-in has no password to ask for
+    twoFactor({ issuer: "Gharaana", allowPasswordless: true }), // phone sign-in has no password to ask for
     staffDay(),
     otpThrottle(), // a few codes per number, on top of the per-connection limit above
     phoneNumber({

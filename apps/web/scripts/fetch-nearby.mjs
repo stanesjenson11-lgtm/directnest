@@ -10,7 +10,7 @@ out center tags;`;
 
 const res = await fetch("https://overpass-api.de/api/interpreter", {
   method: "POST",
-  headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "DirectNest nearby-places snapshot" },
+  headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "Gharaana nearby-places snapshot" },
   body: new URLSearchParams({ data: query }),
 });
 if (!res.ok) throw new Error(`Overpass answered ${res.status}`);

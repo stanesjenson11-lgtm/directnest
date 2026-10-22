@@ -5,7 +5,7 @@ import { inrShort } from "@/lib/format";
 import { possessionLabel, projectSummaries } from "@/lib/projects";
 
 export const metadata: Metadata = {
-  title: "New projects in Bengaluru | DirectNest",
+  title: "New projects in Bengaluru | Gharaana",
   description: "New flats and villas from builders in Bengaluru, each with its RERA registration number.",
 };
 

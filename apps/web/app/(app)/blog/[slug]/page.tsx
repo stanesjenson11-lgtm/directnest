@@ -15,7 +15,7 @@ async function post(slug: string) {
 
 export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {
   const p = await post((await params).slug);
-  return p ? { title: `${p.title} | DirectNest`, description: p.summary || undefined } : { title: "Post not found | DirectNest" };
+  return p ? { title: `${p.title} | Gharaana`, description: p.summary || undefined } : { title: "Post not found | Gharaana" };
 }
 
 export default function PostPage({ params }: PageProps<"/blog/[slug]">) {

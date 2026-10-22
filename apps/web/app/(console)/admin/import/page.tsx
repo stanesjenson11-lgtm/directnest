@@ -4,7 +4,7 @@ import { COLUMNS, TEMPLATE_CSV } from "@/lib/import";
 import { requireAdmin } from "@/lib/session";
 import { ImportForm } from "./import-form";
 
-export const metadata: Metadata = { title: "DirectNest", robots: { index: false } };
+export const metadata: Metadata = { title: "Gharaana", robots: { index: false } };
 
 export default function ImportPage() {
   return (
