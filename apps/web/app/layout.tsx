@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
-import { Anek_Latin, Geist, Kalam } from "next/font/google";
+import { Anek_Latin, Geist } from "next/font/google";
 import { RENTALS } from "@/lib/search";
 import "./globals.css";
 
@@ -8,14 +8,6 @@ const anek = Anek_Latin({
   subsets: ["latin"],
   axes: ["wdth"],
   variable: "--font-anek",
-  display: "swap",
-});
-
-// Only used for hand-painted lettering inside illustrations (the TO-LET board).
-const kalam = Kalam({
-  subsets: ["latin"],
-  weight: "700",
-  variable: "--font-kalam",
   display: "swap",
 });
 
@@ -39,7 +31,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-IN" className={`${anek.variable} ${kalam.variable} ${geist.variable}`}>
+    <html lang="en-IN" className={`${anek.variable} ${geist.variable}`}>
       <body>{children}</body>
     </html>
   );

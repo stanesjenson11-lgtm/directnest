@@ -4,7 +4,6 @@
 @theme {
   --color-dusk: oklch(0.27 0.09 266);
   --color-dusk-deep: oklch(0.2 0.06 266);
-  --color-dusk-haze: oklch(0.36 0.1 282);
   --color-moonlight: oklch(0.97 0.012 266);
   --color-moonlight-dim: oklch(0.82 0.04 266);
   --color-indigo: oklch(0.5 0.16 266);
@@ -18,23 +17,11 @@
   --color-verified: oklch(0.5 0.12 155);
   --color-verified-wash: oklch(0.95 0.04 155);
   --color-danger: oklch(0.52 0.19 27);
-  --color-board-enamel: oklch(0.96 0.01 90);
-  --color-board-paint: oklch(0.52 0.19 27);
 
   --font-sans: var(--font-anek), system-ui, sans-serif;
-  --font-hand: var(--font-kalam), cursive;
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@utility t-display {
-  font-size: clamp(2.75rem, 6.4vw, 5.5rem);
-  line-height: 0.98;
-  letter-spacing: -0.02em;
-  font-weight: 500;
-  font-variation-settings: "wdth" 112;
-  text-wrap: balance;
 }
 
 @utility t-headline {
@@ -68,9 +55,6 @@
   :focus-visible {
     outline: 2px solid var(--color-indigo);
     outline-offset: 2px;
-  }
-  .on-dusk :focus-visible {
-    outline-color: var(--color-streetlight);
   }
 }
 
@@ -191,137 +175,6 @@
 html:has(.sheet[open]),
 html:has(.palette[open]) {
   overflow: hidden;
-}
-
-/* ---------- Homepage story ----------
-   Default (no JS / reduced motion): beats stack as normal sections.
-   .is-animated (added by story.tsx): one pinned stage, beats layered and scrubbed. */
-
-.story-stage {
-  position: relative;
-  background:
-    radial-gradient(120% 60% at 50% 115%, oklch(0.55 0.11 62 / 0.38), transparent 60%),
-    linear-gradient(to bottom, var(--color-dusk) 35%, var(--color-dusk-haze));
-}
-
-.beat {
-  position: relative;
-  min-height: 100svh;
-}
-
-.story:not(.is-animated) .trail {
-  display: none;
-}
-
-.is-animated .story-stage {
-  height: 100svh;
-  overflow: hidden;
-}
-
-.is-animated .beat {
-  position: absolute;
-  inset: 0;
-  min-height: 0;
-}
-
-.is-animated .beat:not([data-beat="0"]) {
-  pointer-events: none;
-}
-
-.is-animated .beat :is(a, button, input, select) {
-  pointer-events: auto;
-}
-
-/* Ambient scenery. All of it stops under reduced motion. */
-
-@keyframes board-settle {
-  0% { transform: rotate(-7deg); }
-  30% { transform: rotate(3.2deg); }
-  55% { transform: rotate(-1.4deg); }
-  78% { transform: rotate(0.5deg); }
-  100% { transform: rotate(-1.5deg); }
-}
-
-@keyframes lamp-on {
-  0%, 40% { opacity: 0; }
-  46% { opacity: 0.7; }
-  50% { opacity: 0.15; }
-  100% { opacity: 1; }
-}
-
-@keyframes flame {
-  from { transform: scaleX(0.82) scaleY(0.92); }
-  to { transform: scaleX(1.08) scaleY(1.04); }
-}
-
-@keyframes kite-sway {
-  0%, 100% { transform: translate(0, 0) rotate(-6deg); }
-  50% { transform: translate(-10px, 8px) rotate(5deg); }
-}
-
-@keyframes birds-cross {
-  from { transform: translateX(110vw); }
-  to { transform: translateX(-30vw); }
-}
-
-@keyframes wing {
-  from { transform: scaleY(1); }
-  to { transform: scaleY(0.35); }
-}
-
-@keyframes blink {
-  0%, 70%, 100% { opacity: 0.25; }
-  78%, 92% { opacity: 1; }
-}
-
-.board-swing {
-  transform-origin: 50% 0;
-  animation: board-settle 2.6s var(--ease-out-quint) 0.2s both;
-}
-
-.lamp-glow {
-  animation: lamp-on 1.6s ease-out both;
-}
-
-.rocket-flame {
-  transform-box: fill-box;
-  transform-origin: 0% 50%;
-  animation: flame 0.12s ease-in-out infinite alternate;
-}
-
-.kite {
-  animation: kite-sway 7s ease-in-out infinite;
-}
-
-.birds {
-  animation: birds-cross 32s linear 3s infinite;
-}
-
-.bird {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: wing 0.42s ease-in-out infinite alternate;
-}
-
-.tower-light {
-  animation: blink 2.4s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-swing,
-  .lamp-glow,
-  .rocket-flame,
-  .kite,
-  .bird,
-  .tower-light {
-    animation: none;
-  }
-  .birds {
-    display: none;
-  }
-  html {
-    scroll-behavior: auto;
-  }
 }
 
 /* ---------- Sign-in screens ----------
