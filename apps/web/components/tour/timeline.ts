@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { STOPS, TONE_BREAKS, TOTAL } from "./config";
+import { CAPTIONS, STOPS, TONE_BREAKS, TOTAL } from "./config";
 
 type Tone = "ink" | "paper";
 type Vars = gsap.TweenVars;
@@ -9,12 +9,12 @@ export type TourHooks = {
   reduced: boolean;
   onTone: (t: Tone) => void;
   onStop: (i: number) => void;
-  onTick: (tick: number) => void; // drives the 3D camera
+  onTick: (tick: number) => void; // drives the film
 };
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the 3D world: hero, captions, close, rail. The camera itself lives in components/world. */
+/** The HTML layer over the film: hero, captions, close, rail. The film itself is rendered from apps/web/film. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
   gsap.registerPlugin(ScrollTrigger);
   const q = gsap.utils.selector(root);
@@ -76,14 +76,10 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
     fx(`${s} .cap__line`, { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, inAt + 0.9, 1.4, "power2.out");
     fx(s, { autoAlpha: 1 }, { autoAlpha: 0 }, outAt, 1.2, "none", true);
   };
-  cap("sky", 7, 15);
-  cap("tower", 21, 33);
-  cap("inside", 53, 63);
-  cap("plan", 71, 80);
-  cap("hood", 87, 95.5);
+  for (const [id, [inAt, outAt]] of Object.entries(CAPTIONS)) cap(id, inAt, outAt);
 
-  fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, 102, 3);
-  fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.35 }, 102.5, 2, "power3.out");
+  fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, 116, 3);
+  fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.35 }, 116.5, 2, "power3.out");
 
   tl.set({}, {}, TOTAL); // fix total length
 

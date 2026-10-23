@@ -6,22 +6,29 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { buildTour } from "./timeline";
 import { Captions, Close, Hero, Nav, StopRail } from "./Chrome";
-import { STOPS, TOTAL } from "./config";
-import type { World } from "@/components/world/World";
+import { PIN_FADE, STOPS, TOTAL, pw } from "./config";
+import film from "./film.json";
 import "./tour.css";
 
 type Tone = "ink" | "paper";
 
 const PINS = [
-  { id: "tower", label: "This tower" },
-  { id: "park", label: "Park" },
-  { id: "river", label: "Riverside" },
+  { id: "home", label: "Your home" },
+  { id: "metro", label: "Metro" },
+  { id: "lake", label: "Lake" },
+  { id: "school", label: "School" },
+  { id: "hospital", label: "Hospital" },
+  { id: "supermarket", label: "Supermarket" },
 ] as const;
 
-/** The scroll tour: a sticky stage with one 3D world, one camera, and the HTML layer on top. */
+// The tour is a film path-traced in Blender (apps/web/film): frame 1 is tick 0, the last frame is tick TOTAL.
+const DURATION = (film.frames - 1) / film.fps;
+const SRC = { small: "/tour/film-720.mp4", large: "/tour/film-1080.mp4" };
+
+/** The scroll tour: a sticky stage with the film, scrubbed by scroll, and the HTML layer on top. */
 export default function Tour() {
   const root = useRef<HTMLElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
   const api = useRef<ReturnType<typeof buildTour> | null>(null);
   const smooth = useRef<Lenis | null>(null);
   const [tone, setTone] = useState<Tone>("ink");
@@ -42,35 +49,38 @@ export default function Tour() {
     }
     smooth.current = lenis;
 
-    let world: World | null = null;
-    let lastTick = 0;
-    let disposed = false;
+    const v = video.current!;
+    // phones get the 720p encode (less to download); both are cut with a keyframe every few frames so seeking is quick
+    v.src = Math.min(screen.width, screen.height) < 700 ? SRC.small : SRC.large;
+    const onReady = () => setReady("ready");
+    const onFail = () => setReady("failed");
+    v.addEventListener("loadeddata", onReady);
+    v.addEventListener("error", onFail);
+
+    let target = 0;
     const ctx = gsap.context(() => {
       api.current = buildTour(root.current!, {
         reduced,
         onTone: setTone,
         onStop: setActive,
-        onTick: (t) => { lastTick = t; world?.setTick(t); },
+        onTick: (t) => { target = (t / TOTAL) * DURATION; },
       });
     }, root);
 
-    // The 3D world loads after first paint; the hero and search work before it arrives.
-    import("@/components/world/World")
-      .then(({ createWorld, PIN_POINTS }) => {
-        if (disposed || !canvas.current) return;
-        const pins = PINS.map((p) => ({ el: root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!, at: PIN_POINTS[p.id] }));
-        world = createWorld(canvas.current, { reduced, pins, onReady: () => setReady("ready") });
-        world.setTick(lastTick);
-      })
-      .catch(() => setReady("failed"));
-
-    const onResize = () => world?.resize();
-    addEventListener("resize", onResize);
+    // Seek towards the scroll position, one seek at a time (a new seek before the last lands just queues decoding).
+    const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
+    let frameId = 0;
+    const step = () => {
+      frameId = requestAnimationFrame(step);
+      if (v.readyState >= 2 && !v.seeking && Math.abs(v.currentTime - target) > 0.5 / film.fps) v.currentTime = target;
+      placePins(v, pins);
+    };
+    frameId = requestAnimationFrame(step);
 
     return () => {
-      disposed = true;
-      removeEventListener("resize", onResize);
-      world?.dispose();
+      cancelAnimationFrame(frameId);
+      v.removeEventListener("loadeddata", onReady);
+      v.removeEventListener("error", onFail);
       api.current?.destroy();
       ctx.revert();
       gsap.ticker.remove(raf);
@@ -89,7 +99,7 @@ export default function Tour() {
   return (
     <section className="tour" ref={root} aria-label="Gharaana tour">
       <div className="stage" data-world={ready}>
-        <canvas ref={canvas} className="world" aria-hidden="true" />
+        <video ref={video} className="film" poster="/tour/film-poster.jpg" muted playsInline preload="auto" aria-hidden="true" />
         <div className="wpins" aria-hidden="true">
           {PINS.map((p) => (
             <div key={p.id} className="wpin" data-wpin={p.id}>
@@ -106,4 +116,25 @@ export default function Tour() {
       </div>
     </section>
   );
+}
+
+/** Pins sit where Blender projected each place for this frame, mapped through the video's object-fit: cover crop. */
+function placePins(v: HTMLVideoElement, els: HTMLElement[]) {
+  const frame = Math.round(v.currentTime * film.fps) + 1;
+  const tick = (v.currentTime / DURATION) * TOTAL;
+  const alpha = pw(PIN_FADE, tick);
+  const { from, to, points } = film.pins;
+  if (alpha < 0.01 || frame < from || frame > to) {
+    for (const el of els) el.style.opacity = "0";
+    return;
+  }
+  const w = v.clientWidth, h = v.clientHeight;
+  const vw = v.videoWidth || 16, vh = v.videoHeight || 9;
+  const s = Math.max(w / vw, h / vh);
+  const dw = vw * s, dh = vh * s, ox = (w - dw) / 2, oy = (h - dh) / 2;
+  PINS.forEach((p, i) => {
+    const [x, y] = points[p.id][frame - from];
+    els[i].style.opacity = String(alpha);
+    els[i].style.transform = `translate(${ox + x * dw}px, ${oy + y * dh}px)`;
+  });
 }

@@ -11,3 +11,6 @@ graphify-out/
 .graphify*
 .impeccable/
 .vercel
+
+# the tour film (apps/web/film/encode.py): large binaries, hosted separately
+apps/web/public/tour/film-*.mp4
