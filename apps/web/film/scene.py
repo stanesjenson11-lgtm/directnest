@@ -1,6 +1,6 @@
 """Builds the home-page film's scene in Blender and renders it on the GPU (Cycles + OptiX).
 
-  blender -b --factory-startup -P apps/web/film/scene.py -- [--preview] [--stills 22,56,105] [--frames 1-1200]
+  blender -b --factory-startup -P apps/web/film/scene.py -- [--preview|--draft] [--stills 22,56,105] [--frames 1-1201]
 
 Without --stills or --frames it only builds and saves film.blend. Everything heavy lives in %LOCALAPPDATA%/gharaana-film
 (assets cache, the .blend, rendered frames), never in the repo.
@@ -144,8 +144,20 @@ if __name__ == "__main__":
     if OPT["stills"]:
         render_stills([float(x) for x in OPT["stills"].split(",")])
     if OPT["frames"]:
+        # Coarse to fine (every 24th frame, then 8th, 4th, 2nd, all): encode.py holds each frame until the next rendered one, so the
+        # film is whole after the first pass and smoother after each. Frames already on disk are skipped, so a stopped render resumes.
         a, b = (int(x) for x in OPT["frames"].split("-"))
         sc = bpy.context.scene
-        sc.frame_start, sc.frame_end = a, b
-        sc.render.filepath = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames", "f")
-        bpy.ops.render.render(animation=True)
+        folder = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames")
+        os.makedirs(folder, exist_ok=True)
+        done = set(os.listdir(folder))
+        for step in (24, 8, 4, 2, 1):
+            for f in [*range(a, b + 1, step), b]:
+                name = f"f{f:04d}.png"
+                if name in done:
+                    continue
+                sc.frame_set(f)
+                sc.render.filepath = os.path.join(folder, name)
+                bpy.ops.render.render(write_still=True)
+                done.add(name)
+                print(f"[film] pass {step}: {name}", flush=True)
