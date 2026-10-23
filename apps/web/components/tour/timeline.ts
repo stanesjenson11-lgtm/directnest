@@ -71,6 +71,7 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
   const cap = (id: string, inAt: number, outAt: number) => {
     const s = `[data-cap="${id}"]`;
     fx(s, { autoAlpha: 0 }, { autoAlpha: 1 }, inAt, 0.6);
+    fx(`${s} .cap__kicker`, { x: -12, autoAlpha: 0 }, { x: 0, autoAlpha: 1 }, inAt, 1.2, "power2.out");
     fx(`${s} .wi`, { yPercent: 115 }, { yPercent: 0, stagger: 0.18 }, inAt, 1.4, "power3.out");
     fx(`${s} .cap__line`, { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, inAt + 0.9, 1.4, "power2.out");
     fx(s, { autoAlpha: 1 }, { autoAlpha: 0 }, outAt, 1.2, "none", true);

@@ -5,18 +5,20 @@ export type Stop = {
   id: string;
   rail: string; // label in the stop rail
   at: number; // where a click on the rail lands
+  kicker?: string; // small script line above the title
   title: string;
   line: string;
   tone: "ink" | "paper"; // caption colour
 };
 
-// ponytail: copy is placeholder-safe (no prices, stats, or addresses); swap in real lines when they exist.
+// Each line names something the app really does (search, listing checks, photos and video, filters, shortlists, the map).
+// ponytail: no prices, stats or addresses; the scene is an illustrative model.
 export const STOPS: Stop[] = [
-  { id: "sky", rail: "Skyline", at: 12, title: "From above, the skyline.", line: "Start wide, then come down to one address.", tone: "ink" },
-  { id: "tower", rail: "Tower", at: 27, title: "Closer, one tower.", line: "Every floor is a line, and every line is somewhere to live.", tone: "ink" },
-  { id: "inside", rail: "Inside", at: 58, title: "Inside, the light is on.", line: "Step through the window and into a home.", tone: "ink" },
-  { id: "plan", rail: "Plan", at: 76, title: "Room by room.", line: "The same home, seen from above.", tone: "ink" },
-  { id: "hood", rail: "Neighbourhood", at: 90, title: "Then the neighbourhood.", line: "The tower and its plaza, the park next door, the river in front.", tone: "ink" },
+  { id: "sky", rail: "Skyline", at: 12, kicker: "Bengaluru", title: "From above, the city.", line: "Start with an area, a metro line or a project.", tone: "ink" },
+  { id: "tower", rail: "Building", at: 27, kicker: "Verified", title: "Closer, one building.", line: "A person checks every listing before it goes live.", tone: "ink" },
+  { id: "inside", rail: "Inside", at: 58, kicker: "Living room", title: "Inside, room by room.", line: "Photos and video tours before you visit.", tone: "ink" },
+  { id: "plan", rail: "Plan", at: 76, kicker: "Floor plan", title: "The same home, from above.", line: "Every room, seen from above.", tone: "ink" },
+  { id: "hood", rail: "Neighbourhood", at: 90, kicker: "Neighbourhood", title: "Then the neighbourhood.", line: "Schools, hospitals and the metro, on the map.", tone: "ink" },
   { id: "close", rail: "Evening", at: 109, title: "", line: "", tone: "paper" },
 ];
 
