@@ -23,7 +23,7 @@ const PINS = [
 
 // The tour is a film path-traced in Blender (apps/web/film): frame 1 is tick 0, the last frame is tick TOTAL.
 const DURATION = (film.frames - 1) / film.fps;
-const SRC = { small: "/tour/film-720.mp4", large: "/tour/film-1080.mp4" };
+const SRC = { small: "/tour/film-720.mp4", large: "/tour/film-1080.mp4", huge: "/tour/film-2160.mp4" };
 
 /** The scroll tour: a sticky stage with the film, scrubbed by scroll, and the HTML layer on top. */
 export default function Tour() {
@@ -50,8 +50,10 @@ export default function Tour() {
     smooth.current = lenis;
 
     const v = video.current!;
-    // phones get the 720p encode (less to download); both are cut with a keyframe every few frames so seeking is quick
-    v.src = Math.min(screen.width, screen.height) < 700 ? SRC.small : SRC.large;
+    // phones get the 720p encode (less to download), 1440p-and-up and retina screens the 4K one; all are cut with a keyframe
+    // every few frames so seeking is quick
+    const px = Math.max(screen.width, screen.height) * devicePixelRatio;
+    v.src = Math.min(screen.width, screen.height) < 700 ? SRC.small : px > 2200 ? SRC.huge : SRC.large;
     const onReady = () => setReady("ready");
     const onFail = () => setReady("failed");
     v.addEventListener("loadeddata", onReady);
