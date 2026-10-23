@@ -715,3 +715,53 @@ def painting(name, palette, seed=1.0):
     nd.link(bump.outputs["Normal"], b.inputs["Normal"])
     _out(nd, b.outputs[0])
     return m
+
+
+def terrain(name, layers, masks, bump=0.5, res="2k", macro=0.14, tint=None, tint_mix=0.3):
+    """Ground that never visibly tiles: several Poly Haven surfaces blended by large world-space noise, deep relief
+    (so blades, gravel and cracks catch the sun and cast small shadows), and slow brightness drift on top.
+    layers: [(asset, metres per tile)]; masks: one per extra layer, (noise size in metres, threshold, softness)."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    cols, roughs, heights = [], [], []
+    for asset, sc in layers:
+        maps = ph.texture(asset, res)
+        vec = nd.world_pos(sc)
+        cols.append(nd.image(maps["diff"], vec).outputs["Color"])
+        roughs.append(nd.image(maps["rough"], vec, srgb=False).outputs["Color"] if "rough" in maps else (0.85, 0.85, 0.85, 1))
+        heights.append(nd.image(maps["disp"], vec, srgb=False).outputs["Color"] if "disp" in maps else (0.5, 0.5, 0.5, 1))
+    col, rough, height = cols[0], roughs[0], heights[0]
+    for i, (size, thr, soft) in enumerate(masks, start=1):
+        nz = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+        nz.inputs["Detail"].default_value = 6.0
+        nz.inputs["Roughness"].default_value = 0.6
+        nd.link(nd.world_pos(size), nz.inputs["Vector"])
+        mr = nd.new("ShaderNodeMapRange", interpolation_type="SMOOTHSTEP")
+        nd.link(nz.outputs["Fac"], mr.inputs["Value"])
+        mr.inputs["From Min"].default_value = thr - soft
+        mr.inputs["From Max"].default_value = thr + soft
+        f = mr.outputs["Result"]
+        col = nd.mix("MIX", f, col, cols[i])
+        rough = nd.mix("MIX", f, rough, roughs[i])
+        height = nd.mix("MIX", f, height, heights[i])
+    if tint:
+        col = nd.mix("MULTIPLY", tint_mix, col, (*srgb(tint), 1))
+    big = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+    big.inputs["Detail"].default_value = 3.0
+    nd.link(nd.world_pos(70.0), big.inputs["Vector"])
+    shade = nd.math("ADD", 1.0 - macro, nd.math("MULTIPLY", big.outputs["Fac"], 2 * macro))
+    sc_col = nd.new("ShaderNodeCombineColor")
+    for k in range(3):
+        nd.link(shade, sc_col.inputs[k])
+    col = nd.mix("MULTIPLY", 1.0, col, sc_col.outputs[0])
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    nd.link(rough, b.inputs["Roughness"])
+    bp = nd.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value = bump
+    bp.inputs["Distance"].default_value = 0.06
+    nd.link(height, bp.inputs["Height"])
+    nd.link(bp.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m

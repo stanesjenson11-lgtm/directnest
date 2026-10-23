@@ -59,6 +59,7 @@ class Kit:
         self.concrete, self.poles, self.wires, self.white = Boxes(), Boxes(), Boxes(), Boxes()
         self.tanks, self.solar, self.dish, self.lines, self.pots, self.chairs, self.sheets = [], [], [], [], [], [], []
         self.gardens, self.trees, self.palms, self.shrubs, self.cars = [], [], [], [], []
+        self.tufts = []  # 3D grass clumps where the camera comes close
 
 
 def materials():
@@ -72,11 +73,14 @@ def materials():
         "glass": kit.glass("window_glass", 0xd6e2e6, rough=0.01),
         "metal": kit.flat("sheet_metal", 0xd8dadc, rough=0.3, metal=0.8),
         "dark": kit.flat("gate_dark", 0x23262a, rough=0.5, metal=0.4),
-        "foot": kit.pbr("footpath", "concrete_pavement", 2.0, bump=0.2, res="1k"),
-        "paved": kit.pbr("yard_paved", "concrete_floor_02", 3.0, bump=0.15, res="1k"),
-        "soil": kit.pbr("red_soil", "brown_mud_dry", 4.0, tint=0xa4613f, bump=0.3, res="1k"),
-        "grass": kit.pbr("grass", "leafy_grass", 3.0, tint=0x6f8f40, bump=0.3, res="1k"),
-        "path": kit.pbr("walk_path", "brick_pavement", 2.0, tint=0xb0705a, bump=0.2, res="1k"),
+        # interlocking pavers on the footpaths, with dirty, worn stretches
+        "foot": kit.terrain("footpath", [("interlocking_concrete_pavers", 1.4), ("dirty_concrete", 3.0)], [(9.0, 0.62, 0.05)], bump=0.6),
+        "paved": kit.terrain("yard_paved", [("patterned_concrete_pavers", 2.0), ("dirty_concrete", 3.0)], [(14.0, 0.6, 0.06)], bump=0.5),
+        "soil": kit.terrain("red_soil", [("red_laterite_soil_stones", 3.0), ("red_dirt_mud_01", 3.5)], [(12.0, 0.5, 0.08)], bump=0.9),
+        # lawns: lush grass with thin, sparse patches and bare red-earth spots, as Bengaluru lawns really look
+        "grass": kit.terrain("grass", [("leafy_grass", 2.5), ("sparse_grass", 3.0), ("red_laterite_soil_stones", 3.0)],
+                             [(22.0, 0.63, 0.06), (11.0, 0.82, 0.03)], bump=0.9, tint=0x6a9a3a, tint_mix=0.6),
+        "path": kit.terrain("walk_path", [("red_brick_pavers", 1.6), ("worn_patterned_pavers", 2.0)], [(10.0, 0.6, 0.05)], bump=0.6),
         "concrete": kit.pbr("viaduct_concrete", "brushed_concrete", 4.0, tint=0xc9c6be, grime=0.6, bump=0.2, res="1k"),
         "poles": kit.flat("pole_concrete", 0x9c9a94, rough=0.85),
         "wires": kit.flat("wire", 0x111111, rough=0.6),
@@ -332,6 +336,69 @@ def lake(K, r, collection, mats):
                 s = 1.0 + r.random() * 0.5
                 K.trees.append((x + ox * k + (r.random() - 0.5) * 4, y + oy * k + (r.random() - 0.5) * 4, 0.1, r.random() * 6.3, s, s, s, r.randrange(2)))
     K.grass.add(-DETAIL, -345 + 6, -0.02, DETAIL, -40 - 6, 0.08)
+    tufts(K, r, -260, -78, 260, -46.5, 0.08, 1.6)  # the shore below the block, where the camera flies over
+
+
+def tufts(K, r, x0, y0, x1, y1, z, per_m2):
+    """Grass clumps scattered over a lawn: real blades with real shadows, denser in some places than others."""
+    n = int((x1 - x0) * (y1 - y0) * per_m2)
+    for _ in range(n):
+        x, y = x0 + r.random() * (x1 - x0), y0 + r.random() * (y1 - y0)
+        if math.sin(x * 0.11) * math.cos(y * 0.13) > 0.55 and r.random() < 0.6:
+            continue  # thin patches, matching the lawn texture's sparse stretches
+        s = 0.6 + r.random() * 0.9
+        K.tufts.append((x, y, z, r.random() * 6.3, s, s, s * (0.8 + r.random() * 0.5), r.randrange(2)))
+
+
+def road_markings(c, r):
+    """What Bengaluru roads carry: lane dashes and edge lines on the main road, a yellow-and-black median kerb,
+    zebra crossings at the junctions, painted speed breakers by the gate, a centre line on the lake road, manholes."""
+    white, yellow, black, iron = Boxes(), Boxes(), Boxes(), Boxes()
+    z = 0.006
+    span = 700
+    for y in (MAIN_Y - 11.5, MAIN_Y - 8.0, MAIN_Y - 4.5, MAIN_Y + 4.5, MAIN_Y + 8.0, MAIN_Y + 11.5):
+        x = -span
+        while x < span:
+            white.add(x, y - 0.075, 0, x + 3.0, y + 0.075, z)
+            x += 7.5
+    for y in (MAIN_Y - 14.4, MAIN_Y + 14.4):
+        white.add(-span, y - 0.08, 0, span, y + 0.08, z)
+    x = -span
+    while x < span:  # median kerb, painted yellow and black in turns
+        (yellow if int((x + span) // 1.0) % 2 == 0 else black).add(x, MAIN_Y - 1.0, 0, x + 1.0, MAIN_Y + 1.0, 0.25)
+        x += 1.0
+    for jx in (-95.0, 0.0, 95.0, 200.0, -200.0):  # zebra crossings either side of each junction
+        for side in (-1, 1):
+            cx = jx + side * 9.0
+            for k in range(-13, 14):
+                yy = MAIN_Y + k * 1.05
+                if abs(yy - MAIN_Y) < 1.2:
+                    continue
+                white.add(cx - 1.5, yy - 0.25, 0, cx + 1.5, yy + 0.25, z)
+    for cx in (-95.0, 95.0, 25.0):
+        for k in range(-5, 6):
+            white.add(cx - 1.5, -40 + k * 1.05 - 0.25, 0, cx + 1.5, -40 + k * 1.05 + 0.25, z)
+    x = -span
+    while x < span:  # lake road centre line
+        white.add(x, -40.08, 0, x + 2.5, -39.92, z)
+        x += 6.0
+    for bx in (12.0, 42.0):  # speed breakers either side of the gate, striped yellow and black
+        for k in range(12):
+            y0 = -46.0 + k * 1.0
+            (yellow if k % 2 == 0 else black).add(bx - 0.5, y0, 0, bx + 0.5, y0 + 1.0, 0.09)
+    for _ in range(160):  # manhole covers along the residential roads
+        if r.random() < 0.5:
+            x = r.uniform(-span, span)
+            y = r.choice([yy for yy, w in ROADS_Y if w < 20]) + r.uniform(-3, 3)
+        else:
+            x = r.choice([xx for xx, w in ROADS_X]) + r.uniform(-3, 3)
+            y = r.uniform(-span, span)
+        iron.add(x - 0.35, y - 0.35, 0, x + 0.35, y + 0.35, 0.012)
+    paint = kit.pbr("road_paint", "painted_plaster_wall", 1.5, tint=0xf2f0e8, grime=0.6, bump=0.05, res="1k")
+    white.build("road_lines", paint, c)
+    yellow.build("kerb_yellow", kit.pbr("kerb_yellow", "painted_plaster_wall", 1.5, tint=0xf0c419, grime=0.7, bump=0.1, res="1k"), c)
+    black.build("kerb_black", kit.flat("kerb_black", 0x1c1c1c, rough=0.7), c)
+    iron.build("manholes", kit.flat("cast_iron", 0x2b2a28, rough=0.55, metal=0.6), c)
 
 
 def community(K, r):
@@ -341,6 +408,7 @@ def community(K, r):
     for lx0, ly0, lx1, ly1 in ((-84, -30, -26, -14), (26, -30, 84, -14), (-84, 14, -26, 62), (26, 14, 84, 62),
                                (-84, 94, -72, 130), (72, 94, 84, 130), (-22, 64, 22, 92)):
         K.grass.add(lx0, ly0, 0.12, lx1, ly1, 0.18)
+        tufts(K, r, lx0, ly0, lx1, ly1, 0.18, 2.5)
         for i in range(max(2, int((lx1 - lx0) / 10))):
             K.palms.append((lx0 + 3 + i * (lx1 - lx0 - 6) / max(1, int((lx1 - lx0) / 10) - 1), ly0 + 2.0, 0.18, r.random() * 6.3, 1.05, 1.05, 1.05, r.randrange(3)))
         for _ in range(int((lx1 - lx0) * (ly1 - ly0) / 260)):
@@ -664,7 +732,10 @@ def build(preview=False):
     K = Kit()
     ground = Boxes()
     ground.add(-FAR - 400, -FAR - 400, -0.3, FAR + 400, FAR + 400, 0.0)
-    ground.build("asphalt", kit.pbr("asphalt", "asphalt_02", 6.0, bump=0.3, res="1k"), c)
+    # roads: worn asphalt with darker patch repairs and the odd damaged, cracked stretch
+    ground.build("asphalt", kit.terrain("asphalt", [("worn_asphalt", 4.0), ("asphalt_03", 5.0), ("road_damaged", 4.0)],
+                                        [(28.0, 0.55, 0.05), (15.0, 0.76, 0.03)], bump=0.6), c)
+    road_markings(c, random.Random(77))  # its own seed: the houses keep the layout they had
     villa_roofs = []
     market = None
     for bx0, bx1, by0, by1 in blocks():
@@ -728,6 +799,10 @@ def build(preview=False):
     kit.scatter("palms", P["palms"], K.palms, c)
     kit.scatter("trees", trees, [t[:4] + tuple(s * fit[t[7]] for s in t[4:7]) + t[7:] for t in K.trees], c)
     kit.scatter("shrubs", shrubs, K.shrubs, c)
+    grass_models = [ph.model(a) for a in ("grass_medium_02", "grass_bermuda_01")]
+    gfit = [0.32 / max(0.05, h) for _, h in grass_models]  # clumps about 30 cm tall, before each one's own scale
+    kit.scatter("grass_tufts", kit.variants("lib_tufts", [m for m, _ in grass_models]),
+                [t[:4] + tuple(s * gfit[t[7]] for s in t[4:7]) + t[7:] for t in K.tufts], c)
     roof_life(c, mats)
     traffic(c, P["cars"])
     pins = {
