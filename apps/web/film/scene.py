@@ -148,7 +148,7 @@ if __name__ == "__main__":
         # film is whole after the first pass and smoother after each. Frames already on disk are skipped, so a stopped render resumes.
         a, b = (int(x) for x in OPT["frames"].split("-"))
         sc = bpy.context.scene
-        folder = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames")
+        folder = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames-1080")  # (frames/ holds an unfinished 4K pass)
         os.makedirs(folder, exist_ok=True)
         done = set(os.listdir(folder))
         for step in (24, 8, 4, 2, 1):

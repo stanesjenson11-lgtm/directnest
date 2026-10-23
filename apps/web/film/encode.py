@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 SRC = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-film",
-                   "frames-draft" if "--draft" in sys.argv else "frames")
+                   "frames-draft" if "--draft" in sys.argv else "frames-1080")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "tour")
 X264 = ["-c:v", "libx264", "-preset", "slow", "-pix_fmt", "yuv420p", "-g", "8", "-keyint_min", "8", "-sc_threshold", "0",
         "-movflags", "+faststart", "-an"]
@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory(dir=os.path.dirname(SRC)) as seq:  # same drive
         last = rendered.get(n, last)
         os.link(os.path.join(SRC, last), os.path.join(seq, f"{n:04d}.png"))
     print(f"{len(rendered)} of {max(rendered)} frames rendered")
-    for name, height, crf in (("film-2160.mp4", 2160, "22"), ("film-1080.mp4", 1080, "21"), ("film-720.mp4", 720, "24")):
+    for name, height, crf in (("film-1080.mp4", 1080, "21"), ("film-720.mp4", 720, "24")):
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "24", "-i", os.path.join(seq, "%04d.png"),
                         "-vf", f"scale=-2:{height}:flags=lanczos", "-crf", crf, *X264, os.path.join(OUT, name)], check=True)
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", os.path.join(seq, "0001.png"), "-vf",
