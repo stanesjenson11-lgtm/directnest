@@ -76,9 +76,11 @@ def render(preview=False, draft=False):
         dev.use = dev.type == "OPTIX"
     c = sc.cycles
     c.device = "GPU"
-    c.samples = 12 if draft else 48 if preview else 128  # ponytail: 128 + OptiX denoise fits a night on a laptop 3050; raise if the final shows boiling noise
+    # ponytail: 4K needs few samples, the OptiX denoiser has 4x the pixels to work with; measured on the laptop 3050 at
+    # ~90 s an interior frame, ~200 s a cloud frame (128 samples at 1080p took ~12 min). Raise if the final shows boiling noise.
+    c.samples = 12 if draft else 48 if preview else 8
     c.use_adaptive_sampling = True
-    c.adaptive_threshold = 0.04 if preview else 0.02
+    c.adaptive_threshold = 0.04 if preview else 0.05
     c.use_denoising = True
     c.denoiser = "OPTIX"
     c.denoising_input_passes = "RGB_ALBEDO_NORMAL"
@@ -90,10 +92,9 @@ def render(preview=False, draft=False):
     c.use_light_tree = True
     sc.render.film_transparent = True  # the sky is composited back from the environment pass, unhazed
     sc.render.use_persistent_data = True  # keep the BVH and textures between frames
-    sc.render.use_motion_blur = not preview
-    c.volume_step_rate = 8.0 if draft else 4.0 if preview else 2.0
-    sc.render.motion_blur_shutter = 0.4
-    sc.render.resolution_x, sc.render.resolution_y = (640, 360) if draft else (960, 540) if preview else (1920, 1080)
+    sc.render.use_motion_blur = False  # a scrubbed frame is seen standing still; blur only softens it
+    c.volume_step_rate = 4.0 if preview and not draft else 8.0
+    sc.render.resolution_x, sc.render.resolution_y = (640, 360) if draft else (960, 540) if preview else (3840, 2160)
     sc.render.resolution_percentage = 100
     sc.render.fps = 24
     sc.render.image_settings.file_format = "PNG"
