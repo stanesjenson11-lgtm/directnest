@@ -16,9 +16,12 @@
   --park: color-mix(in oklch, var(--blue) 46%, var(--sun));
   --park-deep: color-mix(in oklch, var(--park) 70%, var(--ink));
 
-  /* Adobe Fonts families first (live once a kit is added), free stand-in second. */
-  --font-display: "neue-haas-grotesk-display", var(--font-fallback), "Helvetica Neue", Arial, sans-serif;
+  /* Text: an Adobe Fonts family first (live once a kit is added), free stand-in second. */
   --font-text: "neue-haas-grotesk-text", var(--font-fallback), "Helvetica Neue", Arial, sans-serif;
+  /* Display faces (app/(marketing)/layout.tsx): a tall bold sans for the hero, a ball-terminal serif for headlines, a brush script for small accents. */
+  --font-hero: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  --font-serif: var(--font-gloock), Georgia, serif;
+  --font-script: var(--font-yellowtail), "Brush Script MT", cursive;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --gutter: clamp(1.25rem, 4vw, 3.5rem);
@@ -105,14 +108,16 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none; z-index: 3;
 }
 .hero__title {
-  margin: 0; font-family: var(--font-display); font-weight: 300;
-  font-size: clamp(2.75rem, 6.6vw, 6rem); line-height: 0.96; letter-spacing: -0.035em;
+  margin: 0; font-family: var(--font-hero); font-weight: 400;
+  font-size: clamp(3.2rem, 8.2vw, 7.6rem); line-height: 0.98; letter-spacing: 0.004em;
   text-wrap: balance; color: var(--ink);
+  text-shadow: 0 2px 28px rgb(255 255 255 / 0.55);
 }
 .hero__line { display: block; }
-.w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+/* word-reveal mask: padded so tall caps, ball terminals and script swashes aren't clipped */
+.w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.06em 0.14em; margin: -0.06em -0.06em -0.14em; }
 .wi { display: inline-block; }
-.hero__sub { margin: 0; font-size: clamp(1rem, 1.4vw, 1.25rem); color: color-mix(in oklab, var(--ink) 82%, white); }
+.hero__sub { margin: 0; font-family: var(--font-script); font-size: clamp(1.45rem, 2vw, 1.9rem); line-height: 1.2; color: var(--blue); }
 
 .search {
   pointer-events: auto; margin-top: clamp(0.5rem, 2cqh, 1.5rem);
@@ -143,6 +148,10 @@ html.lenis, html.lenis body { height: auto; }
 .btn--sun { background: var(--sun); }
 .btn--sun:hover { background: color-mix(in oklab, var(--sun) 88%, white); }
 .btn--sm { padding: 0.6rem 1.15rem; font-size: 0.95rem; }
+.btn--ghost { background: rgb(255 255 255 / 0.82); box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--ink) 22%, transparent); text-decoration: none; }
+.btn--ghost:hover { background: #fff; }
+.nav[data-tone="paper"] .btn--ghost { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7); }
+.nav[data-tone="paper"] .btn--ghost:hover { background: rgb(255 255 255 / 0.14); }
 .btn:active { transform: scale(0.97); }
 
 /* ============ Nav, rail, captions ============ */
@@ -154,6 +163,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 .nav > * { pointer-events: auto; }
 .nav__mark { display: block; height: clamp(2rem, 4.4cqh, 2.7rem); width: auto; }
+.nav__actions { display: flex; align-items: center; gap: 0.5rem; }
 
 .rail {
   position: absolute; z-index: 20; right: var(--gutter); top: 50%; translate: 0 -50%;
@@ -183,7 +193,9 @@ html.lenis, html.lenis body { height: auto; }
 }
 .cap[data-tone="paper"] { color: #fff; }
 .cap[data-tone="paper"]::before { background: radial-gradient(closest-side, color-mix(in oklab, var(--ink) 62%, transparent), color-mix(in oklab, var(--ink) 30%, transparent) 55%, transparent); }
-.cap__title { margin: 0 0 0.6rem; font-family: var(--font-display); font-weight: 300; font-size: clamp(1.9rem, 3.8vw, 3.4rem); line-height: 1.02; letter-spacing: -0.03em; text-wrap: balance; }
+.cap__kicker { display: block; margin: 0 0 0.15rem; font-family: var(--font-script); font-size: clamp(1.3rem, 1.8vw, 1.7rem); line-height: 1.2; color: var(--blue); }
+.cap[data-tone="paper"] .cap__kicker { color: var(--sun); }
+.cap__title { margin: 0 0 0.6rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.9rem, 3.8vw, 3.4rem); line-height: 1.04; letter-spacing: -0.01em; text-wrap: balance; }
 .cap__line { margin: 0; max-width: 34ch; font-size: clamp(0.98rem, 1.25vw, 1.12rem); line-height: 1.5; }
 
 /* ============ Close ============ */
@@ -194,16 +206,17 @@ html.lenis, html.lenis body { height: auto; }
   background: linear-gradient(90deg, color-mix(in oklab, var(--ink) 78%, transparent) 0%, color-mix(in oklab, var(--ink) 45%, transparent) 42%, transparent 70%);
 }
 .close__panel { pointer-events: auto; width: min(36rem, 100%); }
-.close__title { margin: 0 0 1rem; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.6rem, 6vw, 5.5rem); line-height: 0.96; letter-spacing: -0.035em; }
+.close__title { margin: 0 0 1rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(2.6rem, 6vw, 5.5rem); line-height: 1; letter-spacing: -0.01em; }
 .close__line { display: block; white-space: nowrap; }
 .close__text { margin: 0 0 1.75rem; max-width: 34ch; font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.55; color: color-mix(in oklab, #fff 90%, var(--blue)); }
-.book { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-.book__field { display: grid; gap: 0.35rem; }
-.book__label { font-size: 0.85rem; font-weight: 500; color: color-mix(in oklab, #fff 88%, var(--blue)); }
-.book__field input { font: inherit; font-size: 1rem; color: var(--ink); background: rgb(255 255 255 / 0.96); border: 0; border-radius: 0.9rem; padding: 0.8rem 0.95rem; width: 100%; box-sizing: border-box; }
-.book .btn { grid-column: 1 / -1; justify-self: start; }
-.book__note { grid-column: 1 / -1; margin: 0; font-size: 0.9rem; }
-.book__note:empty { display: none; }
+.find { display: flex; gap: 0.5rem; padding: 0.4rem; border-radius: 999px; background: rgb(255 255 255 / 0.96); }
+.find__field { flex: 1; min-width: 0; }
+.find__field input { width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0.75rem 0.9rem; font: inherit; font-size: 1rem; color: var(--ink); }
+.find__field input::placeholder { color: color-mix(in oklab, var(--ink) 62%, white); }
+.find__field input:focus-visible { outline: none; box-shadow: none; }
+.find__field:has(input:focus-visible) { border-radius: 999px; box-shadow: inset 0 0 0 2px var(--blue); }
+.close__links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; margin: 1.1rem 0 0; padding: 0; list-style: none; font-size: 0.95rem; }
+.close__links a { color: #fff; font-weight: 600; text-underline-offset: 0.25em; }
 
 .foot { background: var(--night); color: color-mix(in oklab, #fff 82%, var(--blue)); padding: 2rem var(--gutter); display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; justify-content: space-between; font-size: 0.9rem; }
 .foot__logo { height: 2rem; width: auto; }
@@ -220,9 +233,11 @@ html.lenis, html.lenis body { height: auto; }
   .rail__track { right: 2px; }
   .rail__dot { width: 6px; height: 6px; }
   .rail__label { display: none; }
-  .book { grid-template-columns: 1fr; }
+  .find { flex-direction: column; border-radius: 1.5rem; }
+  .find .btn { width: 100%; }
   .caps { width: calc(100% - 2 * var(--gutter) - 1.5rem); }
-  .nav .btn--sm { padding: 0.5rem 0.95rem; }
+  .nav .btn--sm { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+  .nav__actions { gap: 0.35rem; }
   .sc-close::before { background: linear-gradient(0deg, color-mix(in oklab, var(--ink) 85%, transparent) 0%, color-mix(in oklab, var(--ink) 55%, transparent) 55%, transparent 90%); }
   .sc-close { align-items: flex-end; }
 }
