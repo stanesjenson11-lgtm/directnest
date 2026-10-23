@@ -16,6 +16,8 @@ import bpy
 from mathutils import Euler, Matrix, Vector
 
 import building
+import city
+import interior
 import kit
 import path
 import ph
@@ -76,17 +78,6 @@ def animate(cam, upper):
                 kp.interpolation = "LINEAR"
 
 
-def ground(m):
-    """Placeholder site until city.py lands: the compound and a plain ground."""
-    c = kit.coll("site")
-    g = kit.Boxes()
-    g.add(-3000, -3000, -0.2, 3000, 3000, 0.0)
-    g.build("ground", kit.pbr("asphalt", "asphalt_02", 6.0, bump=0.3), c)
-    s = kit.Boxes()
-    s.add(-34, -26, 0.0, 34, 24, 0.12)
-    s.build("compound", kit.pbr("pavers", "concrete_pavement", 3.0, bump=0.2), c)
-
-
 def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
@@ -97,9 +88,13 @@ def build():
     hero = kit.coll("hero")
     kit.instance("hero_lower", lower, 0, 0, 0, collection=hero)
     up = kit.instance("hero_upper", upper, 0, 0, 0, collection=hero)
+    for i, (x, y) in enumerate(((-48.0, 78.0), (48.0, 78.0))):  # the community's two sister blocks
+        kit.instance(f"sister{i}_lower", lower, x, y, 0, collection=hero)
+        kit.instance(f"sister{i}_upper", upper, x, y, 0, collection=hero)
     building.stilt_floor(m, hero)
     building.dress(m, lower, upper, balconies, acs)
-    ground(m)
+    interior.build(upper)
+    pins = city.build(OPT["preview"])
     cam_data = bpy.data.cameras.new("cam")
     cam = bpy.data.objects.new("cam", cam_data)
     sc.collection.objects.link(cam)

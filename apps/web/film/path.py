@@ -32,9 +32,9 @@ KEYS = [
     (51, (0.5, -9.7, EYE), (0.1, -6.0, 28.8), 56, False),  # through the open sliding door
     (56, (0.6, -8.3, EYE + 0.05), (-2.3, -5.6, 28.6), 62, True),  # living room: TV wall, shelf, sofa
     (62, (0.4, -5.9, EYE + 0.05), (4.6, -2.6, 28.4), 60, True),  # dining and the kitchen
-    (68, (-1.9, -5.15, EYE), (-5.3, -7.7, 28.3), 62, True),  # bedroom 1, from its door
-    (73, (-3.0, -2.8, EYE), (-6.3, -2.8, 28.5), 64, True),  # the bathroom, from the passage
-    (78, (2.7, -5.2, EYE), (5.4, -7.6, 28.3), 62, True),  # bedroom 2
+    (68, (-2.8, -5.05, EYE), (-6.3, -7.0, 28.4), 66, True),  # bedroom 1, from its door
+    (73, (-3.75, -2.9, EYE), (-6.5, -3.2, 28.4), 70, True),  # the bathroom, from its door
+    (78, (3.7, -5.05, EYE), (6.4, -7.0, 28.4), 66, True),  # bedroom 2, from its door
     (84, (0.4, -5.0, 37.0), (0.4, -4.99, 27.45), 56, False),  # up through the ceiling
     (91, (0.0, -5.0, 47.5), (0.0, -4.99, 27.45), 50, True),  # the same flat, as a plan
     (97, (0.0, -30.0, 160.0), (0.0, -29.9, 10.0), 46, False),

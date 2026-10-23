@@ -33,6 +33,8 @@ def texture(asset, res="2k"):
     files = _files(asset)
     out = {}
     for key, name in (("Diffuse", "diff"), ("Rough", "rough"), ("nor_gl", "nor"), ("Displacement", "disp")):
+        if key == "Diffuse" and key not in files:  # patterned fabrics ship colour variants instead
+            key = next((k for k in ("col_1", "col_01", "col_03") if k in files), key)
         entry = files.get(key, {}).get(res, {})
         entry = entry.get("jpg") or entry.get("png")
         if entry:

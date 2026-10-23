@@ -85,9 +85,12 @@ class Nodes:
             self.link(vector, t.inputs["Vector"])
         return t
 
-    def rand(self):
-        """0..1, different per piece: the 'rnd' face attribute of merged meshes, plus Object Info random for instances."""
+    def rand(self, obj=True):
+        """0..1, different per piece: the 'rnd' face attribute of merged meshes, plus Object Info random for instances.
+        obj=False: the attribute only, so pieces built into different meshes (a house's walls and its parapet) agree."""
         a = self.new("ShaderNodeAttribute", attribute_name="rnd")
+        if not obj:
+            return a.outputs["Fac"]
         o = self.new("ShaderNodeObjectInfo")
         return self.math("FRACT", self.math("ADD", a.outputs["Fac"], o.outputs["Random"]))
 
@@ -159,7 +162,7 @@ def flat(name, color, rough=0.6, metal=0.0, emit=None, emit_strength=0.0, coat=0
     return m
 
 
-def pbr(name, asset, scale, tint=None, palette=None, rough_mul=1.0, bump=0.2, grime=0.0, metal=0.0, res="2k"):
+def pbr(name, asset, scale, tint=None, palette=None, rough_mul=1.0, bump=0.2, grime=0.0, metal=0.0, res="2k", obj=True, detail=0.75):
     """A Poly Haven surface projected in world space (metres per tile = scale), so any size of box keeps true scale.
     palette: a list of 0xRRGGBB picked per object/instance (Object Info > Random), multiplied over the texture's detail."""
     m, nd = _material(name)
@@ -176,13 +179,13 @@ def pbr(name, asset, scale, tint=None, palette=None, rough_mul=1.0, bump=0.2, gr
         nd.link(col, bw.inputs[0])
         detail = nd.math("MULTIPLY", bw.outputs[0], 2.0)
         if palette:
-            base = nd.ramp(nd.rand(), palette)
+            base = nd.ramp(nd.rand(obj), palette)
         else:
             base = (*srgb(tint), 1)
         dcol = nd.new("ShaderNodeCombineColor")
         for i in range(3):
             nd.link(detail, dcol.inputs[i])
-        col = nd.mix("MULTIPLY", 0.75, base, dcol.outputs[0])
+        col = nd.mix("MULTIPLY", detail, base, dcol.outputs[0])
     if grime:
         # monsoon streaks: noise stretched down the walls
         gp = nd.new("ShaderNodeVectorMath", operation="MULTIPLY")
@@ -226,6 +229,46 @@ def glass(name="glass", color=0xdfe8ee, rough=0.02, tint_dark=False):
     mx = nd.new("ShaderNodeMixShader")
     nd.link(lp.outputs["Is Shadow Ray"], mx.inputs[0])
     nd.link(g.outputs[0], mx.inputs[1])
+    nd.link(t.outputs[0], mx.inputs[2])
+    _out(nd, mx.outputs[0])
+    return m
+
+
+def water(name="water"):
+    """Lake water: dark green-grey, glossy, with a slow ripple."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    b.inputs["Base Color"].default_value = (*srgb(0x2b3a33), 1)
+    b.inputs["Roughness"].default_value = 0.04
+    b.inputs["Specular IOR Level"].default_value = 0.6
+    nz = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+    nz.inputs["Scale"].default_value = 0.35
+    nz.inputs["Detail"].default_value = 8.0
+    nd.link(nd.world_pos(1.0), nz.inputs["Vector"])
+    bump = nd.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.08
+    nd.link(nz.outputs["Fac"], bump.inputs["Height"])
+    nd.link(bump.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m
+
+
+def leaf(name, color):
+    """Leaves: two-sided, a little translucent, colour varying per instance."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    col = nd.ramp(nd.rand(), [color, color + 0x0a0c02, color - 0x080a02, color + 0x101405], constant=False)
+    nd.link(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.6
+    t = nd.new("ShaderNodeBsdfTranslucent")
+    nd.link(col, t.inputs["Color"])
+    mx = nd.new("ShaderNodeMixShader")
+    mx.inputs[0].default_value = 0.25
+    nd.link(b.outputs[0], mx.inputs[1])
     nd.link(t.outputs[0], mx.inputs[2])
     _out(nd, mx.outputs[0])
     return m
@@ -430,3 +473,245 @@ def instance(name, source, x, y, z, rot_z=0.0, s=1.0, collection=None):
     e.rotation_euler = (0, 0, rot_z)
     e.scale = (s, s, s)
     return link(e, collection or bpy.context.scene.collection)
+
+
+def facade(name, palette, asset="painted_plaster_wall", scale=2.5, floor_h=3.0, base_z=0.45, grime=0.5, shopfront=False):
+    """Painted plaster walls with windows drawn in world space: every house gets its own colour, window spacing and
+    offset (from its 'rnd'), MS grilles on some, curtains in some panes, and about half the windows lit at night."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    maps = ph.texture(asset, "1k")
+    geo = nd.new("ShaderNodeNewGeometry")
+    sep_p = nd.new("ShaderNodeSeparateXYZ")
+    nd.link(geo.outputs["Position"], sep_p.inputs[0])
+    sep_n = nd.new("ShaderNodeSeparateXYZ")
+    nd.link(geo.outputs["Normal"], sep_n.inputs[0])
+    r = nd.rand(obj=False)
+    # horizontal coordinate along the wall: y on walls facing east/west, x on walls facing north/south
+    xn = nd.math("GREATER_THAN", nd.math("ABSOLUTE", sep_n.outputs["X"]), nd.math("ABSOLUTE", sep_n.outputs["Y"]))
+    h = nd.math("ADD", nd.math("MULTIPLY", xn, sep_p.outputs["Y"]), nd.math("MULTIPLY", nd.math("SUBTRACT", 1.0, xn), sep_p.outputs["X"]))
+    spacing = nd.math("ADD", 2.6, nd.math("MULTIPLY", r, 1.8))
+    hu = nd.math("DIVIDE", nd.math("ADD", h, nd.math("MULTIPLY", r, 17.3)), spacing)
+    u = nd.math("FRACT", hu)
+    zv = nd.math("DIVIDE", nd.math("SUBTRACT", sep_p.outputs["Z"], base_z), floor_h)
+    v = nd.math("FRACT", zv)
+    side = nd.math("LESS_THAN", nd.math("ABSOLUTE", sep_n.outputs["Z"]), 0.5)
+    def band(x, lo, hi):
+        return nd.math("MULTIPLY", nd.math("GREATER_THAN", x, lo), nd.math("LESS_THAN", x, hi))
+    ww = nd.math("ADD", 0.16, nd.math("MULTIPLY", r, 0.1))  # window half-margins vary per house
+    win = nd.math("MULTIPLY", nd.math("MULTIPLY", band(u, ww, nd.math("SUBTRACT", 1.0, ww)), band(v, 0.27, 0.74)), side)
+    fr = nd.math("MULTIPLY", nd.math("MULTIPLY", band(u, nd.math("SUBTRACT", ww, 0.035), nd.math("ADD", nd.math("SUBTRACT", 1.0, ww), 0.035)), band(v, 0.245, 0.765)), side)
+    frame = nd.math("SUBTRACT", fr, win, clamp=True)
+    if shopfront:  # ground floor of a shop: a rolling shutter across most of the frontage
+        ground = nd.math("LESS_THAN", zv, 1.0)
+        win = nd.math("MULTIPLY", win, nd.math("SUBTRACT", 1.0, ground))
+    # per-window randomness
+    cell = nd.new("ShaderNodeCombineXYZ")
+    nd.link(nd.math("FLOOR", hu), cell.inputs[0])
+    nd.link(nd.math("FLOOR", zv), cell.inputs[1])
+    nd.link(nd.math("MULTIPLY", r, 91.0), cell.inputs[2])
+    wn = nd.new("ShaderNodeTexWhiteNoise", noise_dimensions="3D")
+    nd.link(cell.outputs[0], wn.inputs["Vector"])
+    cr = wn.outputs["Value"]
+    grille = nd.math("MULTIPLY", nd.math("MULTIPLY", win, nd.math("GREATER_THAN", r, 0.3)),
+                     nd.math("LESS_THAN", nd.math("FRACT", nd.math("MULTIPLY", h, 8.0)), 0.16))
+    curtain = nd.math("MULTIPLY", win, nd.math("GREATER_THAN", cr, 0.62))
+    # wall paint over the plaster texture's detail
+    vec = nd.world_pos(scale)
+    tex = nd.image(maps["diff"], vec).outputs["Color"]
+    bw = nd.new("ShaderNodeRGBToBW")
+    nd.link(tex, bw.inputs[0])
+    detail = nd.math("MULTIPLY", bw.outputs[0], 2.0)
+    dcol = nd.new("ShaderNodeCombineColor")
+    for i in range(3):
+        nd.link(detail, dcol.inputs[i])
+    wall = nd.mix("MULTIPLY", 0.7, nd.ramp(r, palette), dcol.outputs[0])
+    if grime:
+        gp = nd.new("ShaderNodeVectorMath", operation="MULTIPLY")
+        nd.link(geo.outputs["Position"], gp.inputs[0])
+        gp.inputs[1].default_value = (0.9, 0.9, 0.06)
+        nz = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+        nz.inputs["Scale"].default_value = 3.0
+        nz.inputs["Detail"].default_value = 5.0
+        nd.link(gp.outputs[0], nz.inputs["Vector"])
+        streak = nd.math("MULTIPLY", nd.math("POWER", nd.math("SUBTRACT", nz.outputs["Fac"], 0.35, clamp=True), 1.5), grime)
+        wall = nd.mix("MULTIPLY", streak, wall, (0.25, 0.24, 0.22, 1))
+    if shopfront:
+        shutter = nd.math("MULTIPLY", nd.math("MULTIPLY", side, nd.math("LESS_THAN", zv, 0.83)), band(u, 0.06, 0.94))
+        stripes = nd.math("ADD", 0.75, nd.math("MULTIPLY", 0.25, nd.math("LESS_THAN", nd.math("FRACT", nd.math("MULTIPLY", sep_p.outputs["Z"], 12.0)), 0.5)))
+        sh = nd.new("ShaderNodeCombineColor")
+        for i, k in enumerate((0.42, 0.43, 0.44)):
+            nd.link(nd.math("MULTIPLY", stripes, k), sh.inputs[i])
+        wall = nd.mix("MIX", shutter, wall, sh.outputs[0])
+    col = nd.mix("MIX", frame, wall, (0.85, 0.86, 0.86, 1))
+    col = nd.mix("MIX", win, col, (0.03, 0.035, 0.04, 1))
+    col = nd.mix("MIX", curtain, col, nd.ramp(cr, [0xcdbfa8, 0x9fb1bd, 0xe4dccb, 0x8c6f5c, 0xb9a07a]))
+    col = nd.mix("MIX", grille, col, (0.02, 0.02, 0.02, 1))
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    glassy = nd.math("MULTIPLY", win, nd.math("SUBTRACT", 1.0, nd.math("MAXIMUM", curtain, grille)))
+    nd.link(nd.math("ADD", 0.85, nd.math("MULTIPLY", glassy, -0.8)), b.inputs["Roughness"])
+    b.inputs["Emission Color"].default_value = (*srgb(0xffcf96), 1)
+    lit = nd.math("MULTIPLY", nd.math("MULTIPLY", win, nd.math("GREATER_THAN", cr, 0.5)), nd.night())
+    nd.link(nd.math("MULTIPLY", lit, 4.0), b.inputs["Emission Strength"])
+    # recessed windows: the frame steps the surface in
+    bump = nd.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.6
+    bump.inputs["Distance"].default_value = 0.04
+    nd.link(nd.math("SUBTRACT", 1.0, fr), bump.inputs["Height"])
+    nd.link(bump.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m
+
+
+def _plane_uv(nd, scale_xy):
+    """World-space surface coordinates: (x, y) on floors, (along-wall, z) on walls; returns (u, v) sockets."""
+    geo = nd.new("ShaderNodeNewGeometry")
+    p = nd.new("ShaderNodeSeparateXYZ")
+    nd.link(geo.outputs["Position"], p.inputs[0])
+    n = nd.new("ShaderNodeSeparateXYZ")
+    nd.link(geo.outputs["Normal"], n.inputs[0])
+    flr = nd.math("GREATER_THAN", nd.math("ABSOLUTE", n.outputs["Z"]), 0.5)
+    xn = nd.math("GREATER_THAN", nd.math("ABSOLUTE", n.outputs["X"]), nd.math("ABSOLUTE", n.outputs["Y"]))
+    along = nd.math("ADD", nd.math("MULTIPLY", xn, p.outputs["Y"]), nd.math("MULTIPLY", nd.math("SUBTRACT", 1.0, xn), p.outputs["X"]))
+    u = nd.math("ADD", nd.math("MULTIPLY", flr, p.outputs["X"]), nd.math("MULTIPLY", nd.math("SUBTRACT", 1.0, flr), along))
+    v = nd.math("ADD", nd.math("MULTIPLY", flr, p.outputs["Y"]), nd.math("MULTIPLY", nd.math("SUBTRACT", 1.0, flr), p.outputs["Z"]))
+    return nd.math("DIVIDE", u, scale_xy[0]), nd.math("DIVIDE", v, scale_xy[1])
+
+
+def tiles(name, asset, scale, tint, rough=0.1, size=(0.8, 0.8), grout=0x9c9890):
+    """Large glazed tiles laid in a grid over a stone texture, with recessed grout lines."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    maps = ph.texture(asset, "1k")
+    u, v = _plane_uv(nd, size)
+    fu, fv = nd.math("FRACT", u), nd.math("FRACT", v)
+    gw = 0.004 / min(size)
+    edge = nd.math("MAXIMUM", nd.math("MAXIMUM", nd.math("LESS_THAN", fu, gw), nd.math("GREATER_THAN", fu, 1 - gw)),
+                   nd.math("MAXIMUM", nd.math("LESS_THAN", fv, gw), nd.math("GREATER_THAN", fv, 1 - gw)))
+    tex = nd.image(maps["diff"], nd.world_pos(scale)).outputs["Color"]
+    bw = nd.new("ShaderNodeRGBToBW")
+    nd.link(tex, bw.inputs[0])
+    det = nd.new("ShaderNodeCombineColor")
+    for i in range(3):
+        nd.link(nd.math("ADD", 0.6, nd.math("MULTIPLY", bw.outputs[0], 0.5)), det.inputs[i])
+    col = nd.mix("MULTIPLY", 1.0, (*srgb(tint), 1), det.outputs[0])
+    col = nd.mix("MIX", edge, col, (*srgb(grout), 1))
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    nd.link(nd.math("ADD", rough, nd.math("MULTIPLY", edge, 0.6)), b.inputs["Roughness"])
+    b.inputs["Coat Weight"].default_value = 0.3
+    bump = nd.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.4
+    bump.inputs["Distance"].default_value = 0.002
+    nd.link(nd.math("SUBTRACT", 1.0, edge), bump.inputs["Height"])
+    nd.link(bump.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m
+
+
+def dhurrie(name):
+    """A flat-woven cotton dhurrie: indigo, cream and rust bands with a fine weave."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    tc = nd.new("ShaderNodeTexCoord")
+    wave = nd.new("ShaderNodeTexWave")
+    wave.wave_type = "BANDS"
+    wave.bands_direction = "Y"
+    wave.inputs["Scale"].default_value = 3.0
+    wave.inputs["Distortion"].default_value = 0.6
+    nd.link(tc.outputs["Generated"], wave.inputs["Vector"])
+    col = nd.ramp(wave.outputs["Fac"], [0x2b3a67, 0xeee3cc, 0xb4532a, 0xeee3cc, 0x2b3a67, 0xd9a441, 0xeee3cc])
+    weave = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+    weave.inputs["Scale"].default_value = 400.0
+    nd.link(tc.outputs["Generated"], weave.inputs["Vector"])
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.95
+    bump = nd.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.3
+    nd.link(weave.outputs["Fac"], bump.inputs["Height"])
+    nd.link(bump.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m
+
+
+def granite(name):
+    """Polished black granite with grey and gold flecks, the default Bengaluru kitchen counter."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    vec = nd.world_pos(1.0)
+    wn = nd.new("ShaderNodeTexVoronoi")
+    wn.inputs["Scale"].default_value = 180.0
+    nd.link(vec, wn.inputs["Vector"])
+    nz = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+    nz.inputs["Scale"].default_value = 40.0
+    nd.link(vec, nz.inputs["Vector"])
+    fleck = nd.math("MULTIPLY", wn.outputs["Distance"], nz.outputs["Fac"])
+    col = nd.ramp(fleck, [0x0b0b0c, 0x0b0b0c, 0x0b0b0c, 0x1b1b1d, 0x2c2a28, 0x6b5a3a], constant=False)
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.12
+    b.inputs["Coat Weight"].default_value = 0.6
+    _out(nd, b.outputs[0])
+    return m
+
+
+def screen(name):
+    """A TV showing a still of the photographed sky, lit from within."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    tc = nd.new("ShaderNodeTexCoord")
+    mp = nd.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1.0, 0.14, 0.15)  # frame the sunset horizon and its sun
+    mp.inputs["Location"].default_value = (0.0, 0.49, 0.45)
+    nd.link(tc.outputs["Generated"], mp.inputs["Vector"])
+    sep = nd.new("ShaderNodeSeparateXYZ")
+    nd.link(mp.outputs["Vector"], sep.inputs[0])
+    uv = nd.new("ShaderNodeCombineXYZ")
+    nd.link(sep.outputs["Y"], uv.inputs[0])
+    nd.link(sep.outputs["Z"], uv.inputs[1])
+    img = nd.image(ph.tonemapped("qwantani_sunset_puresky"), uv.outputs[0], box=False)
+    e = nd.new("ShaderNodeEmission")
+    nd.link(img.outputs["Color"], e.inputs["Color"])
+    e.inputs["Strength"].default_value = 2.2
+    g = nd.new("ShaderNodeBsdfGlossy")
+    g.inputs["Roughness"].default_value = 0.05
+    g.inputs["Color"].default_value = (0.04, 0.04, 0.04, 1)
+    add = nd.new("ShaderNodeAddShader")
+    nd.link(e.outputs[0], add.inputs[0])
+    nd.link(g.outputs[0], add.inputs[1])
+    _out(nd, add.outputs[0])
+    return m
+
+
+def painting(name, palette, seed=1.0):
+    """An abstract canvas: soft colour fields and brushy edges from layered noise."""
+    m, nd = _material(name)
+    if not nd:
+        return m
+    tc = nd.new("ShaderNodeTexCoord")
+    nz = nd.new("ShaderNodeTexNoise", noise_dimensions="4D")
+    nz.inputs["Scale"].default_value = 2.2
+    nz.inputs["Detail"].default_value = 3.0
+    nz.inputs["Distortion"].default_value = 1.8
+    nz.inputs["W"].default_value = seed
+    nd.link(tc.outputs["Generated"], nz.inputs["Vector"])
+    col = nd.ramp(nz.outputs["Fac"], palette)
+    fine = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
+    fine.inputs["Scale"].default_value = 120.0
+    nd.link(tc.outputs["Generated"], fine.inputs["Vector"])
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.75
+    bump = nd.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.15
+    nd.link(fine.outputs["Fac"], bump.inputs["Height"])
+    nd.link(bump.outputs["Normal"], b.inputs["Normal"])
+    _out(nd, b.outputs[0])
+    return m
