@@ -28,7 +28,7 @@ OUT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gha
 
 def args():
     a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    opt = {"preview": "--preview" in a, "stills": None, "frames": None}
+    opt = {"preview": "--preview" in a or "--draft" in a, "draft": "--draft" in a, "stills": None, "frames": None}
     for k in ("--stills", "--frames"):
         if k in a:
             opt[k[2:]] = a[a.index(k) + 1]
@@ -51,6 +51,7 @@ def animate(cam, upper):
     sc = bpy.context.scene
     sc.frame_start, sc.frame_end = 1, path.FRAMES + 1
     sc["night"] = 0.0
+    sc["wisps"] = 1.0
     cam.data.sensor_fit = "VERTICAL"
     cam.data.sensor_height = 24.0
     for f in range(sc.frame_start, sc.frame_end + 1):
@@ -71,6 +72,8 @@ def animate(cam, upper):
         upper.keyframe_insert("location", index=2, frame=f)
         sc["night"] = path.pw(path.TABLES["night"], t)
         sc.keyframe_insert('["night"]', frame=f)
+        sc["wisps"] = path.pw(path.TABLES["wisps"], t)
+        sc.keyframe_insert('["wisps"]', frame=f)
     # constant interpolation between per-frame keys: no overshoot
     for ad in (cam.animation_data, cam.data.animation_data, upper.animation_data, sc.animation_data):
         for fc in ad.action.fcurves:
@@ -81,7 +84,7 @@ def animate(cam, upper):
 def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
-    world.render(preview=OPT["preview"])
+    world.render(preview=OPT["preview"], draft=OPT["draft"])
     world.sky("4k" if OPT["preview"] else "8k")
     world.compositor()
     m, lower, upper, balconies, acs = building.build(sc.collection)
@@ -100,8 +103,29 @@ def build():
     sc.collection.objects.link(cam)
     sc.camera = cam
     animate(cam, up)
+    world.wisps(kit.coll("sky"), path.frame_of(22))
+    export_pins(cam, pins)
     os.makedirs(OUT, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "film-preview.blend" if OPT["preview"] else "film.blend"))
+
+
+def export_pins(cam, pins):
+    """Where each map pin sits on screen (0..1, top-left origin) for every frame in which the page shows pins."""
+    import json
+    from bpy_extras.object_utils import world_to_camera_view
+    sc = bpy.context.scene
+    t0, t1 = (k for k, v in (path.TABLES["pins"][1], path.TABLES["pins"][-1]))
+    f0, f1 = path.frame_of(t0), path.frame_of(t1)
+    pts = {k: [] for k in pins}
+    for f in range(f0, f1 + 1):
+        sc.frame_set(f)
+        for k, p in pins.items():
+            v = world_to_camera_view(sc, cam, Vector(p))
+            pts[k].append([round(v.x, 4), round(1 - v.y, 4)])
+    out = {"fps": path.FPS, "frames": path.FRAMES + 1, "ticks": path.TOTAL, "pins": {"from": f0, "to": f1, "points": pts}}
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "components", "tour", "film.json"), "w", encoding="utf-8") as fh:
+        json.dump(out, fh, separators=(",", ":"))
+    sc.frame_set(1)
 
 
 def render_stills(ticks):
@@ -123,5 +147,5 @@ if __name__ == "__main__":
         a, b = (int(x) for x in OPT["frames"].split("-"))
         sc = bpy.context.scene
         sc.frame_start, sc.frame_end = a, b
-        sc.render.filepath = os.path.join(OUT, "frames", "f")
+        sc.render.filepath = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames", "f")
         bpy.ops.render.render(animation=True)

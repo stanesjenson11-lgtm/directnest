@@ -312,12 +312,21 @@ def lake(K, r, collection, mats):
     verts = [(x, y, 0.1) for x, y in pts] + [(cx, cy, 0.1)]  # just above the shore grass
     faces = [(i, (i + 1) % n, n) for i in range(n)]
     kit.mesh_obj("lake", verts, faces, water, collection)
-    shore = [(cx + (x - cx) * 1.0, cy + (y - cy) * 1.0) for x, y in pts]
-    for i in range(n):  # the walking path ring and the trees around it
+    # the walking path: a continuous 4 m ring a few metres back from the water
+    ring_v, ring_f = [], []
+    for i in range(n):
         a = i / n * math.tau
-        x, y = shore[i]
+        x, y = pts[i]
+        for off in (7.0, 11.0):
+            ring_v.append((x + math.cos(a) * off, y + math.sin(a) * off * ry / rx, 0.12))
+    for i in range(n):
+        j = (i + 1) % n
+        ring_f.append((2 * i, 2 * j, 2 * j + 1, 2 * i + 1))
+    kit.mesh_obj("lake_path", ring_v, ring_f, mats["path"], collection)
+    for i in range(n):  # rows of big trees round the lake
+        a = i / n * math.tau
+        x, y = pts[i]
         ox, oy = math.cos(a) * 9, math.sin(a) * 9 * ry / rx
-        K.path.add(x + ox - 2.5, y + oy - 2.5, 0.0, x + ox + 2.5, y + oy + 2.5, 0.12)
         for k in (1.7, 2.6, 3.6):  # rows of big trees round the lake
             if r.random() < 0.8:
                 s = 1.0 + r.random() * 0.5
@@ -598,7 +607,7 @@ def cars():
 def palms():
     """Coconut palms: a leaning ringed trunk and a crown of drooping fronds, three shapes."""
     trunk_m = kit.flat("palm_trunk", 0x7a6a58, rough=0.95)
-    leaf = kit.leaf("palm_leaf", 0x5c7a2e)
+    leaf = kit.leaf("palm_leaf", 0x5f7a2a)
     out = []
     for v in range(3):
         rr = random.Random(900 + v)
@@ -621,24 +630,24 @@ def palms():
         kit.mesh_obj("palm_trunk", verts, faces, trunk_m, c, smooth=True)
         top = (lean * h + 0.4 * math.sin(math.pi) * lean * 4, 0.0, h)
         verts, faces = [], []
-        fronds = 14
-        for f in range(fronds):  # each frond: a curved spine with leaflets either side
-            a = f / fronds * math.tau + rr.random() * 0.3
-            droop = 0.6 + rr.random() * 0.5
-            L = 4.2 + rr.random() * 1.2
+        fronds = 18
+        for f in range(fronds):  # each frond: an arching spine with leaflets hanging in a V either side
+            a = f / fronds * math.tau + rr.random() * 0.35
+            droop = 0.9 + rr.random() * 0.6
+            L = 4.0 + rr.random() * 1.4
             spine = []
             for s in range(9):
                 u = s / 8
                 d = L * u
-                spine.append((top[0] + math.cos(a) * d, top[1] + math.sin(a) * d, top[2] + 0.8 * u - droop * 2.2 * u * u))
+                spine.append((top[0] + math.cos(a) * d, top[1] + math.sin(a) * d, top[2] + 1.1 * u - droop * 2.8 * u * u))
             for s in range(1, 9):
                 px, py, pz = spine[s]
-                w = 0.9 * math.sin(math.pi * s / 9)
+                w = 0.75 * math.sin(math.pi * s / 9)
                 for side in (-1, 1):
                     nx, ny = -math.sin(a) * side, math.cos(a) * side
                     i0 = len(verts)
                     qx, qy, qz = spine[s - 1]
-                    verts += [(qx, qy, qz), (px, py, pz), (px + nx * w, py + ny * w, pz - 0.35 * w), (qx + nx * w * 0.8, qy + ny * w * 0.8, qz - 0.3 * w)]
+                    verts += [(qx, qy, qz), (px, py, pz), (px + nx * w * 0.7, py + ny * w * 0.7, pz - 0.75 * w), (qx + nx * w * 0.55, qy + ny * w * 0.55, qz - 0.7 * w)]
                     faces.append((i0, i0 + 1, i0 + 2, i0 + 3))
         kit.mesh_obj("palm_fronds", verts, faces, leaf, c)
         out.append(c)
