@@ -76,9 +76,9 @@ def render(preview=False, draft=False):
         dev.use = dev.type == "OPTIX"
     c = sc.cycles
     c.device = "GPU"
-    c.samples = 12 if draft else 48 if preview else 256
+    c.samples = 12 if draft else 48 if preview else 128  # ponytail: 128 + OptiX denoise fits a night on a laptop 3050; raise if the final shows boiling noise
     c.use_adaptive_sampling = True
-    c.adaptive_threshold = 0.04 if preview else 0.012
+    c.adaptive_threshold = 0.04 if preview else 0.02
     c.use_denoising = True
     c.denoiser = "OPTIX"
     c.denoising_input_passes = "RGB_ALBEDO_NORMAL"
