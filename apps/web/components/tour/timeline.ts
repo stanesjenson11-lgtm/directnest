@@ -15,7 +15,6 @@ const FADE = new Set(["opacity", "autoAlpha"]);
 export function buildTour(root: HTMLElement, o: TourHooks) {
   gsap.registerPlugin(ScrollTrigger);
   const q = gsap.utils.selector(root);
-  const one = (s: string) => q(s)[0] as HTMLElement;
 
   const tl = gsap.timeline({
     defaults: { ease: "none" },

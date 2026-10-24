@@ -3,7 +3,6 @@ export const TOTAL = 125;
 
 export type Stop = {
   id: string;
-  at: number; // where the page settles when the wheel stops nearby
   kicker?: string; // small script line above the title
   title: string;
   line: string;
@@ -13,14 +12,14 @@ export type Stop = {
 // Each line names something the app really does (search, listing checks, photos and video, filters, shortlists, the map).
 // ponytail: no prices, stats or addresses; the scene is an illustrative model.
 export const STOPS: Stop[] = [
-  { id: "sky", at: 12, kicker: "Bengaluru", title: "From above, the city.", line: "Start with an area, a metro line or a project.", tone: "ink" },
-  { id: "tower", at: 27, kicker: "Verified", title: "Closer, one building.", line: "A person checks every listing before it goes live.", tone: "ink" },
-  { id: "inside", at: 56, kicker: "Living room", title: "Inside, room by room.", line: "Photos and video tours before you visit.", tone: "ink" },
-  { id: "kitchen", at: 62, kicker: "Kitchen", title: "The details that matter.", line: "Filter by BHK, floor, parking and amenities.", tone: "ink" },
-  { id: "rooms", at: 70, kicker: "Bedrooms", title: "Picture yourself here.", line: "Shortlist homes and save your searches.", tone: "ink" },
-  { id: "plan", at: 91, kicker: "Floor plan", title: "The same home, from above.", line: "Every room, seen from above.", tone: "ink" },
-  { id: "hood", at: 105, kicker: "Neighbourhood", title: "Then the neighbourhood.", line: "Schools, hospitals and the metro, on the map.", tone: "ink" },
-  { id: "close", at: 124, title: "", line: "", tone: "paper" },
+  { id: "sky", kicker: "Bengaluru", title: "From above, the city.", line: "Start with an area, a metro line or a project.", tone: "ink" },
+  { id: "tower", kicker: "Verified", title: "Closer, one building.", line: "A person checks every listing before it goes live.", tone: "ink" },
+  { id: "inside", kicker: "Living room", title: "Inside, room by room.", line: "Photos and video tours before you visit.", tone: "ink" },
+  { id: "kitchen", kicker: "Kitchen", title: "The details that matter.", line: "Filter by BHK, floor, parking and amenities.", tone: "ink" },
+  { id: "rooms", kicker: "Bedrooms", title: "Picture yourself here.", line: "Shortlist homes and save your searches.", tone: "ink" },
+  { id: "plan", kicker: "Floor plan", title: "The same home, from above.", line: "Every room, seen from above.", tone: "ink" },
+  { id: "hood", kicker: "Neighbourhood", title: "Then the neighbourhood.", line: "Schools, hospitals and the metro, on the map.", tone: "ink" },
+  { id: "close", title: "", line: "", tone: "paper" },
 ];
 
 // When each caption is on screen [in, out], in ticks.

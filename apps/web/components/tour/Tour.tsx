@@ -6,7 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { buildTour } from "./timeline";
 import { Captions, Close, Hero, HeroTitle, Nav } from "./Chrome";
-import { PIN_FADE, STOPS, TOTAL, pw } from "./config";
+import { PIN_FADE, TOTAL, pw } from "./config";
 import film from "./film.json";
 import "./tour.css";
 
@@ -81,13 +81,12 @@ export default function Tour() {
       });
     }, root);
 
-    // Mouse and trackpad: Lenis glides every wheel move in the same time, however fast it comes, and once the wheel
-    // stops the page settles on the nearest stop of the tour (within half a screen). Touch stays the phone's own scroll:
-    // smoother there, and phones never download Lenis.
+    // Mouse and trackpad: Lenis glides every wheel move in the same time, however fast it comes. No snapping: the tour
+    // flows wherever the scroll stops. Touch stays the phone's own scroll: smoother there, and phones never download Lenis.
     let gone = false;
     let teardown = () => {};
     if (!reduced && matchMedia("(pointer: fine)").matches) {
-      Promise.all([import("lenis"), import("lenis/snap")]).then(([{ default: Smooth }, { default: Snap }]) => {
+      import("lenis").then(({ default: Smooth }) => {
         if (gone) return;
         const l = new Smooth({ duration: 1.05, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, syncTouch: false });
         smooth.current = l;
@@ -95,17 +94,7 @@ export default function Tour() {
         const tick = (time: number) => l.raf(time * 1000);
         gsap.ticker.add(tick);
         gsap.ticker.lagSmoothing(0);
-        const snap = new Snap(l, { type: "proximity", distanceThreshold: "50%", duration: 1.2, easing: (t) => 1 - Math.pow(1 - t, 3) });
-        let removers: (() => void)[] = [];
-        const place = () => {
-          removers.forEach((r) => r());
-          removers = STOPS.map((s) => api.current?.goto(s.at)).filter((y): y is number => y != null).map((y) => snap.add(y));
-        };
-        place();
-        ScrollTrigger.addEventListener("refresh", place);
         teardown = () => {
-          ScrollTrigger.removeEventListener("refresh", place);
-          snap.destroy();
           gsap.ticker.remove(tick);
           l.destroy();
           smooth.current = null;
@@ -214,8 +203,8 @@ function placePins(v: HTMLVideoElement, els: HTMLElement[], phone: boolean) {
   const s = Math.max(w / vw, h / vh);
   const dw = vw * s, dh = vh * s, ox = (w - dw) / 2, oy = (h - dh) / 2;
   PINS.forEach((p, i) => {
-    let [x, y] = points[p.id][frame - from];
-    if (phone) x = (x - PHONE_CROP.x0) / PHONE_CROP.w;
+    const [fx, y] = points[p.id][frame - from];
+    const x = phone ? (fx - PHONE_CROP.x0) / PHONE_CROP.w : fx;
     els[i].style.opacity = String(alpha);
     els[i].style.transform = `translate(${ox + x * dw}px, ${oy + y * dh}px)`;
   });
