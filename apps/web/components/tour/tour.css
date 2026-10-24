@@ -111,11 +111,11 @@ html.lenis, html.lenis body { height: auto; }
 }
 /* the title sits high, under the cut-out of the blocks (.film--cutout, z-index 3), so their tops overlap its letters;
    the line and the search sit low, over the lake, above everything */
-.hero--title { z-index: 2; top: 17cqh; }
+.hero--title { z-index: 2; top: 11cqh; }
 .hero--rest { top: auto; bottom: clamp(2rem, 9cqh, 5.5rem); }
 .hero__title {
   margin: 0; font-family: var(--font-hero); font-weight: 400;
-  font-size: clamp(2.5rem, 6.2vw, 5.6rem); line-height: 1; letter-spacing: 0.012em;
+  font-size: clamp(2.1rem, 5vw, 4.6rem); line-height: 1; letter-spacing: 0.012em;
   text-wrap: balance; color: #fff;
   /* a white stroke under the fill thickens Anton into a fatter face */
   -webkit-text-stroke: 0.045em #fff; paint-order: stroke fill;
@@ -127,13 +127,11 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes hero-up { from { opacity: 0; transform: translateY(var(--from, 14px)); } }
 @keyframes hero-in { from { opacity: 0; } }
 .hero__title .wi { animation: hero-rise 1.3s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.1s + var(--i, 0) * 0.1s); }
-.hero__sub { animation: hero-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
 .search { --from: 26px; animation: hero-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both; }
 .nav, .rail { animation: hero-in 0.9s ease 0.5s both; }
 /* word-reveal mask: padded so tall caps, ball terminals and script swashes aren't clipped */
 .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.06em 0.14em; margin: -0.06em -0.06em -0.14em; }
 .wi { display: inline-block; }
-.hero__sub { margin: 0; font-family: var(--font-script); font-size: clamp(1.45rem, 2vw, 1.9rem); line-height: 1.2; color: #fff; text-shadow: 0 1px 14px rgb(0 18 56 / 0.55); }
 
 .search {
   pointer-events: auto; margin-top: clamp(0.5rem, 2cqh, 1.5rem);
@@ -258,7 +256,7 @@ html.lenis, html.lenis body { height: auto; }
   .sc-close { align-items: flex-end; }
 }
 @media (max-aspect-ratio: 1/1) {
-  .hero--title { top: 21cqh; }
+  .hero--title { top: 13cqh; }
 }
 
 /* ============ Touch ============ */

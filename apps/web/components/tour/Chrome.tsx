@@ -36,7 +36,6 @@ export function HeroTitle() {
 export function Hero() {
   return (
     <div className="hero hero--rest" data-hero>
-      <p className="hero__sub">Scroll to take the tour.</p>
 
       <form className="search" role="search" action="/search" method="get" aria-label="Search homes">
         <fieldset className="search__modes">
