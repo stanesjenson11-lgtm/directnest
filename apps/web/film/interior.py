@@ -238,9 +238,8 @@ def build(upper_coll):
     for k in range(3):
         a = -7.45 + k * 0.6
         R.box(M["sofa"], sx - 0.9, a + 0.01, 0.45, sx - 0.25, a + 0.59, 0.58, bevel=0.06, name="sofa_seat")
-    for y, mat, rot in ((-7.2, "mustard", 0.15), (-6.7, "cream", -0.1), (-6.1, "rust", 0.12)):
-        o = R.box(M[mat], sx - 0.4, y - 0.22, 0.56, sx - 0.24, y + 0.22, 1.0, bevel=0.07, name="cushion")
-        o.rotation_euler.x = rot
+    for y, mat in ((-7.2, "mustard"), (-6.7, "cream"), (-6.1, "rust")):  # (not rotated: the box's pivot is the world origin)
+        R.box(M[mat], sx - 0.4, y - 0.22, 0.56, sx - 0.24, y + 0.22, 1.0, bevel=0.07, name="cushion")
     for y in (-7.6, -5.7):
         R.box(M["black"], sx - 0.9, y - 0.02, 0.0, sx - 0.86, y + 0.02, 0.12, name="sofa_leg")
     R.box(M["rug"], -1.1, -7.9, 0.0, 2.2, -5.4, 0.015, name="rug")

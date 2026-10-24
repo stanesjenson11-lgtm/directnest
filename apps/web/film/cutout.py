@@ -2,16 +2,14 @@
 
   blender -b %LOCALAPPDATA%/gharaana-film/film.blend -P apps/web/film/cutout.py
 
-Renders a matte of the blocks (everything else held out), runs it through the same lens distortion as the film so the
-edges line up, then ffmpeg merges it with the rendered frame 1 into a transparent WebP for the page.
+Renders a matte of the blocks (everything else held out), run through the same lens distortion as the film so the
+edges line up. encode.py merges it with the graded frame 1 into the transparent WebPs the page uses.
 """
 import os
-import subprocess
 
 import bpy
 
 FILM = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-film")
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "tour")
 MATTE = os.path.join(FILM, "matte-0001.png")
 
 sc = bpy.context.scene
@@ -51,10 +49,4 @@ sc.render.image_settings.color_mode = "BW"
 sc.render.filepath = MATTE
 bpy.ops.render.render(write_still=True)
 
-frame = os.path.join(FILM, "frames-1080", "f0001.png")
-PHONE = "crop=608:1080:656:0,scale=540:960:flags=lanczos"  # same cut as encode.py's phone film
-for name, fit in (("hero-cutout.webp", "scale=1920:1080:flags=lanczos"), ("hero-cutout-phone.webp", PHONE)):
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", frame, "-i", MATTE, "-filter_complex",
-                    f"[1]format=gray,scale=1920:1080,{fit}[a];[0]{fit}[c];[c][a]alphamerge", "-c:v", "libwebp",
-                    "-quality", "70", os.path.join(OUT, name)], check=True)
-    print("[film] cutout ->", os.path.join(OUT, name))
+print("[film] matte ->", MATTE)
