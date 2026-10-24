@@ -6,6 +6,7 @@ type Vars = gsap.TweenVars;
 
 export type TourHooks = {
   reduced: boolean;
+  glide: boolean; // Tour.tsx glides the page itself (mouse, trackpad): no extra smoothing needed
   onTick: (tick: number) => void; // drives the film
 };
 
@@ -22,7 +23,7 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
       trigger: root,
       start: "top top",
       end: "bottom bottom",
-      scrub: o.reduced ? true : 0.6,
+      scrub: o.reduced || o.glide ? true : 0.4,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
         const tick = self.progress * TOTAL;

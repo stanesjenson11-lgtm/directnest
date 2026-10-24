@@ -27,8 +27,8 @@ const PHONE = "(orientation: portrait) and (max-width: 699px)";
 const PHONE_CROP = { x0: 656 / 1920, w: 608 / 1920 };
 const SRC = { av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4", phone: "/tour/film-phone.mp4" };
 
-// The steady pace of a wheel or trackpad glide: film seconds per second (the whole tour in about 36 s).
-const SPEED = 1.4;
+// The steady pace of a wheel or trackpad glide: film seconds per second (the whole tour in about 21 s).
+const SPEED = 2.4;
 
 /** While the title is up the film holds its first frame (the cut-out of the blocks lines up with it); it catches up by tick 22. */
 const filmTick = (t: number) => (t < 4 ? 0 : t < 22 ? ((t - 4) * 22) / 18 : t);
@@ -78,6 +78,7 @@ export default function Tour() {
     const ctx = gsap.context(() => {
       api.current = buildTour(root.current!, {
         reduced,
+        glide: !reduced && matchMedia("(pointer: fine)").matches,
         onTick: (t) => { target = (filmTick(t) / TOTAL) * DURATION; },
       });
     }, root);
@@ -95,7 +96,7 @@ export default function Tour() {
         last = now;
         const [top, end] = ends();
         const want = now < until ? dir * ((end - top) / DURATION) * SPEED : 0;
-        vel += (want - vel) * (1 - Math.exp(-dt / 0.22));
+        vel += (want - vel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.28))); // quick to start, a soft ease to rest
         if (want === 0 && Math.abs(vel) < 4) {
           vel = 0;
           glide = 0;
@@ -113,7 +114,7 @@ export default function Tour() {
         e.preventDefault();
         if (d !== dir) vel = 0; // turning round: no backwards momentum
         dir = d;
-        until = performance.now() + 400;
+        until = performance.now() + 250; // a wheel's notches come ~100-250 ms apart while it turns
         if (!glide) {
           pos = scrollY;
           last = performance.now();
@@ -145,19 +146,26 @@ export default function Tour() {
       const now = performance.now();
       const dt = (now - lastNow) / 1000;
       lastNow = now;
-      if (dt > 0) speed += ((target - lastTarget) / dt - speed) * Math.min(1, dt * 6);
+      if (dt > 0) speed += ((target - lastTarget) / dt - speed) * Math.min(1, dt * 12);
       lastTarget = target;
       if (v.readyState < 2) return;
       const ahead = target - v.currentTime;
       const going = !v.paused;
-      if (canPlay && ahead < 1.5 && ahead > -FRAME * 3 && (speed > 0.05 || ahead > FRAME * 2)) {
-        v.playbackRate = Math.min(4, Math.max(0.25, Math.max(0, speed) + ahead * 1.5));
+      // a quarter second past the scroll is held, not sought back (a jump back was the hitch when a glide came to rest);
+      // scrolling backwards still follows frame by frame
+      const behindOk = speed < -0.05 ? FRAME * 2 : 0.25;
+      if (ahead < -behindOk || ahead > 1.5) {
+        if (!v.seeking) {
+          if (going) v.pause();
+          v.currentTime = target;
+        }
+      } else if (canPlay && (going ? speed > 0.03 || ahead > FRAME : speed > 0.15 || ahead > FRAME * 4)) {
+        // play at the scroll's own speed, nudged towards it; only touch the rate when it really changes
+        const rate = Math.min(4, Math.max(0.1, Math.max(0, speed) + ahead * 2));
+        if (Math.abs(rate - v.playbackRate) > 0.05) v.playbackRate = rate;
         if (!going) v.play().catch(() => { canPlay = false; }); // e.g. iOS low-power mode: seeking still works
-      } else if (ahead > -FRAME * 3 && ahead <= FRAME * 2) {
-        if (going) v.pause(); // caught up (or a hair past): hold
-      } else if (!v.seeking) {
-        if (!v.paused) v.pause();
-        v.currentTime = target;
+      } else if (going) {
+        v.pause(); // at rest: hold this frame
       }
       placePins(v, pins, phone);
     };
