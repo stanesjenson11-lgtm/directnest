@@ -78,7 +78,10 @@ html.lenis, html.lenis body { height: auto; }
 .sc-close { visibility: hidden; z-index: 4; }
 
 /* The film: path-traced in Blender, scrubbed by scroll. Its poster shows until the video can play. */
-.film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; background: transparent; }
+.film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.film--video { opacity: 0; }  /* over the poster once its first frame is in */
+.stage[data-world="ready"] .film--video { opacity: 1; }
+.film--cutout { z-index: 3; pointer-events: none; }
 .stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(130% 95% at 50% 45%, transparent 60%, color-mix(in oklab, var(--ink) 26%, transparent) 100%);
@@ -100,23 +103,29 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ============ Hero ============ */
 .hero {
-  position: absolute; left: 0; right: 0; top: 40cqh;
+  position: absolute; left: 0; right: 0; top: 34cqh;
   padding-inline: var(--gutter);
   display: flex; flex-direction: column; align-items: center; text-align: center;
   gap: clamp(0.6rem, 1.6cqh, 1.25rem);
-  pointer-events: none; z-index: 3;
+  pointer-events: none; z-index: 4;
 }
+/* the title sits high, under the cut-out of the blocks (.film--cutout, z-index 3), so their tops overlap its letters;
+   the line and the search sit low, over the lake, above everything */
+.hero--title { z-index: 2; top: 17cqh; }
+.hero--rest { top: auto; bottom: clamp(2rem, 9cqh, 5.5rem); }
 .hero__title {
   margin: 0; font-family: var(--font-hero); font-weight: 400;
-  font-size: clamp(3.2rem, 8.2vw, 7.6rem); line-height: 0.98; letter-spacing: 0.004em;
-  text-wrap: balance; color: var(--ink);
-  text-shadow: 0 2px 28px rgb(255 255 255 / 0.55);
+  font-size: clamp(2.5rem, 6.2vw, 5.6rem); line-height: 1; letter-spacing: 0.012em;
+  text-wrap: balance; color: #fff;
+  /* a white stroke under the fill thickens Anton into a fatter face */
+  -webkit-text-stroke: 0.045em #fff; paint-order: stroke fill;
+  text-shadow: 0 0.04em 0.5em rgb(0 18 56 / 0.35);
 }
 .hero__line { display: block; }
 /* word-reveal mask: padded so tall caps, ball terminals and script swashes aren't clipped */
 .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.06em 0.14em; margin: -0.06em -0.06em -0.14em; }
 .wi { display: inline-block; }
-.hero__sub { margin: 0; font-family: var(--font-script); font-size: clamp(1.45rem, 2vw, 1.9rem); line-height: 1.2; color: var(--blue); }
+.hero__sub { margin: 0; font-family: var(--font-script); font-size: clamp(1.45rem, 2vw, 1.9rem); line-height: 1.2; color: #fff; text-shadow: 0 1px 14px rgb(0 18 56 / 0.55); }
 
 .search {
   pointer-events: auto; margin-top: clamp(0.5rem, 2cqh, 1.5rem);
@@ -241,7 +250,7 @@ html.lenis, html.lenis body { height: auto; }
   .sc-close { align-items: flex-end; }
 }
 @media (max-aspect-ratio: 1/1) {
-  .hero { top: 44cqh; }
+  .hero--title { top: 21cqh; }
 }
 
 /* ============ Touch ============ */

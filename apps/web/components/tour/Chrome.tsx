@@ -12,17 +12,28 @@ type Tone = "ink" | "paper";
 // Rent shows only once rentals launch (lib/search.ts). Invest is a sale search.
 const MODES = RENTALS ? (["Buy", "Rent", "Invest"] as const) : (["Buy", "Invest"] as const);
 
-export function Hero() {
-  const words = (s: string) => s.split(" ").map((w, i) => (
-    <span key={i}><span className="w"><span className="wi">{w}</span></span>{" "}</span>
-  ));
+const words = (s: string) => s.split(" ").map((w, i) => (
+  <span key={i}><span className="w"><span className="wi">{w}</span></span>{" "}</span>
+));
+const TITLE = (
+  <>
+    <span className="hero__line">{words("Step inside")}</span>
+    <span className="hero__line">{words("your next address.")}</span>
+  </>
+);
 
+/** The title on its own layer, so the cut-out of the blocks (Tour.tsx) can sit between it and the search. */
+export function HeroTitle() {
   return (
-    <div className="hero" data-hero>
-      <h1 className="hero__title">
-        <span className="hero__line">{words("Step inside")}</span>
-        <span className="hero__line">{words("your next address.")}</span>
-      </h1>
+    <div className="hero hero--title" data-hero-title>
+      <h1 className="hero__title">{TITLE}</h1>
+    </div>
+  );
+}
+
+export function Hero() {
+  return (
+    <div className="hero hero--rest" data-hero>
       <p className="hero__sub">Scroll to take the tour.</p>
 
       <form className="search" role="search" action="/search" method="get" aria-label="Search homes">

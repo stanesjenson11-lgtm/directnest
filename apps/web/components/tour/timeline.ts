@@ -66,7 +66,9 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
     if (ns !== stop) o.onStop((stop = ns));
   }
 
-  fx("[data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 1, 6, "power2.in");
+  // the hero is gone by tick 4, while the film still holds frame 1 (the cut-out of the blocks matches only that frame)
+  fx("[data-hero-title], [data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
+  fx("[data-cutout]", { autoAlpha: 1 }, { autoAlpha: 0 }, 3.6, 0.3);
 
   const cap = (id: string, inAt: number, outAt: number) => {
     const s = `[data-cap="${id}"]`;

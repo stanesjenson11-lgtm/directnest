@@ -6,7 +6,7 @@ import { Anton, Gloock, Hanken_Grotesk, Yellowtail } from "next/font/google";
 // Gloock for Runiga, Yellowtail for Rooster (those three are personal-use only).
 const fallback = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-fallback", display: "swap" });
 const hero = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
-const serif = Gloock({ subsets: ["latin"], weight: "400", variable: "--font-gloock", display: "swap" });
+const serif = Gloock({ subsets: ["latin"], weight: "400", variable: "--font-gloock", display: "swap", preload: false }); // captions, below the fold
 const script = Yellowtail({ subsets: ["latin"], weight: "400", variable: "--font-yellowtail", display: "swap" });
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
