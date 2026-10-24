@@ -6,30 +6,24 @@ type Vars = gsap.TweenVars;
 
 export type TourHooks = {
   reduced: boolean;
-  glide: boolean; // Tour.tsx glides the page itself (mouse, trackpad): no extra smoothing needed
-  onTick: (tick: number) => void; // drives the film
+  onTick: (tick: number) => void; // where the scroll asks the tour to be; Tour.tsx moves the tour there and calls seek()
 };
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the film: hero, captions, close. The film itself is rendered from apps/web/film. */
+/** The HTML layer over the film: hero, captions, close. The film itself is rendered from apps/web/film.
+ *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the film follows too, so
+ *  the two never drift apart. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
   gsap.registerPlugin(ScrollTrigger);
   const q = gsap.utils.selector(root);
 
-  const tl = gsap.timeline({
-    defaults: { ease: "none" },
-    scrollTrigger: {
-      trigger: root,
-      start: "top top",
-      end: "bottom bottom",
-      scrub: o.reduced || o.glide ? true : 0.4,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        const tick = self.progress * TOTAL;
-        o.onTick(tick);
-      },
-    },
+  const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
+  const st = ScrollTrigger.create({
+    trigger: root,
+    start: "top top",
+    end: "bottom bottom",
+    onUpdate: (self) => o.onTick(self.progress * TOTAL),
   });
 
   /** fromTo on the master timeline. With reduced motion, only fades animate; movement snaps. */
@@ -94,13 +88,17 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
   document.documentElement.dataset.ready = "1";
 
   return {
+    /** The scroll y of a tick. */
     goto(tick: number) {
-      const st = tl.scrollTrigger!;
       return st.start + (tick / TOTAL) * (st.end - st.start);
+    },
+    /** Shows the HTML layer as it is at this tick. */
+    seek(tick: number) {
+      tl.time(Math.min(TOTAL, Math.max(0, tick)));
     },
     destroy() {
       cleanups.forEach((f) => f());
-      tl.scrollTrigger?.kill();
+      st.kill();
       tl.kill();
     },
   };

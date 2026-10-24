@@ -25,10 +25,14 @@ const DURATION = (film.frames - 1) / film.fps;
 // Phones held upright get a portrait cut from the centre of the frame (encode.py PHONE: x 656..1264 of 1920).
 const PHONE = "(orientation: portrait) and (max-width: 699px)";
 const PHONE_CROP = { x0: 656 / 1920, w: 608 / 1920 };
-const SRC = { av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4", phone: "/tour/film-phone.mp4" };
+const SRC = {
+  av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4",
+  phoneHevc: "/tour/film-phone-hevc.mp4", phone: "/tour/film-phone.mp4",
+};
 
-// The steady pace of a wheel or trackpad glide, in film seconds per second, by where the tour is (ticks): brisk outside,
-// a little slower inside the flat (through the balcony door at 51 until the camera rises to the plan at 84).
+// The tour's one steady pace (a wheel glide, and the tour's own glide after a swipe), in film seconds per second, by where
+// the tour is (ticks): brisk outside, a little slower inside the flat (through the balcony door at 51 until the camera
+// rises to the plan at 84).
 const PACE: [number, number][] = [[0, 3.2], [47, 3.2], [51, 2.1], [82, 2.1], [86, 3.2], [TOTAL, 3.2]];
 
 /** While the title is up the film holds its first frame (the cut-out of the blocks lines up with it); it catches up by tick 22. */
@@ -39,6 +43,7 @@ export default function Tour() {
   const root = useRef<HTMLElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const api = useRef<ReturnType<typeof buildTour> | null>(null);
+  const jump = useRef<(tick: number) => void>(() => {});
   const [tone, setTone] = useState<Tone>("ink");
   const [ready, setReady] = useState<"loading" | "ready" | "failed">("loading");
 
@@ -61,10 +66,13 @@ export default function Tour() {
       loaded = true;
       for (const e of WAKE) removeEventListener(e, load);
       clearTimeout(idle);
-      // the smallest file this browser can play: AV1 (12 MB), HEVC for Safari on Macs (about 15), else H.264 (30)
-      v.src = phone ? SRC.phone
+      // desktops: HEVC where it plays (43.6 MB, decoded in hardware), else AV1 (47.1), else H.264 (77.5);
+      // phones: HEVC at the crop's full 608x1080 (9.5; iPhones decode it in hardware: sharper for the same download),
+      // else H.264 at 540x960 (10.1)
+      const hevc = v.canPlayType('video/mp4; codecs="hvc1.1.6.L120.90"');
+      v.src = phone ? (hevc ? SRC.phoneHevc : SRC.phone)
+        : hevc ? SRC.hevc
         : v.canPlayType('video/mp4; codecs="av01.0.08M.08"') ? SRC.av1
-        : v.canPlayType('video/mp4; codecs="hvc1.1.6.L120.90"') ? SRC.hevc
         : SRC.h264;
       v.load();
     };
@@ -75,47 +83,47 @@ export default function Tour() {
     if (document.readyState === "complete") later();
     else addEventListener("load", later, { once: true });
 
-    let target = 0;
+    let goal = 0; // the tick the scroll asks for (the tour itself glides there: step, below)
+    const glides = !reduced && matchMedia("(pointer: fine)").matches; // mouse or trackpad (touch keeps its native scroll)
     const ctx = gsap.context(() => {
-      api.current = buildTour(root.current!, {
-        reduced,
-        glide: !reduced,
-        onTick: (t) => { target = (filmTick(t) / TOTAL) * DURATION; },
-      });
+      api.current = buildTour(root.current!, { reduced, onTick: (t) => { goal = t; } });
     }, root);
 
-    // Wheel, trackpad and touch alike: the tour runs at one steady pace whatever the fingers do. A wheel move or a swipe
-    // only says "keep going" (and which way); the page then glides at a constant pace (a little slower inside the flat),
-    // easing in, and easing out a moment after the last move, so every scene takes the same time however fast or slow
-    // the scroll. Nothing snaps: it stops where you stop. Past either end of the tour the page scrolls as usual.
+    // Mouse and trackpad: the tour runs at one steady pace whatever the wheel does. A wheel move only says "keep going"
+    // (and which way); the page then glides at a constant pace (a little slower inside the flat), easing in, and easing
+    // out a moment after the last move, so every scene takes the same time however fast or slow the scroll. Nothing
+    // snaps: it stops where you stop. Past either end of the tour the page scrolls as usual.
+    // Touch keeps the phone's own (native) scroll (scrolling a touch screen from JavaScript lagged and floated on iPhone
+    // Safari); the tour glides after it at the same pace (step, below).
     let teardown = () => {};
-    if (!reduced) {
-      let dir = 0, until = 0, vel = 0, pos = 0, last = 0, glide = 0;
+    if (glides) {
+      let dir = 0, until = 0, pxVel = 0, pos = 0, last = 0, glide = 0;
       const ends = () => [api.current!.goto(0), api.current!.goto(TOTAL)] as const;
-      const run = (now: number) => {
-        const dt = Math.min(0.05, (now - last) / 1000);
-        last = now;
+      const run = (ms: number) => {
+        if (Math.abs(scrollY - pos) > 2) pos = scrollY; // something else scrolled (Book, keys, scrollbar): go on from there
+        const dt = Math.min(0.05, (ms - last) / 1000);
+        last = ms;
         const [top, end] = ends();
         const full = ((end - top) / DURATION) * pw(PACE, ((pos - top) / (end - top)) * TOTAL); // px per second here
-        const want = now < until ? dir * full : 0;
-        vel += (want - vel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.2))); // quick to start, a short ease to rest
+        const want = ms < until ? dir * full : 0;
+        pxVel += (want - pxVel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.2))); // quick to start, a short ease to rest
         // no slow crawl at the end: once down to a fifth of full pace, it has arrived
-        if (want === 0 && Math.abs(vel) < full / 5) {
-          vel = 0;
+        if (want === 0 && Math.abs(pxVel) < full / 5) {
+          pxVel = 0;
           glide = 0;
           return;
         }
-        pos = Math.min(end, Math.max(top, pos + vel * dt));
+        pos = Math.min(end, Math.max(top, pos + pxVel * dt));
         window.scrollTo(0, pos);
         glide = requestAnimationFrame(run);
       };
       /** Asks the glide to keep going in direction d; false when that way is past the tour (let the page scroll). */
-      const nudge = (d: number, hold: number) => {
+      const nudge = (d: number) => {
         const [top, end] = ends();
         if ((d > 0 && scrollY >= end - 1) || (d < 0 && scrollY <= top + 1)) return false;
-        if (d !== dir) vel = 0; // turning round: no backwards momentum
+        if (d !== dir) pxVel = 0; // turning round: no backwards momentum
         dir = d;
-        until = performance.now() + hold;
+        until = performance.now() + 250; // a wheel's notches come ~100-250 ms apart while it turns
         if (!glide) {
           pos = scrollY;
           last = performance.now();
@@ -125,39 +133,33 @@ export default function Tour() {
       };
       const onWheel = (e: WheelEvent) => {
         if (e.ctrlKey || !e.deltaY) return; // pinch-zoom, sideways swipes
-        if (nudge(Math.sign(e.deltaY), 250)) e.preventDefault(); // a wheel's notches come ~100-250 ms apart while it turns
-      };
-      // Touch: the finger moving up the screen says "forward" (as a native scroll would), down says "back". After the
-      // finger lifts, the glide carries on a moment, like a flick, then eases to rest. Taps never reach here.
-      let fingerY = 0;
-      const onTouchStart = (e: TouchEvent) => { fingerY = e.touches[0].clientY; };
-      const onTouchMove = (e: TouchEvent) => {
-        if (e.touches.length > 1) return; // pinch-zoom stays the browser's
-        const y = e.touches[0].clientY;
-        if (Math.abs(fingerY - y) < 3) return;
-        const d = Math.sign(fingerY - y);
-        fingerY = y;
-        if (nudge(d, 350)) e.preventDefault();
+        if (nudge(Math.sign(e.deltaY))) e.preventDefault();
       };
       addEventListener("wheel", onWheel, { passive: false });
-      addEventListener("touchstart", onTouchStart, { passive: true });
-      addEventListener("touchmove", onTouchMove, { passive: false });
       teardown = () => {
         removeEventListener("wheel", onWheel);
-        removeEventListener("touchstart", onTouchStart);
-        removeEventListener("touchmove", onTouchMove);
         cancelAnimationFrame(glide);
       };
     }
 
-    // Moving forward, the film plays (frames decode in order, no seeking) at the speed the scroll is moving, plus a gentle
-    // correction for any gap, so a steady glide gives a steady film. It pauses once caught up; a frame or two of
-    // overshoot is held rather than sought back. Jumps and scrolling back seek.
+    // One clock, the tour's own: the scroll only sets a goal, and the tour moves towards it at the steady PACE, easing in
+    // and out; the film and the HTML layer (captions, hero, close) both show where the tour is, so they never drift apart.
+    // A wheel glide moves the page at that same pace, so there goal and tour stay together; a swipe moves the page at once
+    // and the tour glides after it, so a flick plays at the same speed as a slow swipe and the film plays, never seeks.
+    // Moving forward, the film plays (frames decode in order, no seeking) at the tour's speed, plus a gentle correction
+    // for any gap. It pauses once caught up; a frame or two of overshoot is held rather than sought back. Going back seeks,
+    // and so do the tour's only jumps: Book, the backlog cap (step, below) and reduced motion.
     const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
-    const FRAME = 1 / 60; // the encodes are 60 fps (film/encode.py)
+    const FRAME = 1 / (phone ? 30 : 60); // desktop films are 60 fps, phone films 30 (film/encode.py)
     let canPlay = !reduced;
     let frameId = 0;
-    let speed = 0, lastTarget = 0, lastNow = performance.now(); // how fast the scroll moves the film (s per s)
+    let now = goal, vel = 0, shownAt = -1; // the tour's tick, its speed (ticks per second), the tick the HTML layer shows
+    let speed = 0, lastTarget = 0, lastMs = performance.now(); // how fast the film should move (s per s)
+    jump.current = (tick) => { // the nav's "Book a viewing": straight there, not a glide through the whole tour
+      window.scrollTo(0, api.current!.goto(tick));
+      goal = now = tick;
+      vel = 0;
+    };
     // The nav goes white where the film is dark behind the logo, navy where it is light (per frame, from film/tone.py).
     const shade = film.logo[phone ? "phone" : "desk"];
     let shown: Tone = "ink";
@@ -165,15 +167,34 @@ export default function Tour() {
       frameId = requestAnimationFrame(step);
       const t = shade[Math.min(shade.length - 1, Math.round(v.currentTime * film.fps))] === "D" ? "paper" : "ink";
       if (t !== shown) setTone((shown = t));
-      const now = performance.now();
-      const dt = (now - lastNow) / 1000;
-      lastNow = now;
-      if (dt > 0) speed += ((target - lastTarget) / dt - speed) * Math.min(1, dt * 12);
+      const ms = performance.now();
+      const dt = Math.min(0.1, (ms - lastMs) / 1000);
+      lastMs = ms;
+      if (reduced) now = goal;
+      else if (now !== goal) {
+        // a big jump (scrollbar, End, a hard flick, scroll restoration) is not glided all the way: the tour skips to
+        // 15 ticks short of it (6 film seconds, about 2 s at PACE) and glides the rest
+        if (Math.abs(goal - now) > 15) now = goal - Math.sign(goal - now) * 15;
+        const gap = goal - now;
+        const pace = (pw(PACE, now) * TOTAL) / DURATION; // ticks per second (DURATION film seconds span TOTAL ticks)
+        const want = Math.sign(gap) * Math.min(pace, Math.abs(gap) / 0.25); // full pace, slowing over the last 1/4 s
+        vel += (want - vel) * (1 - Math.exp(-dt / 0.12));
+        const next = Math.min(TOTAL, Math.max(0, now + vel * dt));
+        // arrived; never past the goal and back, which would step the film backwards
+        if ((goal - next) * gap <= 0 || (Math.abs(goal - next) < 0.01 && Math.abs(vel) < 0.05)) {
+          now = goal;
+          vel = 0;
+        } else now = next;
+      }
+      placePins(v, pins, phone); // before the timeline writes its styles: no second style recalc
+      if (now !== shownAt) api.current!.seek((shownAt = now));
+      const target = (filmTick(now) / TOTAL) * DURATION;
+      if (dt > 0) speed = (target - lastTarget) / dt; // the tour moves smoothly: no need to smooth this
       lastTarget = target;
       if (v.readyState < 2) return;
       const ahead = target - v.currentTime;
       const going = !v.paused;
-      // a quarter second past the scroll is held, not sought back (a jump back was the hitch when a glide came to rest);
+      // a quarter second past the tour is held, not sought back (a jump back was the hitch when a glide came to rest);
       // scrolling backwards still follows frame by frame
       const behindOk = speed < -0.05 ? FRAME * 2 : 0.25;
       if (ahead < -behindOk || ahead > 1.5) {
@@ -181,8 +202,9 @@ export default function Tour() {
           if (going) v.pause();
           v.currentTime = target;
         }
-      } else if (canPlay && (going ? speed > 0.3 || ahead > 0.12 : speed > 0.3 || ahead > 0.25)) {
-        // play at the scroll's own speed, nudged towards it; only touch the rate when it really changes. Once the scroll
+      } else if (canPlay && !v.ended && (going ? speed > 0.3 || ahead > 0.12 : speed > 0.3 || ahead > 0.25)) {
+        // (play() on an ended film would restart it from frame 1)
+        // play at the tour's own speed, nudged towards it; only touch the rate when it really changes. Once the tour
         // has stopped, a gap of a few frames is left as it is (creeping through them slowly read as a stutter), and a
         // bigger gap is closed at a normal pace, never a crawl.
         const rate = Math.min(6, Math.max(speed > 0.3 ? 0.25 : 0.9, Math.max(0, speed) + ahead * 2));
@@ -191,7 +213,6 @@ export default function Tour() {
       } else if (going) {
         v.pause(); // at rest: hold this frame
       }
-      placePins(v, pins, phone);
     };
     frameId = requestAnimationFrame(step);
 
@@ -208,12 +229,6 @@ export default function Tour() {
     };
   }, []);
 
-  function goToTick(tick: number) {
-    const y = api.current?.goto(tick);
-    if (y == null) return;
-    window.scrollTo({ top: y, behavior: "smooth" });
-  }
-
   return (
     <section className="tour" ref={root} aria-label="Gharaana tour">
       <div className="stage" data-world={ready}>
@@ -222,7 +237,8 @@ export default function Tour() {
           <source media={PHONE} srcSet="/tour/film-poster-phone.webp" />
           <img className="film" src="/tour/film-poster.webp" alt="" fetchPriority="high" />
         </picture>
-        <video ref={video} className="film film--video" muted playsInline preload="auto" aria-hidden="true" />
+        <video ref={video} className="film film--video" muted playsInline preload="auto" aria-hidden="true"
+          disablePictureInPicture disableRemotePlayback />
         <HeroTitle />
         {/* the community's blocks cut from frame 1, laid over the title so it sits behind them */}
         <picture>
@@ -240,7 +256,7 @@ export default function Tour() {
         <Close />
         <Hero />
         <Captions />
-        <Nav tone={tone} onBook={() => goToTick(TOTAL - 1)} />
+        <Nav tone={tone} onBook={() => jump.current(TOTAL - 1)} />
       </div>
     </section>
   );
