@@ -27,8 +27,8 @@ const PHONE = "(orientation: portrait) and (max-width: 699px)";
 const PHONE_CROP = { x0: 656 / 1920, w: 608 / 1920 };
 const SRC = { av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4", phone: "/tour/film-phone.mp4" };
 
-// The steady pace of a wheel or trackpad glide: film seconds per second (the whole tour in about 21 s).
-const SPEED = 2.4;
+// The steady pace of a wheel or trackpad glide: film seconds per second (the whole tour in about 15 s).
+const SPEED = 3.2;
 
 /** While the title is up the film holds its first frame (the cut-out of the blocks lines up with it); it catches up by tick 22. */
 const filmTick = (t: number) => (t < 4 ? 0 : t < 22 ? ((t - 4) * 22) / 18 : t);
@@ -96,8 +96,9 @@ export default function Tour() {
         last = now;
         const [top, end] = ends();
         const want = now < until ? dir * ((end - top) / DURATION) * SPEED : 0;
-        vel += (want - vel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.28))); // quick to start, a soft ease to rest
-        if (want === 0 && Math.abs(vel) < 4) {
+        vel += (want - vel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.2))); // quick to start, a short ease to rest
+        // no slow crawl at the end: once down to a fifth of full pace, it has arrived
+        if (want === 0 && Math.abs(vel) < (((end - top) / DURATION) * SPEED) / 5) {
           vel = 0;
           glide = 0;
           return;
@@ -159,9 +160,11 @@ export default function Tour() {
           if (going) v.pause();
           v.currentTime = target;
         }
-      } else if (canPlay && (going ? speed > 0.03 || ahead > FRAME : speed > 0.15 || ahead > FRAME * 4)) {
-        // play at the scroll's own speed, nudged towards it; only touch the rate when it really changes
-        const rate = Math.min(4, Math.max(0.1, Math.max(0, speed) + ahead * 2));
+      } else if (canPlay && (going ? speed > 0.3 || ahead > 0.12 : speed > 0.3 || ahead > 0.25)) {
+        // play at the scroll's own speed, nudged towards it; only touch the rate when it really changes. Once the scroll
+        // has stopped, a gap of a few frames is left as it is (creeping through them slowly read as a stutter), and a
+        // bigger gap is closed at a normal pace, never a crawl.
+        const rate = Math.min(6, Math.max(speed > 0.3 ? 0.25 : 0.9, Math.max(0, speed) + ahead * 2));
         if (Math.abs(rate - v.playbackRate) > 0.05) v.playbackRate = rate;
         if (!going) v.play().catch(() => { canPlay = false; }); // e.g. iOS low-power mode: seeking still works
       } else if (going) {
