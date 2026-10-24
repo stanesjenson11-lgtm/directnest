@@ -79,17 +79,17 @@ export default function Tour() {
     const ctx = gsap.context(() => {
       api.current = buildTour(root.current!, {
         reduced,
-        glide: !reduced && matchMedia("(pointer: fine)").matches,
+        glide: !reduced,
         onTick: (t) => { target = (filmTick(t) / TOTAL) * DURATION; },
       });
     }, root);
 
-    // Mouse and trackpad: the tour runs at one steady speed whatever the wheel does. A wheel or trackpad move only says
-    // "keep going" (and which way); the page then glides at a constant pace, easing in, and easing out about 0.4 s after
-    // the last move, so every scene takes the same time however fast or slow the fingers are. Nothing snaps: it stops
-    // where you stop. Past either end of the tour the wheel scrolls the page as usual; touch keeps the phone's own scroll.
+    // Wheel, trackpad and touch alike: the tour runs at one steady pace whatever the fingers do. A wheel move or a swipe
+    // only says "keep going" (and which way); the page then glides at a constant pace (a little slower inside the flat),
+    // easing in, and easing out a moment after the last move, so every scene takes the same time however fast or slow
+    // the scroll. Nothing snaps: it stops where you stop. Past either end of the tour the page scrolls as usual.
     let teardown = () => {};
-    if (!reduced && matchMedia("(pointer: fine)").matches) {
+    if (!reduced) {
       let dir = 0, until = 0, vel = 0, pos = 0, last = 0, glide = 0;
       const ends = () => [api.current!.goto(0), api.current!.goto(TOTAL)] as const;
       const run = (now: number) => {
@@ -109,24 +109,43 @@ export default function Tour() {
         window.scrollTo(0, pos);
         glide = requestAnimationFrame(run);
       };
-      const onWheel = (e: WheelEvent) => {
-        if (e.ctrlKey || !e.deltaY) return; // pinch-zoom, sideways swipes
-        const d = Math.sign(e.deltaY);
+      /** Asks the glide to keep going in direction d; false when that way is past the tour (let the page scroll). */
+      const nudge = (d: number, hold: number) => {
         const [top, end] = ends();
-        if ((d > 0 && scrollY >= end - 1) || (d < 0 && scrollY <= top + 1)) return;
-        e.preventDefault();
+        if ((d > 0 && scrollY >= end - 1) || (d < 0 && scrollY <= top + 1)) return false;
         if (d !== dir) vel = 0; // turning round: no backwards momentum
         dir = d;
-        until = performance.now() + 250; // a wheel's notches come ~100-250 ms apart while it turns
+        until = performance.now() + hold;
         if (!glide) {
           pos = scrollY;
           last = performance.now();
           glide = requestAnimationFrame(run);
         }
+        return true;
+      };
+      const onWheel = (e: WheelEvent) => {
+        if (e.ctrlKey || !e.deltaY) return; // pinch-zoom, sideways swipes
+        if (nudge(Math.sign(e.deltaY), 250)) e.preventDefault(); // a wheel's notches come ~100-250 ms apart while it turns
+      };
+      // Touch: the finger moving up the screen says "forward" (as a native scroll would), down says "back". After the
+      // finger lifts, the glide carries on a moment, like a flick, then eases to rest. Taps never reach here.
+      let fingerY = 0;
+      const onTouchStart = (e: TouchEvent) => { fingerY = e.touches[0].clientY; };
+      const onTouchMove = (e: TouchEvent) => {
+        if (e.touches.length > 1) return; // pinch-zoom stays the browser's
+        const y = e.touches[0].clientY;
+        if (Math.abs(fingerY - y) < 3) return;
+        const d = Math.sign(fingerY - y);
+        fingerY = y;
+        if (nudge(d, 350)) e.preventDefault();
       };
       addEventListener("wheel", onWheel, { passive: false });
+      addEventListener("touchstart", onTouchStart, { passive: true });
+      addEventListener("touchmove", onTouchMove, { passive: false });
       teardown = () => {
         removeEventListener("wheel", onWheel);
+        removeEventListener("touchstart", onTouchStart);
+        removeEventListener("touchmove", onTouchMove);
         cancelAnimationFrame(glide);
       };
     }
