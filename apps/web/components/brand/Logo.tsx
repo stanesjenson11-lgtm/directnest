@@ -1,9 +1,10 @@
 import { LOGO } from "./logo-paths";
 
-type Tone = "color" | "white" | "ink";
+type Tone = "color" | "colorOnDark" | "white" | "ink";
 
 const FILL: Record<Tone, { line: string; base: string; word: string }> = {
   color: { line: "var(--blue)", base: "var(--sun)", word: "var(--ink)" },
+  colorOnDark: { line: "var(--blue)", base: "var(--sun)", word: "#fff" }, // brand-coloured mark, white wordmark
   white: { line: "#fff", base: "var(--sun)", word: "#fff" },
   ink: { line: "var(--ink)", base: "var(--ink)", word: "var(--ink)" },
 };

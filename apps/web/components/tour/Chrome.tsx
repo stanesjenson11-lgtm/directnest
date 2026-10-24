@@ -64,7 +64,7 @@ export function Nav({ tone, onBook }: { tone: Tone; onBook: () => void }) {
   return (
     <header className="nav" data-tone={tone}>
       <a href="#top" className="nav__logo" aria-label="Gharaana, back to the start">
-        <Logo tone={tone === "paper" ? "white" : "color"} className="nav__mark" />
+        <Logo tone={tone === "paper" ? "colorOnDark" : "color"} className="nav__mark" />
       </a>
       <div className="nav__actions">
         <button type="button" className="btn btn--sun btn--sm" data-magnet onClick={onBook}>Book a viewing</button>
