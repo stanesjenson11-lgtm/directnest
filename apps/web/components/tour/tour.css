@@ -111,7 +111,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 /* the title sits high, under the cut-out of the blocks (.film--cutout, z-index 3), so their tops overlap its letters;
    the line and the search sit low, over the lake, above everything */
-.hero--title { z-index: 2; top: 11cqh; }
+.hero--title { z-index: 2; top: 4.5cqh; }  /* level with the nav: the title sits between the logo and the buttons */
 .hero--rest { top: auto; bottom: clamp(2rem, 9cqh, 5.5rem); }
 .hero__title {
   margin: 0; font-family: var(--font-hero); font-weight: 400;
@@ -236,6 +236,6 @@ html.lenis, html.lenis body { height: auto; }
   .sc-close { align-items: flex-end; }
 }
 @media (max-aspect-ratio: 1/1) {
-  .hero--title { top: 13cqh; }
+  .hero--title { top: 8.5cqh; }  /* just under the nav on phones */
 }
 
