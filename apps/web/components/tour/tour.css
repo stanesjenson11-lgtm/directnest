@@ -179,10 +179,6 @@ html.lenis, html.lenis body { height: auto; }
 .nav__mark { display: block; height: clamp(2rem, 4.4cqh, 2.7rem); width: auto; }
 .nav__actions { display: flex; align-items: center; gap: 0.5rem; }
 
-  position: absolute; z-index: 20; right: var(--gutter); top: 50%; translate: 0 -50%;
-  height: min(46cqh, 22rem); color: var(--ink); pointer-events: none;
-}
-
 .caps {
   position: absolute; z-index: 10; left: var(--gutter); bottom: clamp(1.75rem, 7cqh, 4rem);
   width: min(34rem, calc(100% - 2 * var(--gutter) - 3.5rem));
