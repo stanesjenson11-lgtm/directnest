@@ -1,20 +1,17 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CAPTIONS, STOPS, TONE_BREAKS, TOTAL } from "./config";
+import { CAPTIONS, TOTAL } from "./config";
 
-type Tone = "ink" | "paper";
 type Vars = gsap.TweenVars;
 
 export type TourHooks = {
   reduced: boolean;
-  onTone: (t: Tone) => void;
-  onStop: (i: number) => void;
   onTick: (tick: number) => void; // drives the film
 };
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the film: hero, captions, close, rail. The film itself is rendered from apps/web/film. */
+/** The HTML layer over the film: hero, captions, close. The film itself is rendered from apps/web/film. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
   gsap.registerPlugin(ScrollTrigger);
   const q = gsap.utils.selector(root);
@@ -31,7 +28,6 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
       onUpdate: (self) => {
         const tick = self.progress * TOTAL;
         o.onTick(tick);
-        track(tick, self.progress);
       },
     },
   });
@@ -54,16 +50,6 @@ export function buildTour(root: HTMLElement, o: TourHooks) {
     if (Object.keys(t.fade).length) tl.fromTo(target, f.fade, { duration: Math.min(dur, 1.5), ease: "none", ...t.fade, immediateRender: !later }, at);
     if (Object.keys(f.rest).length) tl.set(target, f.rest, at);
     if (Object.keys(t.rest).length) tl.set(target, t.rest, at + dur);
-  }
-
-  const railFill = one(".rail__fill");
-  let tone: Tone = "ink", stop = 0;
-  function track(tick: number, p: number) {
-    railFill.style.transform = `scaleY(${p})`;
-    const nt = [...TONE_BREAKS].reverse().find(([at]) => tick >= at)![1];
-    if (nt !== tone) o.onTone((tone = nt));
-    const ns = Math.max(0, STOPS.map((s) => s.at - 7).findLastIndex((a) => tick >= a));
-    if (ns !== stop) o.onStop((stop = ns));
   }
 
   // the hero is gone by tick 4, while the film still holds frame 1 (the cut-out of the blocks matches only that frame)

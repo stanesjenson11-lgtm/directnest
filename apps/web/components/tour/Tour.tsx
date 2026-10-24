@@ -5,7 +5,7 @@ import type Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { buildTour } from "./timeline";
-import { Captions, Close, Hero, HeroTitle, Nav, StopRail } from "./Chrome";
+import { Captions, Close, Hero, HeroTitle, Nav } from "./Chrome";
 import { PIN_FADE, STOPS, TOTAL, pw } from "./config";
 import film from "./film.json";
 import "./tour.css";
@@ -38,7 +38,6 @@ export default function Tour() {
   const api = useRef<ReturnType<typeof buildTour> | null>(null);
   const smooth = useRef<Lenis | null>(null);
   const [tone, setTone] = useState<Tone>("ink");
-  const [active, setActive] = useState(0);
   const [ready, setReady] = useState<"loading" | "ready" | "failed">("loading");
 
   useEffect(() => {
@@ -78,8 +77,6 @@ export default function Tour() {
     const ctx = gsap.context(() => {
       api.current = buildTour(root.current!, {
         reduced,
-        onTone: setTone,
-        onStop: setActive,
         onTick: (t) => { target = (filmTick(t) / TOTAL) * DURATION; },
       });
     }, root);
@@ -121,8 +118,13 @@ export default function Tour() {
     const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
     let canPlay = !reduced;
     let frameId = 0;
+    // The nav goes white where the film is dark behind the logo, navy where it is light (per frame, from film/tone.py).
+    const shade = film.logo[phone ? "phone" : "desk"];
+    let shown: Tone = "ink";
     const step = () => {
       frameId = requestAnimationFrame(step);
+      const t = shade[Math.min(shade.length - 1, Math.round(v.currentTime * film.fps))] === "D" ? "paper" : "ink";
+      if (t !== shown) setTone((shown = t));
       if (v.readyState < 2) return;
       const ahead = target - v.currentTime;
       if (Math.abs(ahead) < 0.6 / film.fps) {
@@ -186,7 +188,6 @@ export default function Tour() {
         <Hero />
         <Captions />
         <Nav tone={tone} onBook={() => goToTick(TOTAL - 1)} />
-        <StopRail tone={tone} active={active} onGo={(i) => goToTick(STOPS[i].at)} />
       </div>
     </section>
   );

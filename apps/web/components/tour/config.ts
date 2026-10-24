@@ -3,8 +3,7 @@ export const TOTAL = 125;
 
 export type Stop = {
   id: string;
-  rail: string; // label in the stop rail
-  at: number; // where a click on the rail lands
+  at: number; // where the page settles when the wheel stops nearby
   kicker?: string; // small script line above the title
   title: string;
   line: string;
@@ -14,26 +13,20 @@ export type Stop = {
 // Each line names something the app really does (search, listing checks, photos and video, filters, shortlists, the map).
 // ponytail: no prices, stats or addresses; the scene is an illustrative model.
 export const STOPS: Stop[] = [
-  { id: "sky", rail: "Bengaluru", at: 12, kicker: "Bengaluru", title: "From above, the city.", line: "Start with an area, a metro line or a project.", tone: "ink" },
-  { id: "tower", rail: "Building", at: 27, kicker: "Verified", title: "Closer, one building.", line: "A person checks every listing before it goes live.", tone: "ink" },
-  { id: "inside", rail: "Living room", at: 56, kicker: "Living room", title: "Inside, room by room.", line: "Photos and video tours before you visit.", tone: "ink" },
-  { id: "kitchen", rail: "Kitchen", at: 62, kicker: "Kitchen", title: "The details that matter.", line: "Filter by BHK, floor, parking and amenities.", tone: "ink" },
-  { id: "rooms", rail: "Bedrooms", at: 70, kicker: "Bedrooms", title: "Picture yourself here.", line: "Shortlist homes and save your searches.", tone: "ink" },
-  { id: "plan", rail: "Plan", at: 91, kicker: "Floor plan", title: "The same home, from above.", line: "Every room, seen from above.", tone: "ink" },
-  { id: "hood", rail: "Neighbourhood", at: 105, kicker: "Neighbourhood", title: "Then the neighbourhood.", line: "Schools, hospitals and the metro, on the map.", tone: "ink" },
-  { id: "close", rail: "Evening", at: 124, title: "", line: "", tone: "paper" },
+  { id: "sky", at: 12, kicker: "Bengaluru", title: "From above, the city.", line: "Start with an area, a metro line or a project.", tone: "ink" },
+  { id: "tower", at: 27, kicker: "Verified", title: "Closer, one building.", line: "A person checks every listing before it goes live.", tone: "ink" },
+  { id: "inside", at: 56, kicker: "Living room", title: "Inside, room by room.", line: "Photos and video tours before you visit.", tone: "ink" },
+  { id: "kitchen", at: 62, kicker: "Kitchen", title: "The details that matter.", line: "Filter by BHK, floor, parking and amenities.", tone: "ink" },
+  { id: "rooms", at: 70, kicker: "Bedrooms", title: "Picture yourself here.", line: "Shortlist homes and save your searches.", tone: "ink" },
+  { id: "plan", at: 91, kicker: "Floor plan", title: "The same home, from above.", line: "Every room, seen from above.", tone: "ink" },
+  { id: "hood", at: 105, kicker: "Neighbourhood", title: "Then the neighbourhood.", line: "Schools, hospitals and the metro, on the map.", tone: "ink" },
+  { id: "close", at: 124, title: "", line: "", tone: "paper" },
 ];
 
 // When each caption is on screen [in, out], in ticks.
 export const CAPTIONS: Record<string, [number, number]> = {
   sky: [7, 15], tower: [21, 33], inside: [52, 59.5], kitchen: [60.5, 65], rooms: [66.5, 80], plan: [87, 95], hood: [101, 109.5],
 };
-
-// Where the nav and rail switch between ink and white, in ticks.
-export const TONE_BREAKS: [number, "ink" | "paper"][] = [
-  [0, "ink"],
-  [113, "paper"],
-];
 
 // Map pins over the neighbourhood shot fade in and out (positions come from the film, components/tour/film.json).
 export const PIN_FADE: [number, number][] = [[0, 0], [101, 0], [103.5, 1], [108.5, 1], [110.5, 0]];

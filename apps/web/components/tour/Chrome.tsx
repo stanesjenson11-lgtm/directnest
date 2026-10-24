@@ -94,25 +94,6 @@ export function Captions() {
   );
 }
 
-/* ---------- Stop rail: where you are in the tour; click to jump ---------- */
-
-export function StopRail({ tone, active, onGo }: { tone: Tone; active: number; onGo: (i: number) => void }) {
-  return (
-    <nav className="rail" data-tone={tone} aria-label="Tour stops">
-      <div className="rail__track" aria-hidden="true"><i className="rail__fill" /></div>
-      <ol className="rail__list">
-        {STOPS.map((s, i) => (
-          <li key={s.id}>
-            <button type="button" className="rail__btn" aria-label={s.rail} aria-current={i === active ? "step" : undefined} onClick={() => onGo(i)}>
-              <span className="rail__dot" aria-hidden="true" />
-              <span className="rail__label">{s.rail}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
 
 /* ---------- Close: the last scene, and the way into a real visit (search, then "Schedule a visit" on a home) ---------- */
 
