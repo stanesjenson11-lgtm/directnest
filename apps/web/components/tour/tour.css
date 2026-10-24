@@ -122,6 +122,14 @@ html.lenis, html.lenis body { height: auto; }
   text-shadow: 0 0.04em 0.5em rgb(0 18 56 / 0.35);
 }
 .hero__line { display: block; }
+/* The intro is CSS, so it runs from the first paint rather than after the page's script has loaded. */
+@keyframes hero-rise { from { transform: translateY(115%); } }
+@keyframes hero-up { from { opacity: 0; transform: translateY(var(--from, 14px)); } }
+@keyframes hero-in { from { opacity: 0; } }
+.hero__title .wi { animation: hero-rise 1.3s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.1s + var(--i, 0) * 0.1s); }
+.hero__sub { animation: hero-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
+.search { --from: 26px; animation: hero-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both; }
+.nav, .rail { animation: hero-in 0.9s ease 0.5s both; }
 /* word-reveal mask: padded so tall caps, ball terminals and script swashes aren't clipped */
 .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.06em 0.14em; margin: -0.06em -0.06em -0.14em; }
 .wi { display: inline-block; }

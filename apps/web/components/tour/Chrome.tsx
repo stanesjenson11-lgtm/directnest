@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { authClient } from "@/lib/auth-client";
 import { RENTALS } from "@/lib/search";
@@ -12,13 +13,14 @@ type Tone = "ink" | "paper";
 // Rent shows only once rentals launch (lib/search.ts). Invest is a sale search.
 const MODES = RENTALS ? (["Buy", "Rent", "Invest"] as const) : (["Buy", "Invest"] as const);
 
-const words = (s: string) => s.split(" ").map((w, i) => (
-  <span key={i}><span className="w"><span className="wi">{w}</span></span>{" "}</span>
+// --i staggers the CSS intro across the whole title
+const words = (s: string, from = 0) => s.split(" ").map((w, i) => (
+  <span key={i}><span className="w"><span className="wi" style={{ "--i": from + i } as CSSProperties}>{w}</span></span>{" "}</span>
 ));
 const TITLE = (
   <>
     <span className="hero__line">{words("Step inside")}</span>
-    <span className="hero__line">{words("your next address.")}</span>
+    <span className="hero__line">{words("your next address.", 2)}</span>
   </>
 );
 
@@ -102,7 +104,7 @@ export function StopRail({ tone, active, onGo }: { tone: Tone; active: number; o
       <ol className="rail__list">
         {STOPS.map((s, i) => (
           <li key={s.id}>
-            <button type="button" className="rail__btn" aria-current={i === active ? "step" : undefined} onClick={() => onGo(i)}>
+            <button type="button" className="rail__btn" aria-label={s.rail} aria-current={i === active ? "step" : undefined} onClick={() => onGo(i)}>
               <span className="rail__dot" aria-hidden="true" />
               <span className="rail__label">{s.rail}</span>
             </button>

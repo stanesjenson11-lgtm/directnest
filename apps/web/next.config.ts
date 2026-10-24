@@ -47,6 +47,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   experimental: {
     agentUpgrade: "security",
+    inlineCss: true, // a few small stylesheets: inlined, they no longer hold up the first paint
   },
   images: {
     loader: "custom",

@@ -52,8 +52,14 @@ export default function Tour() {
     const onFail = () => setReady("failed");
     v.addEventListener("loadeddata", onReady);
     v.addEventListener("error", onFail);
-    // The film starts downloading once the page has loaded, so it never competes with the first view.
+    // The film starts downloading when the visitor first scrolls or touches the page (or 3 s after it has loaded), so
+    // it never competes with the first view, and someone who leaves at once never pays for it.
+    let loaded = false;
     const load = () => {
+      if (loaded) return;
+      loaded = true;
+      for (const e of WAKE) removeEventListener(e, load);
+      clearTimeout(idle);
       // the smallest file this browser can play: AV1 (12 MB), HEVC for Safari on Macs (about 15), else H.264 (30)
       v.src = phone ? SRC.phone
         : v.canPlayType('video/mp4; codecs="av01.0.08M.08"') ? SRC.av1
@@ -61,8 +67,12 @@ export default function Tour() {
         : SRC.h264;
       v.load();
     };
-    if (document.readyState === "complete") load();
-    else addEventListener("load", load, { once: true });
+    const WAKE = ["wheel", "touchstart", "pointerdown", "keydown", "scroll"] as const;
+    for (const e of WAKE) addEventListener(e, load, { passive: true });
+    let idle = 0;
+    const later = () => { idle = window.setTimeout(load, 3000); };
+    if (document.readyState === "complete") later();
+    else addEventListener("load", later, { once: true });
 
     let target = 0;
     const ctx = gsap.context(() => {
@@ -132,7 +142,9 @@ export default function Tour() {
       gone = true;
       teardown();
       cancelAnimationFrame(frameId);
-      removeEventListener("load", load);
+      removeEventListener("load", later);
+      for (const e of WAKE) removeEventListener(e, load);
+      clearTimeout(idle);
       v.removeEventListener("loadeddata", onReady);
       v.removeEventListener("error", onFail);
       api.current?.destroy();
