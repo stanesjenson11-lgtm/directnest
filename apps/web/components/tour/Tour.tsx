@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { buildTour } from "./timeline";
@@ -28,6 +27,9 @@ const PHONE = "(orientation: portrait) and (max-width: 699px)";
 const PHONE_CROP = { x0: 656 / 1920, w: 608 / 1920 };
 const SRC = { av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4", phone: "/tour/film-phone.mp4" };
 
+// The steady pace of a wheel or trackpad glide: film seconds per second (the whole tour in about 36 s).
+const SPEED = 1.4;
+
 /** While the title is up the film holds its first frame (the cut-out of the blocks lines up with it); it catches up by tick 22. */
 const filmTick = (t: number) => (t < 4 ? 0 : t < 22 ? ((t - 4) * 22) / 18 : t);
 
@@ -36,7 +38,6 @@ export default function Tour() {
   const root = useRef<HTMLElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const api = useRef<ReturnType<typeof buildTour> | null>(null);
-  const smooth = useRef<Lenis | null>(null);
   const [tone, setTone] = useState<Tone>("ink");
   const [ready, setReady] = useState<"loading" | "ready" | "failed">("loading");
 
@@ -81,34 +82,59 @@ export default function Tour() {
       });
     }, root);
 
-    // Mouse and trackpad: Lenis glides every wheel move in the same time, however fast it comes. No snapping: the tour
-    // flows wherever the scroll stops. Touch stays the phone's own scroll: smoother there, and phones never download Lenis.
-    let gone = false;
+    // Mouse and trackpad: the tour runs at one steady speed whatever the wheel does. A wheel or trackpad move only says
+    // "keep going" (and which way); the page then glides at a constant pace, easing in, and easing out about 0.4 s after
+    // the last move, so every scene takes the same time however fast or slow the fingers are. Nothing snaps: it stops
+    // where you stop. Past either end of the tour the wheel scrolls the page as usual; touch keeps the phone's own scroll.
     let teardown = () => {};
     if (!reduced && matchMedia("(pointer: fine)").matches) {
-      import("lenis").then(({ default: Smooth }) => {
-        if (gone) return;
-        const l = new Smooth({ duration: 1.05, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, syncTouch: false });
-        smooth.current = l;
-        l.on("scroll", ScrollTrigger.update);
-        const tick = (time: number) => l.raf(time * 1000);
-        gsap.ticker.add(tick);
-        gsap.ticker.lagSmoothing(0);
-        teardown = () => {
-          gsap.ticker.remove(tick);
-          l.destroy();
-          smooth.current = null;
-        };
-      });
+      let dir = 0, until = 0, vel = 0, pos = 0, last = 0, glide = 0;
+      const ends = () => [api.current!.goto(0), api.current!.goto(TOTAL)] as const;
+      const run = (now: number) => {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        const [top, end] = ends();
+        const want = now < until ? dir * ((end - top) / DURATION) * SPEED : 0;
+        vel += (want - vel) * (1 - Math.exp(-dt / 0.22));
+        if (want === 0 && Math.abs(vel) < 4) {
+          vel = 0;
+          glide = 0;
+          return;
+        }
+        pos = Math.min(end, Math.max(top, pos + vel * dt));
+        window.scrollTo(0, pos);
+        glide = requestAnimationFrame(run);
+      };
+      const onWheel = (e: WheelEvent) => {
+        if (e.ctrlKey || !e.deltaY) return; // pinch-zoom, sideways swipes
+        const d = Math.sign(e.deltaY);
+        const [top, end] = ends();
+        if ((d > 0 && scrollY >= end - 1) || (d < 0 && scrollY <= top + 1)) return;
+        e.preventDefault();
+        if (d !== dir) vel = 0; // turning round: no backwards momentum
+        dir = d;
+        until = performance.now() + 400;
+        if (!glide) {
+          pos = scrollY;
+          last = performance.now();
+          glide = requestAnimationFrame(run);
+        }
+      };
+      addEventListener("wheel", onWheel, { passive: false });
+      teardown = () => {
+        removeEventListener("wheel", onWheel);
+        cancelAnimationFrame(glide);
+      };
     }
 
-    // Moving forward, the film plays (frames decode in order, no seeking), its speed following how far behind the scroll
-    // it is. It pauses once caught up and only starts again when the scroll is clearly ahead, so the tail of a scroll
-    // doesn't stop-start it; a frame or two of overshoot is held rather than sought back. Jumps and scrolling back seek.
+    // Moving forward, the film plays (frames decode in order, no seeking) at the speed the scroll is moving, plus a gentle
+    // correction for any gap, so a steady glide gives a steady film. It pauses once caught up; a frame or two of
+    // overshoot is held rather than sought back. Jumps and scrolling back seek.
     const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
     const FRAME = 1 / 60; // the encodes are 60 fps (film/encode.py)
     let canPlay = !reduced;
     let frameId = 0;
+    let speed = 0, lastTarget = 0, lastNow = performance.now(); // how fast the scroll moves the film (s per s)
     // The nav goes white where the film is dark behind the logo, navy where it is light (per frame, from film/tone.py).
     const shade = film.logo[phone ? "phone" : "desk"];
     let shown: Tone = "ink";
@@ -116,13 +142,18 @@ export default function Tour() {
       frameId = requestAnimationFrame(step);
       const t = shade[Math.min(shade.length - 1, Math.round(v.currentTime * film.fps))] === "D" ? "paper" : "ink";
       if (t !== shown) setTone((shown = t));
+      const now = performance.now();
+      const dt = (now - lastNow) / 1000;
+      lastNow = now;
+      if (dt > 0) speed += ((target - lastTarget) / dt - speed) * Math.min(1, dt * 6);
+      lastTarget = target;
       if (v.readyState < 2) return;
       const ahead = target - v.currentTime;
       const going = !v.paused;
-      if (canPlay && ahead < 1.5 && ahead > (going ? FRAME * 0.5 : FRAME * 2)) {
-        v.playbackRate = Math.min(6, Math.max(0.25, ahead * 3));
+      if (canPlay && ahead < 1.5 && ahead > -FRAME * 3 && (speed > 0.05 || ahead > FRAME * 2)) {
+        v.playbackRate = Math.min(4, Math.max(0.25, Math.max(0, speed) + ahead * 1.5));
         if (!going) v.play().catch(() => { canPlay = false; }); // e.g. iOS low-power mode: seeking still works
-      } else if (ahead > -FRAME * 3 && ahead <= (going ? FRAME * 0.5 : FRAME * 2)) {
+      } else if (ahead > -FRAME * 3 && ahead <= FRAME * 2) {
         if (going) v.pause(); // caught up (or a hair past): hold
       } else if (!v.seeking) {
         if (!v.paused) v.pause();
@@ -133,7 +164,6 @@ export default function Tour() {
     frameId = requestAnimationFrame(step);
 
     return () => {
-      gone = true;
       teardown();
       cancelAnimationFrame(frameId);
       removeEventListener("load", later);
@@ -149,8 +179,7 @@ export default function Tour() {
   function goToTick(tick: number) {
     const y = api.current?.goto(tick);
     if (y == null) return;
-    if (smooth.current) smooth.current.scrollTo(y, { duration: 2.6, easing: (t) => 1 - Math.pow(1 - t, 4) });
-    else window.scrollTo({ top: y, behavior: "smooth" });
+    window.scrollTo({ top: y, behavior: "smooth" });
   }
 
   return (

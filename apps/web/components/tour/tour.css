@@ -41,10 +41,6 @@ html:has(.gharaana), html:has(.gharaana) body {
   scrollbar-color: #1560bd #eff4fb;
 }
 
-/* Lenis owns scroll while it runs. */
-html.lenis, html.lenis body { height: auto; }
-.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
-.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 
 .gharaana ::selection { background: var(--sun); color: var(--ink); }
 .gharaana :is(input, button) { caret-color: var(--blue); accent-color: var(--blue); }

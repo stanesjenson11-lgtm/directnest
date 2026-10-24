@@ -25,8 +25,12 @@ MATTE = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "g
 PHONE = "crop=608:1080:656:0"  # the centre 9:16 of the 1920x1080 frame at full resolution (Tour.tsx PHONE_CROP)
 # 60 fps: RIFE (on the GPU) draws the in-between frames, so scrolling never steps through 24 fps frames
 FPS_OUT = 60
-GOP = ["-r", str(FPS_OUT), "-g", "20", "-keyint_min", "20", "-sc_threshold", "0", "-movflags", "+faststart", "-an",
-       "-pix_fmt", "yuv420p"]
+def gop(fps, every):
+    return ["-r", str(fps), "-g", str(every), "-keyint_min", str(every), "-sc_threshold", "0", "-movflags", "+faststart",
+            "-an", "-pix_fmt", "yuv420p"]
+
+
+GOP = gop(FPS_OUT, 20)
 RIFE = (glob.glob(os.path.join(os.path.dirname(SRC), "rife", "*", "rife-ncnn-vulkan.exe")) or [None])[0]
 H264 = ["-c:v", "libx264", "-preset", "veryslow", "-tune", "film", *GOP]
 AV1 = ["-c:v", "libsvtav1", "-preset", "5", *GOP]
@@ -60,7 +64,9 @@ with tempfile.TemporaryDirectory(dir=os.path.dirname(SRC)) as seq:  # same drive
     ffmpeg(*frames, "-vf", DESK, "-crf", "36", *AV1, os.path.join(OUT, "film-1080-av1.mp4"))
     ffmpeg(*frames, "-vf", DESK, "-crf", "26", *HEVC, os.path.join(OUT, "film-1080-hevc.mp4"))
     ffmpeg(*frames, "-vf", DESK, "-crf", "23", *H264, os.path.join(OUT, "film-1080.mp4"))
-    ffmpeg(*frames, "-vf", CUT, "-crf", "23", *H264, os.path.join(OUT, "film-phone.mp4"))
+    # phones: 30 fps at 540x960 is plenty for a touch scroll, and keeps the download near 10 MB
+    ffmpeg(*frames, "-vf", f"{CUT},scale=540:960:flags=lanczos,fps=30", "-crf", "26", "-c:v", "libx264", "-preset", "veryslow",
+           "-tune", "film", *gop(30, 15), os.path.join(OUT, "film-phone.mp4"))
     first = os.path.join(seq, "0001.png")
     webp = ["-c:v", "libwebp", "-quality", "70"]
     ffmpeg("-i", first, "-vf", DESK, *webp, os.path.join(OUT, "film-poster.webp"))
