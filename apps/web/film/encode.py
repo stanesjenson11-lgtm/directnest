@@ -2,9 +2,11 @@
 
   python apps/web/film/encode.py [--draft]
 
-Desktop: AV1 (about half the size), HEVC for Safari on Macs without AV1, H.264 for anything else. Phones: a portrait cut from the centre of the frame, which
-is all a phone shows anyway, so it is sharper there and a fraction of the size. Scrolling forward plays the video
-(Tour.tsx), so a keyframe a second is enough; faststart lets the browser begin before the whole file is in.
+Desktop: HEVC, AV1 and H.264, in the order Tour.tsx tries them (HEVC is the smallest, and decoded in hardware where it
+plays). Phones: a portrait cut from the centre of the frame, which is all a phone shows anyway, so it is sharper there
+and a fraction of the size (HEVC at full crop size for iPhones, H.264 for the rest). Scrolling forward plays the video
+(Tour.tsx), so sparse keyframes are enough: every 1/3 s on desktop (60 fps, g=20), every 1/2 s on phones (30 fps,
+g=15); faststart lets the browser begin before the whole file is in.
 Works on a partial render too: each rendered frame is held until the next one.
 """
 import glob
@@ -34,7 +36,8 @@ GOP = gop(FPS_OUT, 20)
 RIFE = (glob.glob(os.path.join(os.path.dirname(SRC), "rife", "*", "rife-ncnn-vulkan.exe")) or [None])[0]
 H264 = ["-c:v", "libx264", "-preset", "veryslow", "-tune", "film", *GOP]
 AV1 = ["-c:v", "libsvtav1", "-preset", "5", *GOP]
-HEVC = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error", *GOP]  # Safari on any Mac
+# the first desktop choice wherever the browser plays it (Safari on Macs, Chrome/Edge with hardware HEVC)
+HEVC = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error", *GOP]
 
 
 def ffmpeg(*args):
@@ -67,6 +70,9 @@ with tempfile.TemporaryDirectory(dir=os.path.dirname(SRC)) as seq:  # same drive
     # phones: 30 fps at 540x960 is plenty for a touch scroll, and keeps the download near 10 MB
     ffmpeg(*frames, "-vf", f"{CUT},scale=540:960:flags=lanczos,fps=30", "-crf", "26", "-c:v", "libx264", "-preset", "veryslow",
            "-tune", "film", *gop(30, 15), os.path.join(OUT, "film-phone.mp4"))
+    # iPhones: HEVC decodes in hardware at about half H.264's size, so they get the crop's full 608x1080 for the same download
+    ffmpeg(*frames, "-vf", f"{CUT},fps=30", "-crf", "28", "-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1",
+           "-x265-params", "log-level=error", *gop(30, 15), os.path.join(OUT, "film-phone-hevc.mp4"))
     first = os.path.join(seq, "0001.png")
     webp = ["-c:v", "libwebp", "-quality", "70"]
     ffmpeg("-i", first, "-vf", DESK, *webp, os.path.join(OUT, "film-poster.webp"))
