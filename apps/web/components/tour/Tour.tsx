@@ -113,9 +113,11 @@ export default function Tour() {
       });
     }
 
-    // Moving forward a little at a time, the film plays (frames decode in order, no seeking), sped up or slowed to keep
-    // pace with the scroll; jumps and scrolling back seek. Either way it lands on the frame the scroll asks for.
+    // Moving forward, the film plays (frames decode in order, no seeking), its speed following how far behind the scroll
+    // it is. It pauses once caught up and only starts again when the scroll is clearly ahead, so the tail of a scroll
+    // doesn't stop-start it; a frame or two of overshoot is held rather than sought back. Jumps and scrolling back seek.
     const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
+    const FRAME = 1 / 60; // the encodes are 60 fps (film/encode.py)
     let canPlay = !reduced;
     let frameId = 0;
     // The nav goes white where the film is dark behind the logo, navy where it is light (per frame, from film/tone.py).
@@ -127,11 +129,12 @@ export default function Tour() {
       if (t !== shown) setTone((shown = t));
       if (v.readyState < 2) return;
       const ahead = target - v.currentTime;
-      if (Math.abs(ahead) < 0.6 / film.fps) {
-        if (!v.paused) v.pause();
-      } else if (canPlay && ahead > 0 && ahead < 1.5) {
-        v.playbackRate = Math.min(6, Math.max(0.6, ahead * 2.5));
-        if (v.paused) v.play().catch(() => { canPlay = false; }); // e.g. iOS low-power mode: seeking still works
+      const going = !v.paused;
+      if (canPlay && ahead < 1.5 && ahead > (going ? FRAME * 0.5 : FRAME * 2)) {
+        v.playbackRate = Math.min(6, Math.max(0.25, ahead * 3));
+        if (!going) v.play().catch(() => { canPlay = false; }); // e.g. iOS low-power mode: seeking still works
+      } else if (ahead > -FRAME * 3 && ahead <= (going ? FRAME * 0.5 : FRAME * 2)) {
+        if (going) v.pause(); // caught up (or a hair past): hold
       } else if (!v.seeking) {
         if (!v.paused) v.pause();
         v.currentTime = target;

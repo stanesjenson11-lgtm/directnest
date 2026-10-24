@@ -7,6 +7,7 @@ is all a phone shows anyway, so it is sharper there and a fraction of the size. 
 (Tour.tsx), so a keyframe a second is enough; faststart lets the browser begin before the whole file is in.
 Works on a partial render too: each rendered frame is held until the next one.
 """
+import glob
 import os
 import subprocess
 import sys
@@ -15,14 +16,18 @@ import tempfile
 SRC = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-film",
                    "frames-draft" if "--draft" in sys.argv else "frames-1080")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "tour")
-CLEAN = "hqdn3d=2:2:7:7"  # a light temporal denoise: the render's leftover grain costs the most bits and nobody misses it
+CLEAN = "hqdn3d=1:1:4:4"  # a very light temporal denoise: takes the render's leftover grain, keeps the detail
 # the grade: a little less contrast, colours that pop (vibrance, and the sky's blues and cyans pushed), a cool sky lift
 GRADE = ("eq=contrast=0.9:brightness=0.01:gamma=1.03:saturation=1.08,vibrance=intensity=0.45,"
          "huesaturation=saturation=0.55:colors=c+b:strength=3,colorbalance=bh=0.06:rh=-0.02")
 SHARP = "cas=strength=0.55"  # contrast-adaptive sharpening, after any scaling
 MATTE = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-film", "matte-0001.png")  # cutout.py
-PHONE = "crop=608:1080:656:0,scale=540:960:flags=lanczos"  # the centre 9:16 of the 1920x1080 frame (Tour.tsx PHONE_CROP)
-GOP = ["-g", "24", "-keyint_min", "24", "-sc_threshold", "0", "-movflags", "+faststart", "-an", "-pix_fmt", "yuv420p"]
+PHONE = "crop=608:1080:656:0"  # the centre 9:16 of the 1920x1080 frame at full resolution (Tour.tsx PHONE_CROP)
+# 60 fps: RIFE (on the GPU) draws the in-between frames, so scrolling never steps through 24 fps frames
+FPS_OUT = 60
+GOP = ["-r", str(FPS_OUT), "-g", "20", "-keyint_min", "20", "-sc_threshold", "0", "-movflags", "+faststart", "-an",
+       "-pix_fmt", "yuv420p"]
+RIFE = (glob.glob(os.path.join(os.path.dirname(SRC), "rife", "*", "rife-ncnn-vulkan.exe")) or [None])[0]
 H264 = ["-c:v", "libx264", "-preset", "veryslow", "-tune", "film", *GOP]
 AV1 = ["-c:v", "libsvtav1", "-preset", "5", *GOP]
 HEVC = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error", *GOP]  # Safari on any Mac
@@ -41,12 +46,21 @@ with tempfile.TemporaryDirectory(dir=os.path.dirname(SRC)) as seq:  # same drive
         os.link(os.path.join(SRC, last), os.path.join(seq, f"{n:04d}.png"))
     print(f"{len(rendered)} of {max(rendered)} frames rendered")
     frames = ["-framerate", "24", "-i", os.path.join(seq, "%04d.png")]
+    if RIFE:  # 24 -> 60 fps, same 50 s: n = (frames - 1) * 60 / 24 + 1
+        smooth = os.path.join(os.path.dirname(SRC), "frames-60")
+        os.makedirs(smooth, exist_ok=True)
+        for f in os.listdir(smooth):
+            os.remove(os.path.join(smooth, f))
+        n = (max(rendered) - 1) * FPS_OUT // 24 + 1
+        subprocess.run([RIFE, "-i", seq, "-o", smooth, "-m", "rife-v4.6", "-n", str(n), "-f", "%05d.png"], check=True,
+                       cwd=os.path.dirname(RIFE), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        frames = ["-framerate", str(FPS_OUT), "-i", os.path.join(smooth, "%05d.png")]
     DESK = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{SHARP}"
     CUT = f"{CLEAN},{GRADE},{PHONE},{SHARP}"
-    ffmpeg(*frames, "-vf", DESK, "-crf", "44", *AV1, os.path.join(OUT, "film-1080-av1.mp4"))
-    ffmpeg(*frames, "-vf", DESK, "-crf", "30", *HEVC, os.path.join(OUT, "film-1080-hevc.mp4"))
-    ffmpeg(*frames, "-vf", DESK, "-crf", "27", *H264, os.path.join(OUT, "film-1080.mp4"))
-    ffmpeg(*frames, "-vf", CUT, "-crf", "27", *H264, os.path.join(OUT, "film-phone.mp4"))
+    ffmpeg(*frames, "-vf", DESK, "-crf", "36", *AV1, os.path.join(OUT, "film-1080-av1.mp4"))
+    ffmpeg(*frames, "-vf", DESK, "-crf", "26", *HEVC, os.path.join(OUT, "film-1080-hevc.mp4"))
+    ffmpeg(*frames, "-vf", DESK, "-crf", "23", *H264, os.path.join(OUT, "film-1080.mp4"))
+    ffmpeg(*frames, "-vf", CUT, "-crf", "23", *H264, os.path.join(OUT, "film-phone.mp4"))
     first = os.path.join(seq, "0001.png")
     webp = ["-c:v", "libwebp", "-quality", "70"]
     ffmpeg("-i", first, "-vf", DESK, *webp, os.path.join(OUT, "film-poster.webp"))
