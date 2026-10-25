@@ -1,8 +1,7 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Logo } from "@/components/brand/Logo";
-import { authClient } from "@/lib/auth-client";
 import { RENTALS } from "@/lib/search";
 import { STOPS } from "./config";
 
@@ -71,7 +70,16 @@ export function Hero() {
 /* ---------- Nav ---------- */
 
 export function Nav({ tone, onBook }: { tone: Tone; onBook: () => void }) {
-  const { data: session } = authClient.useSession();
+  // Signed in? Asked once the page is idle: the auth client is its own chunk, kept off the first paint's path.
+  const [session, setSession] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const ask = () => import("@/lib/auth-client").then(({ authClient }) => authClient.getSession())
+      .then((r) => { if (live) setSession(!!r.data); }).catch(() => {});
+    const idle = typeof requestIdleCallback === "function"; // (not in older Safari)
+    const id = idle ? requestIdleCallback(ask, { timeout: 3000 }) : window.setTimeout(ask, 1500);
+    return () => { live = false; if (idle) cancelIdleCallback(id); else clearTimeout(id); };
+  }, []);
   return (
     <header className="nav" data-tone={tone}>
       <a href="#top" className="nav__logo" aria-label="Gharaana, back to the start">
