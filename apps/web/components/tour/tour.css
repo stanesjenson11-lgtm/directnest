@@ -118,8 +118,10 @@ html:has(.gharaana), html:has(.gharaana) body {
   text-shadow: 0 0.04em 0.5em rgb(0 18 56 / 0.35);
 }
 .hero__line { display: block; }
-/* The intro is CSS, so it runs from the first paint rather than after the page's script has loaded. */
-@keyframes hero-rise { from { transform: translateY(115%); } }
+/* The intro is CSS, so it runs from the first paint rather than after the page's script has loaded. The title is the
+   phone's LCP element (Chrome skips the full-screen poster), so its words come into focus instead of rising from behind
+   a mask: they are painted, and counted, on the first frame. */
+@keyframes hero-rise { from { transform: translateY(0.12em); filter: blur(10px); } }
 @keyframes hero-up { from { opacity: 0; transform: translateY(var(--from, 14px)); } }
 @keyframes hero-in { from { opacity: 0; } }
 .hero__title .wi { animation: hero-rise 1.3s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.1s + var(--i, 0) * 0.1s); }
