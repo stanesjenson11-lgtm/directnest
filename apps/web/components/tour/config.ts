@@ -38,7 +38,7 @@ export const HOTSPOTS = [
   { id: "bath", label: "Bath", tick: 77.4 },
 ] as const;
 // The hotspots fade in and out with the film, in film seconds (they show while the film holds on the front).
-export const PIN_FADE: [number, number][] = [[0, 0], [12.6, 0], [13.4, 1], [13.96, 1], [13.99, 0]];
+export const PIN_FADE: [number, number][] = [[0, 0], [12.4, 0], [13.1, 1], [13.95, 1], [13.99, 0]];
 
 /** Piecewise lookup in a [tick, value] table, eased between rows. */
 export function pw(table: [number, number][], t: number) {

@@ -24,7 +24,9 @@ def sec_of(frame):
 
 
 # page ticks -> film seconds (linear between rows)
-MAP = [(0, 0.0), (6, 0.0), (20, 4.0), (30, 4.05), (50, 11.0), (54, 13.9), (61, 13.95), (62, 14.0), (70, 17.0), (77, 20.0),
+# (a hold sits at least 0.3 s before a cut: the player may run up to 0.25 s past where the tour stops, and past a cut
+# that would show the next shot)
+MAP = [(0, 0.0), (6, 0.0), (20, 4.0), (30, 4.05), (50, 11.0), (54, 13.6), (61, 13.65), (62, 14.0), (70, 17.0), (77, 20.0),
        (84, 23.0), (90, 25.0), (100, 25.0)]
 
 # where the three room sets stand, far outside the city (each is lit by the same sky through its own windows)

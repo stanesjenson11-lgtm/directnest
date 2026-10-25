@@ -108,7 +108,7 @@ with tempfile.TemporaryDirectory(dir=ROOT) as seq:  # same drive as the frames, 
         no_blend_at_cuts(smooth, max(rendered))
         frames = ["-framerate", str(FPS_OUT), "-i", os.path.join(smooth, "%05d.png")]
     DESK = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{SHARP}"
-    CUT = f"{CLEAN},{GRADE},{PHONE},{SHARP}"
+    CUT = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{PHONE},{SHARP}"  # (the cut is measured on a 1080p frame)
     x265 = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error"]
     fit("film-1080-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), *x265, *gop(FPS_OUT, 20), p))
     fit("film-1080-av1.mp4", 38, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), "-c:v", "libsvtav1", "-preset", "5", *gop(FPS_OUT, 20), p))
@@ -125,6 +125,7 @@ with tempfile.TemporaryDirectory(dir=ROOT) as seq:  # same drive as the frames, 
 for f in ("hero-cutout.webp", "hero-cutout-phone.webp"):  # the apartment film's; the villa's title sits over the clouds
     if os.path.exists(os.path.join(OUT, f)):
         os.remove(os.path.join(OUT, f))
-subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tone.py")], check=True)
+if "--draft" not in sys.argv:  # (a draft keeps the logo white throughout)
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tone.py")], check=True)
 for f in sorted(os.listdir(OUT)):
     print(f, round(os.path.getsize(os.path.join(OUT, f)) / 1e6, 2), "MB")

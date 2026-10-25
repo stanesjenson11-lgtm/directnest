@@ -35,7 +35,11 @@ SAMPLES = {"outside": 128, "rooms": 384}  # on the farm: the rooms are lit throu
 
 def args():
     a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    opt = {"preview": "--preview" in a or "--draft" in a, "draft": "--draft" in a, "sheepit": "--sheepit" in a,
+    # --trial: a quick look at the whole film before the farm renders it: draft settings at 480x270 on the CPU (the GPU
+    # may be busy earning SheepIt points), every other frame (encode.py --draft fills the gaps)
+    trial = "--trial" in a
+    opt = {"preview": "--preview" in a or "--draft" in a or trial, "draft": "--draft" in a or trial, "sheepit": "--sheepit" in a,
+           "trial": trial, "cpu": "--cpu" in a or trial,
            "stills": None, "frames": None, "only": None}
     for k in ("--stills", "--frames", "--only"):
         if k in a:
@@ -242,6 +246,12 @@ def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     world.render(preview=OPT["preview"], draft=OPT["draft"])
+    if OPT["cpu"]:
+        sc.cycles.device = "CPU"
+        sc.cycles.denoiser = "OPENIMAGEDENOISE"
+    if OPT["trial"]:
+        sc.render.resolution_percentage = 75
+        sc.cycles.samples = 10
     sc.render.film_transparent = False  # no compositor: the sky is the background
     sc.use_nodes = False
     sc.frame_start, sc.frame_end = 1, shots.FRAMES + 1
@@ -285,7 +295,7 @@ if __name__ == "__main__":
         folder = os.path.join(OUT, "frames-draft" if OPT["draft"] else "frames-1080")
         os.makedirs(folder, exist_ok=True)
         done = set(os.listdir(folder))
-        for step in (24, 8, 4, 2, 1):  # coarse to fine: the film is whole after the first pass (encode.py holds frames)
+        for step in (24, 8, 4, 2) if OPT["trial"] else (24, 8, 4, 2, 1):  # coarse to fine: whole after the first pass
             for f in [*range(a, b + 1, step), b]:
                 name = f"f{f:04d}.png"
                 if name in done:
