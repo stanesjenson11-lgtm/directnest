@@ -7,7 +7,7 @@ import { Anton, Gloock, Hanken_Grotesk, Yellowtail } from "next/font/google";
 const fallback = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-fallback", display: "swap" });
 const hero = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
 const serif = Gloock({ subsets: ["latin"], weight: "400", variable: "--font-gloock", display: "swap", preload: false }); // captions, below the fold
-const script = Yellowtail({ subsets: ["latin"], weight: "400", variable: "--font-yellowtail", display: "swap" });
+const script = Yellowtail({ subsets: ["latin"], weight: "400", variable: "--font-yellowtail", display: "swap", preload: false }); // captions
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return <div className={`${fallback.variable} ${hero.variable} ${serif.variable} ${script.variable}`}>{children}</div>;
