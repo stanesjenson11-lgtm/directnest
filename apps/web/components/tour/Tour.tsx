@@ -53,14 +53,16 @@ export default function Tour() {
     const onFail = () => setReady("failed");
     v.addEventListener("loadeddata", onReady);
     v.addEventListener("error", onFail);
-    // The film starts downloading when the visitor first scrolls or touches the page (or 3 s after it has loaded), so
-    // it never competes with the first view, and someone who leaves at once never pays for it.
-    let loaded = false;
+    // The film, and the HTML layer's timeline (with GSAP), start downloading when the visitor first scrolls or touches
+    // the page (or 3 s after it has loaded): they never compete with the first view, which is plain HTML and CSS, and
+    // someone who leaves at once never pays for them.
+    let dead = false, stop = () => {}, loaded = false;
     const load = () => {
       if (loaded) return;
       loaded = true;
       for (const e of WAKE) removeEventListener(e, load);
       clearTimeout(idle);
+      import("./timeline").then(({ buildTour }) => { if (!dead) stop = start(buildTour); });
       // desktops: HEVC where it plays (43.6 MB, decoded in hardware), else AV1 (47.1), else H.264 (77.5);
       // phones: HEVC at the crop's full 608x1080 (9.5; iPhones decode it in hardware: sharper for the same download),
       // else H.264 at 540x960 (10.1)
@@ -74,13 +76,11 @@ export default function Tour() {
     const WAKE = ["wheel", "touchstart", "pointerdown", "keydown", "scroll"] as const;
     for (const e of WAKE) addEventListener(e, load, { passive: true });
     let idle = 0;
+    if (scrollY > 2) load(); // a reload mid-tour: the browser restored the scroll before these listeners were here
     const later = () => { idle = window.setTimeout(load, 3000); };
     if (document.readyState === "complete") later();
     else addEventListener("load", later, { once: true });
 
-    // the HTML layer's timeline (and GSAP) arrive as their own chunk once the page is up: the hero is plain HTML and CSS
-    let dead = false, stop = () => {};
-    import("./timeline").then(({ buildTour }) => { if (!dead) stop = start(buildTour); });
     return () => {
       dead = true;
       stop();
