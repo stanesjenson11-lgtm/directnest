@@ -162,14 +162,20 @@ def flat(name, color, rough=0.6, metal=0.0, emit=None, emit_strength=0.0, coat=0
     return m
 
 
-def pbr(name, asset, scale, tint=None, palette=None, rough_mul=1.0, bump=0.2, grime=0.0, metal=0.0, res="2k", obj=True, detail=0.75):
+def pbr(name, asset, scale, tint=None, palette=None, rough_mul=1.0, bump=0.2, grime=0.0, metal=0.0, res="2k", obj=True, detail=0.75, rot=None):
     """A Poly Haven surface projected in world space (metres per tile = scale), so any size of box keeps true scale.
-    palette: a list of 0xRRGGBB picked per object/instance (Object Info > Random), multiplied over the texture's detail."""
+    palette: a list of 0xRRGGBB picked per object/instance (Object Info > Random), multiplied over the texture's detail.
+    rot: (x, y, z) radians turning the texture first, e.g. (0, pi/2, 0) stands horizontal boards upright."""
     m, nd = _material(name)
     if not nd:
         return m
     maps = ph.texture(asset, res)
     vec = nd.world_pos(scale)
+    if rot:
+        mp = nd.new("ShaderNodeMapping")
+        mp.inputs["Rotation"].default_value = rot
+        nd.link(vec, mp.inputs["Vector"])
+        vec = mp.outputs["Vector"]
     b = nd.new("ShaderNodeBsdfPrincipled")
     b.inputs["Metallic"].default_value = metal
     col = nd.image(maps["diff"], vec).outputs["Color"]

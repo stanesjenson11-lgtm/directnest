@@ -12,7 +12,9 @@ import os
 import subprocess
 import tempfile
 
-ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-film")
+ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-villa")
+# ponytail: the phone patch assumes the portrait cut at its centre; the villa's cut pans on the front (shots.CROP), where
+# the logo's tone is the same either way (dusk sky). Measure per frame if a pan ever crosses light and dark.
 FILM_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "components", "tour", "film.json")
 PATCH = {"desk": "crop=240:60:60:20", "phone": "crop=225:43:735:27"}  # x, y of the logo in the 1920x1080 frame
 

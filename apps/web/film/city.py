@@ -725,7 +725,8 @@ def palms():
 # ---------------------------------------------------------------- build
 
 
-def build(preview=False):
+def build(preview=False, gated=None):
+    """gated(K, r): what fills the community block (default: the apartment blocks' compound; villa.py: its villa rows)."""
     c = kit.coll("city")
     mats = materials()
     r = random.Random(2026)
@@ -764,7 +765,7 @@ def build(preview=False):
                     if r.random() < 0.75:
                         K.trees.append((x + r.random() * 4, y, 0.0, r.random() * 6.3, 0.8 + r.random() * 0.5, 0.8 + r.random() * 0.5, 0.8 + r.random() * 0.5, r.randrange(2)))
             poles_along(K, r, bx0, bx1, by0 - 0.8, "x")
-    community(K, r)
+    (gated or community)(K, r)
     lake(K, r, c, mats)
     metro(K, c, mats)
     far_city(K, r)

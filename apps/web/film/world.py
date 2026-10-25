@@ -23,7 +23,8 @@ def _theta(asset):
     return math.pi * (1 - 2 * SUN_U[asset]) - SUN_AZ[asset]
 
 
-def sky(res="8k"):
+def sky(res="8k", spin=None):
+    """spin: [(frame, radians)] to turn the sky by, keyed per frame (the villa's timelapse), instead of the slow drift."""
     w = bpy.data.worlds.new("sky")
     bpy.context.scene.world = w
     w.use_nodes = True
@@ -34,8 +35,13 @@ def sky(res="8k"):
     for asset in (DAY, DUSK):
         mp = n.new("ShaderNodeMapping")
         mp.vector_type = "POINT"
-        d = mp.inputs["Rotation"].driver_add("default_value", 2).driver
-        d.expression = f"{_theta(asset):.5f} + frame * {DRIFT:.8f}"
+        if spin:
+            for f, a in spin:
+                mp.inputs["Rotation"].default_value[2] = _theta(asset) + a
+                mp.inputs["Rotation"].keyframe_insert("default_value", index=2, frame=f)
+        else:
+            d = mp.inputs["Rotation"].driver_add("default_value", 2).driver
+            d.expression = f"{_theta(asset):.5f} + frame * {DRIFT:.8f}"
         env = n.new("ShaderNodeTexEnvironment")
         env.image = bpy.data.images.load(ph.hdri(asset, res), check_existing=True)
         env.image.use_half_precision = True  # half the VRAM for the two big skies
