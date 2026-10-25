@@ -4,11 +4,14 @@ import { Anek_Latin, Geist } from "next/font/google";
 import { RENTALS } from "@/lib/search";
 import "./globals.css";
 
+// Not preloaded: the home page (the tour) never uses it, and its 100 KB preload was holding up the tour's first paint on
+// phones. Other pages fetch it on first use; the size-adjusted fallback keeps the swap from shifting the layout.
 const anek = Anek_Latin({
   subsets: ["latin"],
   axes: ["wdth"],
   variable: "--font-anek",
   display: "swap",
+  preload: false,
 });
 
 // Only used on the sign-in screens, whose design is set in it. Not preloaded, so other pages don't fetch it.
