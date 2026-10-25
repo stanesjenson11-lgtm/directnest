@@ -43,8 +43,26 @@ def _drive(nd, prop):
     return v.outputs[0]
 
 
-def _layer(nd, asset, scale, tint=None, rot=None, res="2k"):
-    """One Poly Haven surface in world space: (colour, roughness, height) sockets."""
+_means = {}
+
+
+def _mean_lum(path):
+    """The average linear luminance of a texture (measured on a 16x16 copy), so a tint can keep its full contrast."""
+    if path not in _means:
+        img = bpy.data.images.load(path, check_existing=True)
+        small = img.copy()
+        small.scale(16, 16)
+        px = small.pixels[:]
+        bpy.data.images.remove(small)
+        lin = lambda v: v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+        lums = [0.2126 * lin(px[i]) + 0.7152 * lin(px[i + 1]) + 0.0722 * lin(px[i + 2]) for i in range(0, len(px), 4)]
+        _means[path] = max(0.02, sum(lums) / len(lums))
+    return _means[path]
+
+
+def _layer(nd, asset, scale, tint=None, rot=None, res="2k", keep=False):
+    """One Poly Haven surface in world space: (colour, roughness, height) sockets.
+    keep=True: the tint takes the texture's light and dark at full strength (grain, joints, relief), not washed out."""
     maps = ph.texture(asset, res)
     vec = nd.world_pos(scale)
     if rot:
@@ -53,7 +71,15 @@ def _layer(nd, asset, scale, tint=None, rot=None, res="2k"):
         nd.link(vec, mp.inputs["Vector"])
         vec = mp.outputs["Vector"]
     col = nd.image(maps["diff"], vec).outputs["Color"]
-    if tint:
+    if tint and keep:
+        bw = nd.new("ShaderNodeRGBToBW")
+        nd.link(col, bw.inputs[0])
+        det = nd.math("MULTIPLY", bw.outputs[0], 1.0 / _mean_lum(maps["diff"]))
+        dc = nd.new("ShaderNodeCombineColor")
+        for i in range(3):
+            nd.link(det, dc.inputs[i])
+        col = nd.mix("MULTIPLY", 1.0, (*srgb(tint), 1), dc.outputs[0])
+    elif tint:
         bw = nd.new("ShaderNodeRGBToBW")
         nd.link(col, bw.inputs[0])
         det = nd.math("MULTIPLY", bw.outputs[0], 2.0)
@@ -76,8 +102,8 @@ def wipe(name, a, b, axis="Z", reverse=False, bump=0.4, edge=0.12):
     m.use_nodes = True
     nd = kit.Nodes(m.node_tree)
     nd.n.clear()
-    ca, ra, ha = _layer(nd, *a)
-    cb, rb, hb = _layer(nd, *b)
+    ca, ra, ha = _layer(nd, *a[:3], keep=len(a) > 3 and a[3])
+    cb, rb, hb = _layer(nd, *b[:3], keep=len(b) > 3 and b[3])
     fin = nd.new("ShaderNodeAttribute", attribute_type="OBJECT", attribute_name="finish").outputs["Fac"]
     gen = nd.new("ShaderNodeTexCoord")
     sep = nd.new("ShaderNodeSeparateXYZ")
@@ -103,6 +129,28 @@ def wipe(name, a, b, axis="Z", reverse=False, bump=0.4, edge=0.12):
     nd.link(height, bp.inputs["Height"])
     nd.link(bp.outputs["Normal"], bs.inputs["Normal"])
     kit._out(nd, bs.outputs[0])
+    return m
+
+
+def surface(name, asset, scale, tint, bump=0.5, rot=None, rough=1.0):
+    """A villa surface whose texture keeps its full contrast under the tint (wood grain, stone joints, tiles)."""
+    m = bpy.data.materials.get(name)
+    if m:
+        return m
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nd = kit.Nodes(m.node_tree)
+    nd.n.clear()
+    col, r, h = _layer(nd, asset, scale, tint, rot=rot, keep=True)
+    b = nd.new("ShaderNodeBsdfPrincipled")
+    nd.link(col, b.inputs["Base Color"])
+    nd.link(nd.math("MULTIPLY", r, rough, clamp=True), b.inputs["Roughness"])
+    bp = nd.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value = bump
+    bp.inputs["Distance"].default_value = 0.02 * scale
+    nd.link(h, bp.inputs["Height"])
+    nd.link(bp.outputs["Normal"], b.inputs["Normal"])
+    kit._out(nd, b.outputs[0])
     return m
 
 
@@ -135,16 +183,18 @@ def materials(neighbour=False):
                            palette=PLASTER if neighbour else None, tint=None if neighbour else PLASTER[0], bump=0.12),
         "band": kit.pbr("villa_band", "beige_wall_001", 2.2, tint=0xa8937c, bump=0.12),
         "panel": kit.tiles("villa_panel", "beige_wall_001", 2.2, 0xb9a68e, rough=0.55, size=(0.32, 9.0), grout=0x8a7a68),
-        "stone": kit.pbr("villa_stone", "rock_tile_floor", 1.7, tint=0xc4baac, bump=0.7),
-        "wood": kit.pbr("villa_wood", "dark_wooden_planks", 1.4, tint=0x8b5636, bump=0.25, rot=up),
-        "garage": kit.pbr("villa_garage", "dark_wooden_planks", 1.2, tint=0x7e4b2d, bump=0.3),
-        "soffit": kit.pbr("villa_soffit", "dark_wooden_planks", 1.2, tint=0x5a3a26, bump=0.1),
-        "roof": kit.pbr("villa_roof", "grey_roof_tiles_02", 1.4, tint=0x4f4036, bump=0.7),
+        "stone": surface("villa_stone", "rock_tile_floor", 1.25, 0xbdb09f, bump=1.0),
+        "wood": surface("villa_wood", "dark_wooden_planks", 1.4, 0x7d4a2c, bump=0.3, rot=up),
+        "garage": surface("villa_garage", "dark_wooden_planks", 1.0, 0x8a5130, bump=0.5),
+        "soffit": surface("villa_soffit", "dark_wooden_planks", 1.2, 0x56382a, bump=0.15),
+        "roof": surface("villa_roof", "grey_roof_tiles_02", 1.4, 0x56402f, bump=0.8),
         "frame": kit.flat("villa_frame", 0x2a2522, rough=0.35, metal=0.7),
         "glass": kit.glass("villa_glass", 0xd3dcdc, rough=0.0),
         "rail": kit.glass("villa_rail", 0xe2ebe8, rough=0.0),
-        "step": kit.pbr("villa_step", "rock_tile_floor", 1.2, tint=0x9d968d, bump=0.3),
-        "deck": kit.pbr("villa_deck", "dark_wooden_planks", 1.0, tint=0x7a4e30, bump=0.3),
+        "step": surface("villa_step", "rock_tile_floor", 1.2, 0x9d968d, bump=0.4),
+        "deck": surface("villa_deck", "dark_wooden_planks", 1.0, 0x7a4e30, bump=0.4),
+        "cabinet": kit.flat("villa_cabinet", 0xd9cdbb, rough=0.35, coat=0.3),
+        "walnut": surface("villa_walnut", "oak_veneer_01", 1.0, 0x6b4a33, bump=0.1),
         "pavers": kit.terrain("villa_pavers", [("rectangular_paving", 2.4), ("patterned_concrete_pavers", 2.0)],
                               [(9.0, 0.72, 0.05)], bump=0.6, tint=0x968a80, tint_mix=0.45),
         "lawn": kit.terrain("villa_lawn", [("leafy_grass", 2.5), ("sparse_grass", 3.0)], [(14.0, 0.7, 0.06)], bump=0.9,
@@ -164,8 +214,8 @@ def build_materials():
         "wall": wipe("villa_wall", ("brick_wall_02", 1.3, None), ("beige_wall_001", 2.2, PLASTER[0])),
         "wall_band": wipe("villa_band_wipe", ("brushed_concrete", 2.5, 0xb3aea6), ("beige_wall_001", 2.2, 0xa8937c)),
         "slab": wipe("villa_slab", ("brushed_concrete", 2.5, 0xb3aea6), ("beige_wall_001", 2.2, PLASTER[0])),
-        "drive": wipe("villa_drive", ("red_laterite_soil_stones", 3.0, None), ("rectangular_paving", 2.4, 0x968a80),
-                      axis="Y", reverse=True, bump=0.8, edge=0.05),
+        "drive": wipe("villa_drive", ("red_laterite_soil_stones", 3.0, None), ("rectangular_paving", 3.0, 0x8e8174, True),
+                      axis="Y", reverse=True, bump=1.2, edge=0.05),
         "lawn": wipe("villa_lawn_wipe", ("red_laterite_soil_stones", 3.0, None), ("leafy_grass", 2.5, 0x5f8f34),
                      axis="X", bump=0.9, edge=0.08),
         "concrete": kit.pbr("villa_concrete", "brushed_concrete", 2.5, tint=0xb3aea6, bump=0.2),
@@ -383,7 +433,15 @@ def plan(site=True):
     gw.add(1.05, 0.35, 4.0, 1.72, 0.4, 6.2)
     gw.add(2.55, 0.35, 4.0, 4.8, 0.4, 6.2)
     gw.add(-1.9, 2.4, F1, -0.2, 2.5, 5.9)
+    kc = part("kitchen", "cabinet", "glass", anim="pop")
+    kc.add(-6.4, 3.85, FFL, -3.9, 4.45, 1.35)  # base cabinets
+    kc.add(-6.4, 4.2, 2.05, -3.9, 4.45, 2.95)  # wall cabinets
+    kw = part("kitchen_wood", "walnut", "glass", anim="pop")
+    kw.add(-6.45, 3.8, 1.35, -3.85, 4.48, 1.4)  # the counter
+    kw.add(-5.6, 2.2, FFL, -4.4, 3.0, 1.38)  # an island
     lens = part("lenses", "lens", "glass", anim="pop")
+    for x in (-5.4, -4.6):  # pendants over the island
+        lens.add(x - 0.09, 2.51, 2.15, x + 0.09, 2.69, 2.33)
     for x, y, z in lights():
         lens.add(x - 0.05, y - 0.05, z - 0.012, x + 0.05, y + 0.05, z)
     for x, z in ((-6.53, 1.9), (0.6, 1.9), (6.42, 1.9)):  # wall sconces

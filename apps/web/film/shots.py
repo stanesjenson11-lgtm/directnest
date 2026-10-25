@@ -51,8 +51,8 @@ SHOTS = [
         (14.0, (0.0, -19.5, 1.7), (0.0, 0.0, 1.7), 30, 0.12),  # the front as in the reference photo, verticals straight
     ]),
     ("hall", 14.0, 17.0, [  # straight down the room at the TV wall, through the wood portal
-        (14.0, _at(HALL, (0.0, -3.5, 1.25)), _at(HALL, (0.0, 7.5, 1.25)), 62, 0.06),
-        (17.0, _at(HALL, (0.0, -2.7, 1.25)), _at(HALL, (0.0, 7.5, 1.25)), 62, 0.06),
+        (14.0, _at(HALL, (0.0, -2.3, 1.22)), _at(HALL, (0.0, 7.5, 1.22)), 53, 0.07),
+        (17.0, _at(HALL, (0.0, -1.65, 1.22)), _at(HALL, (0.0, 7.5, 1.22)), 53, 0.07),
     ]),
     ("bedroom", 17.0, 20.0, [  # from the corner: panelled bed wall on the left, the glass wall to the terrace on the right
         (17.0, _at(BED, (3.1, -1.6, 1.45)), _at(BED, (-1.3, 3.5, 1.05)), 52, 0.03),

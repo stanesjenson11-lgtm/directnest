@@ -88,7 +88,8 @@ def no_blend_at_cuts(folder, n_src):
                 shutil.copyfile(os.path.join(folder, files[k]), os.path.join(folder, f))
 
 
-rendered = {int(f[1:5]): f for f in os.listdir(SRC) if f.startswith("f") and f.endswith(".png")}
+# our frames are f0001.png; the farm's download names them its own way: the frame is the number in the name
+rendered = {int("".join(c for c in f if c.isdigit())): f for f in os.listdir(SRC) if f.endswith(".png") and any(c.isdigit() for c in f)}
 os.makedirs(OUT, exist_ok=True)
 with tempfile.TemporaryDirectory(dir=ROOT) as seq:  # same drive as the frames, so hard links work
     last = None

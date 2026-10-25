@@ -58,6 +58,14 @@ class Set:
         self.objs.append(o)
         return o
 
+    def soft(self, name, mat, x0, y0, z0, x1, y1, z1, r=0.03):
+        """An upholstered block: a box with rounded, softened edges (a bed base, a mattress, a duvet)."""
+        o = Boxes().add(x0, y0, z0, x1, y1, z1).build(f"{self.name}_{name}", mat, self.c, smooth=True)
+        m = o.modifiers.new("soft", "BEVEL")
+        m.width, m.segments, m.limit_method, m.harden_normals = r, 5, "NONE", False
+        self.objs.append(o)
+        return o
+
     def model(self, asset, x, y, z, rot=0.0, height=None, scale=1.0, paint=None):
         m, h = ph.model(asset)
         if paint:  # repaint the model's own materials (shared by every instance of it)
@@ -227,7 +235,7 @@ def split_stone(name):
     m, nd = kit._material(name)
     if not nd:
         return m
-    col, rough, height = house._layer(nd, "rock_face_03", 0.9, 0xc9ab8d, res="2k")
+    col, rough, height = house._layer(nd, "rock_face_03", 0.8, 0xbf9e80, res="2k")
     u, v = kit._plane_uv(nd, (0.62, 0.41))
     row = nd.math("FLOOR", v)
     uu = nd.math("FRACT", nd.math("ADD", u, nd.math("MULTIPLY", nd.math("MODULO", row, 2.0), 0.5)))
@@ -249,8 +257,8 @@ def split_stone(name):
     nd.link(col, b.inputs["Base Color"])
     nd.link(rough, b.inputs["Roughness"])
     bp = nd.new("ShaderNodeBump")
-    bp.inputs["Strength"].default_value = 0.9
-    bp.inputs["Distance"].default_value = 0.02
+    bp.inputs["Strength"].default_value = 1.0
+    bp.inputs["Distance"].default_value = 0.06
     nd.link(nd.math("SUBTRACT", nd.math("MULTIPLY", height, 1.0), nd.math("MULTIPLY", edge, 0.6)), bp.inputs["Height"])
     nd.link(bp.outputs["Normal"], b.inputs["Normal"])
     kit._out(nd, b.outputs[0])
@@ -258,13 +266,13 @@ def split_stone(name):
 
 
 def mats():
-    oak = 0xc69f74
+    oak = 0xb4916c  # a pale, neutral oak (the photos' wood is not orange)
     return {
         "oak": kit.pbr("room_oak", "oak_veneer_01", 1.1, tint=oak, bump=0.08),
         "oak_dark": kit.pbr("room_oak_dark", "oak_veneer_01", 1.1, tint=0x8e6440, bump=0.08),
         "oak_v": kit.pbr("room_oak_v", "oak_veneer_01", 1.1, tint=oak, bump=0.08, rot=(0, math.pi / 2, 0)),
-        "panel": kit.tiles("room_oak_panel", "oak_veneer_01", 1.1, 0xc4a078, rough=0.45, size=(0.58, 9.0), grout=0x7d5f42),
-        "herring": kit.pbr("room_herringbone", "herringbone_parquet", 2.2, tint=0xd3b48c, bump=0.1),
+        "panel": kit.pbr("room_oak_panel", "oak_veneer_01", 0.7, tint=0xb08a5e, bump=0.15, rot=(0, math.pi / 2, 0)),
+        "herring": kit.pbr("room_herringbone", "herringbone_parquet", 1.6, tint=0xd6bf9b, bump=0.15, rough_mul=1.8),
         "floor_oak": kit.pbr("room_floor_oak", "oak_veneer_01", 1.8, tint=0xb48a62, bump=0.05),
         "marble": kit.pbr("room_marble", "marble_01", 2.6, bump=0.02),
         "wall": kit.pbr("room_wall", "beige_wall_001", 2.0, tint=0xf0ebe3, bump=0.03),
@@ -293,12 +301,12 @@ def mats():
         "sheet": fabric("room_sheet", "rough_linen", 0xf1efea),
         "pillow_taupe": fabric("room_pillow_taupe", "rough_linen", 0xa69b8b),
         "throw": fabric("room_throw", "knitted_fleece", 0x6b5544, scale=0.35, sheen=0.6),
-        "rug_wool": fabric("room_rug_wool", "rough_linen", 0xd6cfc4, scale=0.3),
+        "rug_wool": fabric("room_rug_wool", "rough_linen", 0xbdb5a9, scale=0.25),
         "curtain": sheer("room_curtain"),
         "stone": split_stone("room_split_stone"),
         "bath_floor": kit.tiles("room_bath_floor", "marble_01", 1.6, 0xcdbfac, rough=0.35, size=(0.9, 0.9), grout=0xa69886),
         "vanity": kit.pbr("room_vanity", "oak_veneer_01", 1.0, tint=0x8b5a36, bump=0.05),
-        "basin": kit.pbr("room_basin", "rock_tile_floor", 0.6, tint=0xbfb5a8, bump=0.6),
+        "basin": kit.pbr("room_basin", "rock_face_03", 0.5, tint=0xb3a796, bump=1.0),
         "tub": kit.flat("room_tub", 0xebe6de, rough=0.35, coat=0.3),
         "mirror": kit.flat("room_mirror", 0xe8e8e8, rough=0.01, metal=1.0),
         "pebbles": kit.pbr("room_pebbles", "river_small_rocks", 0.6, tint=0xa49684, bump=0.8),
@@ -359,59 +367,60 @@ def hall():
     S.model("ceramic_vase_02", 0.62, D - 0.25, 0.63, 0.0, height=0.26)
     S.model("brass_vase_02", -0.62, D - 0.25, 0.63, 0.0, height=0.2)
     # the ceiling: a perimeter of downlights, an oak panel and the fan, and four oak beam ends with lights
-    S.box("oak", -0.95, 1.9, H - 0.16, 0.95, 3.1, H)
+    S.box("oak", -0.95, 2.95, H - 0.16, 0.95, 4.15, H)
     for k in range(4):
-        S.box("oak_dark", -0.95 + k * 0.475, 1.9, H - 0.165, -0.95 + k * 0.475 + 0.006, 3.1, H - 0.16)
-    S.model("ceiling_fan", 0.0, 2.5, H - 0.62, 0.3, height=0.6, paint=0xf1f0ec)
+        S.box("oak_dark", -0.95 + k * 0.475, 2.95, H - 0.165, -0.95 + k * 0.475 + 0.006, 4.15, H - 0.16)
+    S.model("ceiling_fan", 0.0, 3.55, H - 0.62, 0.3, height=0.6, paint=0xf1f0ec)
     for x in (-1.75, -0.9, 0.9, 1.75):
-        S.box("oak", x - 0.17, 3.35, H - 0.22, x + 0.17, 3.85, H)
-    lights = [(x, y) for x in (-2.4, 2.4) for y in (0.0, 1.4, 2.8, 4.2)] + [(x, 4.9) for x in (-1.2, 1.2)] + [(x, 3.6) for x in (-1.75, -0.9, 0.9, 1.75)]
+        S.box("oak", x - 0.17, 4.25, H - 0.22, x + 0.17, 4.75, H)
+    lights = [(x, y) for x in (-2.4, 2.4) for y in (-1.2, 0.6, 2.6, 4.1)] + [(x, 5.0) for x in (-1.2, 1.2)] + [(x, 4.5) for x in (-1.75, -0.9, 0.9, 1.75)]
     for x, y in lights:
-        z = H - (0.22 if y == 3.6 else 0.0)
+        z = H - (0.22 if y == 4.5 else 0.0)
         S.box("glow", x - 0.045, y - 0.045, z - 0.006, x + 0.045, y + 0.045, z)
         S.light("SPOT", (x, y, z - 0.02), 32.0, size=0.03, spot=(95, 0.7))
     # the wood portal in the foreground, and the open shelves on its left
-    S.box("oak", -W, -0.35, 2.78, W, 0.05, H)
-    S.box("oak", 2.9, -0.35, 0.0, W, 0.05, 2.78)
+    p = 2.0  # the portal's front face
+    S.box("oak", -W, p - 0.4, 2.78, W, p, H)
+    S.box("oak", 2.9, p - 0.4, 0.0, W, p, 2.78)
     for x0, x1 in ((-W, -3.13), (-2.37, -2.3)):
-        S.box("oak", x0, -0.42, 0.0, x1, 0.05, 2.78)
-    S.box("oak", -2.3, -0.42, 0.0, -2.0, 0.05, 2.78)  # the post
+        S.box("oak", x0, p - 0.47, 0.0, x1, p, 2.78)
+    S.box("oak", -2.3, p - 0.47, 0.0, -2.0, p, 2.78)  # the post
     for z in (0.0, 0.42, 0.88, 1.34, 1.8, 2.26):
-        S.box("oak", -3.13, -0.42, z, -2.37, 0.05, z + 0.04)
-        S.box("glow", -3.0, -0.2, z + 0.4 - 0.004, -2.5, -0.15, z + 0.4)  # shelf lights
-    S.model("book_encyclopedia_set_01", -2.75, -0.18, 1.34 + 0.04, 0.0, height=0.24)
-    S.model("book_encyclopedia_set_01", -2.75, -0.18, 0.42 + 0.04, 0.0, height=0.26)
-    S.model("horse_statue_01", -2.75, -0.18, 0.88 + 0.04, math.pi / 2, height=0.26)
-    S.model("ceramic_vase_04", -2.75, -0.18, 1.8 + 0.04, 0.0, height=0.3)
-    S.model("brass_vase_01", -2.75, -0.18, 2.26 + 0.04, 0.0, height=0.22)
+        S.box("oak", -3.13, p - 0.47, z, -2.37, p, z + 0.04)
+        S.box("glow", -3.0, p - 0.25, z + 0.4 - 0.004, -2.5, p - 0.2, z + 0.4)  # shelf lights
+    S.model("book_encyclopedia_set_01", -2.75, p - 0.23, 1.34 + 0.04, 0.0, height=0.24)
+    S.model("book_encyclopedia_set_01", -2.75, p - 0.23, 0.42 + 0.04, 0.0, height=0.26)
+    S.model("horse_statue_01", -2.75, p - 0.23, 0.88 + 0.04, math.pi / 2, height=0.26)
+    S.model("ceramic_vase_04", -2.75, p - 0.23, 1.8 + 0.04, 0.0, height=0.3)
+    S.model("brass_vase_01", -2.75, p - 0.23, 2.26 + 0.04, 0.0, height=0.22)
     # framed black-and-white prints on the left wall, two tall abstracts on the right
-    for y, z, w, h in ((1.0, 1.55, 0.42, 0.62), (1.62, 1.75, 0.38, 0.55), (1.62, 1.12, 0.38, 0.5), (2.2, 1.45, 0.3, 0.5), (2.65, 1.05, 0.36, 0.5)):
+    for y, z, w, h in ((2.4, 1.55, 0.42, 0.62), (3.02, 1.75, 0.38, 0.55), (3.02, 1.12, 0.38, 0.5), (3.6, 1.45, 0.3, 0.5), (4.05, 1.05, 0.36, 0.5)):
         S.box("black", -W, y - w / 2, z - h / 2, -W + 0.03, y + w / 2, z + h / 2)
         S.box("mat_white", -W + 0.03, y - w / 2 + 0.03, z - h / 2 + 0.03, -W + 0.032, y + w / 2 - 0.03, z + h / 2 - 0.03)
         S.box("art_bw", -W + 0.032, y - w / 2 + 0.08, z - h / 2 + 0.08, -W + 0.034, y + w / 2 - 0.08, z + h / 2 - 0.08)
-    for y in (2.6, 3.25):
+    for y in (3.3, 3.95):
         S.box("black", W - 0.03, y - 0.27, 1.05, W, y + 0.27, 2.05)
         S.box("mat_white", W - 0.032, y - 0.24, 1.08, W - 0.03, y + 0.24, 2.02)
         S.box("art_gold", W - 0.034, y - 0.18, 1.18, W - 0.032, y + 0.18, 1.92)
     # two slatted oak sofas facing each other, the coffee table, the rug
     for side in (-1, 1):
-        sofa(S, M, side * 1.95, 2.95, side)
-    S.box("oak", -0.62, 2.55, 0.38, 0.62, 3.35, 0.43)
-    S.box("oak", -0.6, 2.57, 0.1, 0.6, 3.33, 0.13)
+        sofa(S, M, side * 1.95, 3.75, side)
+    S.box("oak", -0.62, 3.35, 0.38, 0.62, 4.15, 0.43)
+    S.box("oak", -0.6, 3.37, 0.1, 0.6, 4.13, 0.13)
     for x in (-0.58, 0.54):
-        for y in (2.57, 3.29):
+        for y in (3.37, 4.09):
             S.box("oak", x, y, 0.0, x + 0.05, y + 0.05, 0.38)
-    S.model("brass_candleholders", 0.2, 2.95, 0.43, 0.0, height=0.2)
-    S.box("rug", -1.65, 1.75, 0.0, 1.65, 4.25, 0.012)
-    S.box("brass", 2.62, 4.1, 0.0, 2.66, 4.14, 0.55)  # side table with a lamp
-    S.box("brass", 2.9, 4.1, 0.0, 2.94, 4.14, 0.55)
-    S.box("brass", 2.62, 4.38, 0.0, 2.66, 4.42, 0.55)
-    S.box("brass", 2.9, 4.38, 0.0, 2.94, 4.42, 0.55)
-    S.box("marble", 2.58, 4.06, 0.55, 2.98, 4.46, 0.58)
-    S.box("brass", 2.76, 4.24, 0.58, 2.8, 4.28, 1.0)
+    S.model("brass_candleholders", 0.2, 3.75, 0.43, 0.0, height=0.2)
+    S.box("rug", -1.65, 2.55, 0.0, 1.65, 5.0, 0.012)
+    sy = 2.42  # side table with a lamp, by the right sofa's arm
+    for dx in (0.0, 0.28):
+        for dy in (0.0, 0.28):
+            S.box("brass", 2.62 + dx, sy + dy, 0.0, 2.66 + dx, sy + dy + 0.04, 0.55)
+    S.box("marble", 2.58, sy - 0.04, 0.55, 2.98, sy + 0.36, 0.58)
+    S.box("brass", 2.76, sy + 0.14, 0.58, 2.8, sy + 0.18, 1.0)
     shade = _lathe([(0.17, 1.0), (0.2, 1.24), (0.0001, 1.24)], seg=32)
-    S.mesh("lampshade", *_moved(shade, 2.78, 4.26, 0.0), M["cushion"], smooth=True)
-    S.light("POINT", (2.78, 4.26, 1.1), 18.0, size=0.08)
+    S.mesh("lampshade", *_moved(shade, 2.78, sy + 0.16, 0.0), M["cushion"], smooth=True)
+    S.light("POINT", (2.78, sy + 0.16, 1.1), 18.0, size=0.08)
     # daylight and a soft fill from behind the camera, as a photographer would
     S.light("AREA", (0.0, -4.1, 1.6), 160.0, color=(1.0, 0.95, 0.9), size=5.0, size_y=2.0, rot=(math.radians(90), 0, 0))
     S.done(shots.HALL, shots.SHOW["hall"][0], M)
@@ -476,15 +485,15 @@ def bedroom():
         S.box("curtain", x, 4.35 + (k % 2) * 0.06, 0.02, x + 0.07, 4.38 + (k % 2) * 0.06, H - 0.05)
     # the bed: upholstered frame, mattress, duvet, pillows, a knit throw across the foot
     bx0, bx1, by0, by1 = -1.97, 0.35, 1.0, 2.9
-    S.box("bed", bx0, by0, 0.0, bx1, by1, 0.36)
-    S.mesh("headboard", *_moved(_cushion(0.16, by1 - by0 + 0.1, 0.62, puff=0.06), bx0 + 0.08, (by0 + by1) / 2, 0.36), M["bed"], smooth=True)
-    S.mesh("mattress", *_moved(_cushion(bx1 - bx0 - 0.22, by1 - by0 - 0.08, 0.2, puff=0.03), (bx0 + bx1) / 2 + 0.1, (by0 + by1) / 2, 0.36), M["sheet"], smooth=True)
-    S.mesh("duvet", *_moved(_cushion(bx1 - bx0 - 0.5, by1 - by0 + 0.04, 0.07, puff=0.12), (bx0 + bx1) / 2 + 0.28, (by0 + by1) / 2, 0.55), M["sheet"], smooth=True)
+    S.soft("base", M["bed"], bx0, by0 - 0.06, 0.02, bx1 + 0.06, by1 + 0.06, 0.36, r=0.05)
+    S.soft("headboard", M["bed"], bx0, by0 - 0.06, 0.3, bx0 + 0.16, by1 + 0.06, 1.02, r=0.05)
+    S.soft("mattress", M["sheet"], bx0 + 0.16, by0, 0.36, bx1, by1, 0.56, r=0.06)
+    S.soft("duvet", M["sheet"], bx0 + 0.75, by0 - 0.04, 0.5, bx1 + 0.03, by1 + 0.04, 0.6, r=0.05)
     for k, (y, mat) in enumerate(((1.35, "sheet"), (2.55, "sheet"), (1.5, "pillow_taupe"), (2.4, "pillow_taupe"), (1.95, "pillow_taupe"))):
-        p = _cushion(0.16 if k < 2 else 0.14, 0.6 if k < 2 else 0.48, 0.42 if k < 2 else 0.38, puff=0.7)
+        p = _cushion(0.17 if k < 2 else 0.15, 0.62 if k < 2 else 0.46, 0.4 if k < 2 else 0.34, puff=1.0, seg=14)
         S.mesh(f"pillow{k}", *p, M[mat], smooth=True, at=(bx0 + 0.3 + (0 if k < 2 else 0.14), y, 0.58), rot=(0.0, math.radians(-16), 0.0))
-    S.mesh("throw", *_moved(_cushion(0.55, by1 - by0 + 0.2, 0.04, puff=0.2), bx1 - 0.35, (by0 + by1) / 2 + 0.1, 0.62), M["throw"], smooth=True)
-    S.box("throw", bx1 - 0.08, by0 + 0.4, 0.15, bx1 - 0.02, by0 + 1.2, 0.66)  # where it falls over the end
+    S.soft("throw", M["throw"], bx1 - 0.62, by0 + 0.35, 0.6, bx1 + 0.05, by1 - 0.2, 0.63, r=0.012)
+    S.soft("throw_end", M["throw"], bx1 + 0.03, by0 + 0.45, 0.2, bx1 + 0.06, by0 + 1.25, 0.63, r=0.012)  # where it falls over the end
     # nightstand, sconce, art, the rug
     S.box("oak", -1.97, 0.25, 0.0, -1.47, 0.85, 0.5)
     S.model("book_encyclopedia_set_01", -1.72, 0.55, 0.5, 0.4, height=0.12)

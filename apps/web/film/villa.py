@@ -135,7 +135,7 @@ def clouds(collection):
         d.expression = f"frame * {rate}"
     nd.link(geo.outputs["Position"], wind.inputs[0])
     scale = nd.new("ShaderNodeVectorMath", operation="MULTIPLY")
-    scale.inputs[1].default_value = (1 / 300, 1 / 300, 1 / 95)
+    scale.inputs[1].default_value = (1 / 260, 1 / 260, 1 / 90)
     nd.link(wind.outputs[0], scale.inputs[0])
     nz = nd.new("ShaderNodeTexNoise", noise_dimensions="3D")
     nz.inputs["Detail"].default_value = 10.0
@@ -148,17 +148,17 @@ def clouds(collection):
     nd.link(gen.outputs["Generated"], sep.inputs[0])
     h = nd.math("SUBTRACT", 1.0, nd.math("ABSOLUTE", nd.math("MULTIPLY", nd.math("SUBTRACT", sep.outputs["Z"], 0.45), 2.0)))
     mr = nd.new("ShaderNodeMapRange")
-    mr.inputs["From Min"].default_value = 0.55  # a narrow band: crisp cloud edges, clear gaps between them
-    mr.inputs["From Max"].default_value = 0.6
+    mr.inputs["From Min"].default_value = 0.57  # a narrow band: crisp cloud edges, clear gaps between them
+    mr.inputs["From Max"].default_value = 0.63
     nd.link(nd.math("ADD", nz.outputs["Fac"], nd.math("MULTIPLY", h, 0.08)), mr.inputs["Value"])
     dens = nd.math("MULTIPLY", nd.math("MULTIPLY", mr.outputs["Result"], h), house._drive(nd, "wisps"))
     v = nd.new("ShaderNodeVolumePrincipled")
     v.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1)
-    v.inputs["Anisotropy"].default_value = 0.6
-    nd.link(nd.math("MULTIPLY", dens, 0.35), v.inputs["Density"])
+    v.inputs["Anisotropy"].default_value = 0.2  # seen from above, away from the sun: bright, not grey
+    nd.link(nd.math("MULTIPLY", dens, 0.9), v.inputs["Density"])
     out = nd.new("ShaderNodeOutputMaterial")
     nd.link(v.outputs[0], out.inputs["Volume"])
-    o = kit.Boxes().add(-700, -760, 150, 500, 360, 240).build("cloud_deck", m, collection)
+    o = kit.Boxes().add(-700, -760, 140, 500, 360, 260).build("cloud_deck", m, collection)
     house.show(o, [(0.0, 3.6)])
 
 
@@ -210,11 +210,9 @@ def export(cam):
     sc.frame_set(1)
 
 
-def farm(sc):
-    """Farm settings: OIDN (any node, CPU or GPU), no compositor, samples keyed per shot; packed and zipped."""
-    import zipfile
+def key_samples(sc):
+    """Final quality: samples keyed per shot (the rooms, lit through windows, need more), adaptive, denoised."""
     c = sc.cycles
-    c.denoiser = "OPENIMAGEDENOISE"
     c.adaptive_threshold = 0.02
     for f in range(1, shots.FRAMES + 2):
         name = shots.shot_of(shots.sec_of(f))[0]
@@ -224,6 +222,12 @@ def farm(sc):
         if fc.data_path.endswith("samples"):
             for kp in fc.keyframe_points:
                 kp.interpolation = "CONSTANT"
+
+
+def farm(sc):
+    """Farm settings: OIDN (any node, CPU or GPU), no compositor; packed and zipped."""
+    import zipfile
+    sc.cycles.denoiser = "OPENIMAGEDENOISE"
     bpy.ops.file.pack_all()
     folder = os.path.join(OUT, "sheepit")
     os.makedirs(folder, exist_ok=True)
@@ -251,6 +255,8 @@ def build():
     if any(wanted(r) for r in ("hall", "bedroom", "bath")):
         rooms_build()
     cam = camera(sc)
+    if not OPT["preview"]:
+        key_samples(sc)
     if OPT["only"] is None:
         export(cam)
     os.makedirs(OUT, exist_ok=True)
