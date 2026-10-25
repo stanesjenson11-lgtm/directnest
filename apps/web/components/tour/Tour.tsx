@@ -2,39 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { buildTour } from "./timeline";
-import { Captions, Close, Hero, HeroTitle, Nav } from "./Chrome";
-import { PIN_FADE, TOTAL, pw } from "./config";
+import { Captions, Close, Hero, HeroTitle, Interstitial, Nav } from "./Chrome";
+import { HOTSPOTS, PIN_FADE, TOTAL, lin, pw } from "./config";
 import film from "./film.json";
+import { PlanCard } from "./Plan";
 import "./tour.css";
 
 type Tone = "ink" | "paper";
 
-const PINS = [
-  { id: "home", label: "Your home" },
-  { id: "metro", label: "Metro" },
-  { id: "lake", label: "Lake" },
-  { id: "school", label: "School" },
-  { id: "hospital", label: "Hospital" },
-  { id: "supermarket", label: "Supermarket" },
-] as const;
-
-// The tour is a film path-traced in Blender (apps/web/film): frame 1 is tick 0, the last frame is tick TOTAL.
-const DURATION = (film.frames - 1) / film.fps;
-// Phones held upright get a portrait cut from the centre of the frame (encode.py PHONE: x 656..1264 of 1920).
+// The tour is a film path-traced in Blender (apps/web/film/villa.py); film.map says which film second each tick shows.
+const MAP = film.map as [number, number][];
+const filmSec = (tick: number) => lin(MAP, tick);
+// Phones held upright get a portrait cut of the frame, 608 of its 1920 px wide, its centre following the subject
+// (film.crop, in film seconds; encode.py cuts the phone films the same way).
 const PHONE = "(orientation: portrait) and (max-width: 699px)";
-const PHONE_CROP = { x0: 656 / 1920, w: 608 / 1920 };
+const CROP_W = 608 / 1920;
+const cropX0 = (sec: number) => Math.min(1 - CROP_W, Math.max(0, pw(film.crop as [number, number][], sec) - CROP_W / 2));
 const SRC = {
   av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4",
   phoneHevc: "/tour/film-phone-hevc.mp4", phone: "/tour/film-phone.mp4",
 };
 
-// The tour's one steady pace (a wheel glide, and the tour's own glide after a swipe), in film seconds per second, by where
-// the tour is (ticks): brisk outside, a little slower inside the flat (through the balcony door at 51 until the camera
-// rises to the plan at 84).
-const PACE: [number, number][] = [[0, 3.2], [47, 3.2], [51, 2.1], [82, 2.1], [86, 3.2], [TOTAL, 3.2]];
-
-/** While the title is up the film holds its first frame (the cut-out of the blocks lines up with it); it catches up by tick 22. */
-const filmTick = (t: number) => (t < 4 ? 0 : t < 22 ? ((t - 4) * 22) / 18 : t);
+// The tour's one steady pace (a wheel glide, and the tour's own glide after a swipe), in ticks per second, by where the
+// tour is: brisk outside, a little slower in the three rooms (ticks 62 to 84). The whole tour takes about 20 s.
+const PACE: [number, number][] = [[0, 5.4], [60, 5.4], [62.5, 3.6], [83.5, 3.6], [86, 5.4], [TOTAL, 5.4]];
 
 /** The scroll tour: a sticky stage with the film, played by scroll, and the HTML layer on top. */
 export default function Tour() {
@@ -53,17 +44,18 @@ export default function Tour() {
     const onFail = () => setReady("failed");
     v.addEventListener("loadeddata", onReady);
     v.addEventListener("error", onFail);
-    // The film starts downloading when the visitor first scrolls or touches the page (or 3 s after it has loaded), so
-    // it never competes with the first view, and someone who leaves at once never pays for it.
-    let loaded = false;
+    // The film, and the HTML layer's timeline (with GSAP), start downloading when the visitor first scrolls or touches
+    // the page (or 3 s after it has loaded): they never compete with the first view, which is plain HTML and CSS, and
+    // someone who leaves at once never pays for them.
+    let dead = false, stop = () => {}, loaded = false;
     const load = () => {
       if (loaded) return;
       loaded = true;
       for (const e of WAKE) removeEventListener(e, load);
       clearTimeout(idle);
-      // desktops: HEVC where it plays (43.6 MB, decoded in hardware), else AV1 (47.1), else H.264 (77.5);
-      // phones: HEVC at the crop's full 608x1080 (9.5; iPhones decode it in hardware: sharper for the same download),
-      // else H.264 at 540x960 (10.1)
+      import("./timeline").then(({ buildTour }) => { if (!dead) stop = start(buildTour); });
+      // desktops: HEVC where it plays (under 8 MB, decoded in hardware), else AV1 (8), else H.264 (9.5);
+      // phones: HEVC at the cut's full 608x1080 (3.5; iPhones decode it in hardware), else H.264 at 540x960 (3.5)
       const hevc = v.canPlayType('video/mp4; codecs="hvc1.1.6.L120.90"');
       v.src = phone ? (hevc ? SRC.phoneHevc : SRC.phone)
         : hevc ? SRC.hevc
@@ -74,13 +66,11 @@ export default function Tour() {
     const WAKE = ["wheel", "touchstart", "pointerdown", "keydown", "scroll"] as const;
     for (const e of WAKE) addEventListener(e, load, { passive: true });
     let idle = 0;
+    if (scrollY > 2) load(); // a reload mid-tour: the browser restored the scroll before these listeners were here
     const later = () => { idle = window.setTimeout(load, 3000); };
     if (document.readyState === "complete") later();
     else addEventListener("load", later, { once: true });
 
-    // the HTML layer's timeline (and GSAP) arrive as their own chunk once the page is up: the hero is plain HTML and CSS
-    let dead = false, stop = () => {};
-    import("./timeline").then(({ buildTour }) => { if (!dead) stop = start(buildTour); });
     return () => {
       dead = true;
       stop();
@@ -111,7 +101,7 @@ export default function Tour() {
           const dt = Math.min(0.05, (ms - last) / 1000);
           last = ms;
           const [top, end] = ends();
-          const full = ((end - top) / DURATION) * pw(PACE, ((pos - top) / (end - top)) * TOTAL); // px per second here
+          const full = ((end - top) / TOTAL) * pw(PACE, ((pos - top) / (end - top)) * TOTAL); // px per second here
           const want = ms < until ? dir * full : 0;
           pxVel += (want - pxVel) * (1 - Math.exp(-dt / (want ? 0.12 : 0.2))); // quick to start, a short ease to rest
           // no slow crawl at the end: once down to a fifth of full pace, it has arrived
@@ -156,13 +146,13 @@ export default function Tour() {
       // Moving forward, the film plays (frames decode in order, no seeking) at the tour's speed, plus a gentle correction
       // for any gap. It pauses once caught up; a frame or two of overshoot is held rather than sought back. Going back seeks,
       // and so do the tour's only jumps: Book, the backlog cap (step, below) and reduced motion.
-      const pins = PINS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
+      const pins = HOTSPOTS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
       const FRAME = 1 / (phone ? 30 : 60); // desktop films are 60 fps, phone films 30 (film/encode.py)
       let canPlay = !reduced;
       let frameId = 0;
       let now = goal, vel = 0, shownAt = -1; // the tour's tick, its speed (ticks per second), the tick the HTML layer shows
       let speed = 0, lastTarget = 0, lastMs = performance.now(); // how fast the film should move (s per s)
-      jump.current = (tick) => { // the nav's "Book a viewing": straight there, not a glide through the whole tour
+      jump.current = (tick) => { // "Book a viewing" and the rooms' hotspots: straight there, not a glide through the tour
         window.scrollTo(0, api.current!.goto(tick));
         goal = now = tick;
         vel = 0;
@@ -180,10 +170,10 @@ export default function Tour() {
         if (reduced) now = goal;
         else if (now !== goal) {
           // a big jump (scrollbar, End, a hard flick, scroll restoration) is not glided all the way: the tour skips to
-          // 15 ticks short of it (6 film seconds, about 2 s at PACE) and glides the rest
-          if (Math.abs(goal - now) > 15) now = goal - Math.sign(goal - now) * 15;
+          // 12 ticks short of it (about 2 s at PACE) and glides the rest
+          if (Math.abs(goal - now) > 12) now = goal - Math.sign(goal - now) * 12;
           const gap = goal - now;
-          const pace = (pw(PACE, now) * TOTAL) / DURATION; // ticks per second (DURATION film seconds span TOTAL ticks)
+          const pace = pw(PACE, now); // ticks per second
           const want = Math.sign(gap) * Math.min(pace, Math.abs(gap) / 0.25); // full pace, slowing over the last 1/4 s
           vel += (want - vel) * (1 - Math.exp(-dt / 0.12));
           const next = Math.min(TOTAL, Math.max(0, now + vel * dt));
@@ -195,7 +185,7 @@ export default function Tour() {
         }
         placePins(v, pins, phone); // before the timeline writes its styles: no second style recalc
         if (now !== shownAt) api.current!.seek((shownAt = now));
-        const target = (filmTick(now) / TOTAL) * DURATION;
+        const target = filmSec(now);
         if (dt > 0) speed = (target - lastTarget) / dt; // the tour moves smoothly: no need to smooth this
         lastTarget = target;
         if (v.readyState < 2) return;
@@ -243,19 +233,17 @@ export default function Tour() {
         <video ref={video} className="film film--video" muted playsInline preload="auto" aria-hidden="true"
           disablePictureInPicture disableRemotePlayback />
         <HeroTitle />
-        {/* the community's blocks cut from frame 1, laid over the title so it sits behind them */}
-        <picture>
-          <source media={PHONE} srcSet="/tour/hero-cutout-phone.webp" />
-          <img className="film film--cutout" data-cutout src="/tour/hero-cutout.webp" alt="" decoding="async" />
-        </picture>
-        <div className="wpins" aria-hidden="true">
-          {PINS.map((p) => (
-            <div key={p.id} className="wpin" data-wpin={p.id}>
+        {/* the rooms you can step into from the villa's front (placed every frame from the 3D camera) */}
+        <div className="wpins">
+          {HOTSPOTS.map((p) => (
+            <button key={p.id} type="button" className="wpin" data-wpin={p.id} onClick={() => jump.current(p.tick)}>
               <span className="wpin__chip">{p.label}</span>
-              <i className="wpin__dot" />
-            </div>
+              <i className="wpin__dot" aria-hidden="true" />
+            </button>
           ))}
         </div>
+        <Interstitial />
+        <PlanCard />
         <Close />
         <Hero />
         <Captions />
@@ -266,14 +254,14 @@ export default function Tour() {
 }
 
 let pinsShown = true;
-/** Pins sit where Blender projected each place for this frame, mapped through the video's object-fit: cover crop. */
+/** Pins sit where Blender projected each place for this frame, mapped through the video's object-fit: cover crop (and,
+ *  on phones, the portrait cut). Hidden ones can't be clicked or tabbed to. */
 function placePins(v: HTMLVideoElement, els: HTMLElement[], phone: boolean) {
   const frame = Math.round(v.currentTime * film.fps) + 1;
-  const tick = (v.currentTime / DURATION) * TOTAL;
-  const alpha = pw(PIN_FADE, tick);
+  const alpha = pw(PIN_FADE, v.currentTime);
   const { from, to, points } = film.pins;
   if (alpha < 0.01 || frame < from || frame > to) {
-    if (pinsShown) for (const el of els) el.style.opacity = "0";
+    if (pinsShown) for (const el of els) { el.style.opacity = "0"; el.style.visibility = "hidden"; }
     pinsShown = false;
     return;
   }
@@ -282,10 +270,12 @@ function placePins(v: HTMLVideoElement, els: HTMLElement[], phone: boolean) {
   const vw = v.videoWidth || 16, vh = v.videoHeight || 9;
   const s = Math.max(w / vw, h / vh);
   const dw = vw * s, dh = vh * s, ox = (w - dw) / 2, oy = (h - dh) / 2;
-  PINS.forEach((p, i) => {
+  const x0 = cropX0(v.currentTime);
+  HOTSPOTS.forEach((p, i) => {
     const [fx, y] = points[p.id][frame - from];
-    const x = phone ? (fx - PHONE_CROP.x0) / PHONE_CROP.w : fx;
+    const x = phone ? (fx - x0) / CROP_W : fx;
     els[i].style.opacity = String(alpha);
+    els[i].style.visibility = "visible";
     els[i].style.transform = `translate(${ox + x * dw}px, ${oy + y * dh}px)`;
   });
 }

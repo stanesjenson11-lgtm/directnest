@@ -18,10 +18,8 @@
 
   /* Text: an Adobe Fonts family first (live once a kit is added), free stand-in second. */
   --font-text: "neue-haas-grotesk-text", var(--font-fallback), "Helvetica Neue", Arial, sans-serif;
-  /* Display faces (app/(marketing)/layout.tsx): a tall bold sans for the hero, a ball-terminal serif for headlines, a brush script for small accents. */
-  --font-hero: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  /* Display face (app/(marketing)/layout.tsx): a ball-terminal serif for the title, the cards and the captions. */
   --font-serif: var(--font-gloock), Georgia, serif;
-  --font-script: var(--font-yellowtail), "Brush Script MT", cursive;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --gutter: clamp(1.25rem, 4vw, 3.5rem);
@@ -77,7 +75,6 @@ html:has(.gharaana), html:has(.gharaana) body {
 .film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
 .film--video { opacity: 0; }  /* over the poster once its first frame is in */
 .stage[data-world="ready"] .film--video { opacity: 1; }
-.film--cutout { z-index: 3; pointer-events: none; }
 .stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(130% 95% at 50% 45%, transparent 60%, color-mix(in oklab, var(--ink) 26%, transparent) 100%);
@@ -85,14 +82,19 @@ html:has(.gharaana), html:has(.gharaana) body {
 
 /* Labels pinned to places in the model (positioned every frame from the 3D camera). */
 .wpins { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-.wpin { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
+.wpin {
+  position: absolute; left: 0; top: 0; opacity: 0; visibility: hidden; will-change: transform, opacity;
+  pointer-events: auto; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer;
+}
+.wpin:hover .wpin__chip { background: var(--sun); }
 .wpin__dot {
   position: absolute; width: 12px; height: 12px; left: -6px; top: -6px; border-radius: 50%;
   background: var(--sun); box-shadow: 0 0 0 3px #fff, 0 0 0 10px color-mix(in oklab, var(--sun) 30%, transparent);
 }
 .wpin__chip {
   position: absolute; left: 0; bottom: 16px; translate: -50% 0;
-  padding: 0.45rem 0.85rem; border-radius: 999px; white-space: nowrap;
+  display: flex; align-items: center; min-height: 44px; box-sizing: border-box;
+  padding: 0.45rem 1rem; border-radius: 999px; white-space: nowrap; transition: background 0.2s var(--ease-out);
   background: #fff; color: var(--ink); font-weight: 500; font-size: 0.95rem;
   box-shadow: 0 12px 26px -10px color-mix(in oklab, var(--ink) 70%, transparent);
 }
@@ -105,19 +107,24 @@ html:has(.gharaana), html:has(.gharaana) body {
   gap: clamp(0.6rem, 1.6cqh, 1.25rem);
   pointer-events: none; z-index: 4;
 }
-/* the title sits high, under the cut-out of the blocks (.film--cutout, z-index 3), so their tops overlap its letters;
-   the line and the search sit low, over the lake, above everything */
-.hero--title { z-index: 2; top: 4.5cqh; }  /* level with the nav: the title sits between the logo and the buttons */
+/* the title sits left, a third of the way down, over the clouds (as the reference film opens); the search sits low */
+.hero--title { z-index: 2; top: 27cqh; align-items: flex-start; text-align: left; isolation: isolate; }
+.hero--title::before {  /* a soft shade under the words: white serif over bright cloud needs it */
+  content: ""; position: absolute; z-index: -1; inset: -40% -10% -45% -20%; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(0 18 56 / 0.42), rgb(0 18 56 / 0.18) 60%, transparent);
+}
 .hero--rest { top: auto; bottom: clamp(2rem, 9cqh, 5.5rem); }
 .hero__title {
-  margin: 0; font-family: var(--font-hero); font-weight: 400;
-  font-size: clamp(2.1rem, 5vw, 4.6rem); line-height: 1; letter-spacing: 0.012em;
+  margin: 0; font-family: var(--font-serif); font-weight: 400;
+  font-size: clamp(2.7rem, 6.2vw, 5.75rem); line-height: 1.06; letter-spacing: -0.015em;
   text-wrap: balance; color: #fff;
-  /* a white stroke under the fill thickens Anton into a fatter face */
-  -webkit-text-stroke: 0.045em #fff; paint-order: stroke fill;
-  text-shadow: 0 0.04em 0.5em rgb(0 18 56 / 0.35);
+  text-shadow: 0 0.02em 0.4em rgb(0 18 56 / 0.4);
 }
 .hero__line { display: block; }
+.hero__sub {
+  margin: 0; max-width: 34ch; font-size: clamp(1rem, 1.25vw, 1.15rem); line-height: 1.55; color: rgb(255 255 255 / 0.94);
+  text-shadow: 0 1px 12px rgb(0 18 56 / 0.5); animation: hero-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
 /* The intro is CSS, so it runs from the first paint rather than after the page's script has loaded. The title is the
    phone's LCP element (Chrome skips the full-screen poster), so its words come into focus instead of rising from behind
    a mask: they are painted, and counted, on the first frame. */
@@ -178,21 +185,58 @@ html:has(.gharaana), html:has(.gharaana) body {
 .nav__actions { display: flex; align-items: center; gap: 0.5rem; }
 
 .caps {
-  position: absolute; z-index: 10; left: var(--gutter); bottom: clamp(1.75rem, 7cqh, 4rem);
+  position: absolute; z-index: 10; left: var(--gutter); top: clamp(5.5rem, 15cqh, 8.5rem);
   width: min(34rem, calc(100% - 2 * var(--gutter) - 3.5rem));
   display: grid; pointer-events: none;
 }
-.cap { grid-area: 1 / 1; align-self: end; visibility: hidden; opacity: 0; color: var(--ink); position: relative; isolation: isolate; }
+.cap { grid-area: 1 / 1; align-self: start; visibility: hidden; opacity: 0; color: var(--ink); position: relative; isolation: isolate; }
 .cap::before {
   content: ""; position: absolute; z-index: -1; inset: -45% -30% -40% -25%;
   background: radial-gradient(closest-side, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.4) 55%, transparent);
 }
 .cap[data-tone="paper"] { color: #fff; }
 .cap[data-tone="paper"]::before { background: radial-gradient(closest-side, color-mix(in oklab, var(--ink) 62%, transparent), color-mix(in oklab, var(--ink) 30%, transparent) 55%, transparent); }
-.cap__kicker { display: block; margin: 0 0 0.15rem; font-family: var(--font-script); font-size: clamp(1.3rem, 1.8vw, 1.7rem); line-height: 1.2; color: var(--blue); }
-.cap[data-tone="paper"] .cap__kicker { color: var(--sun); }
 .cap__title { margin: 0 0 0.6rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.9rem, 3.8vw, 3.4rem); line-height: 1.04; letter-spacing: -0.01em; text-wrap: balance; }
 .cap__line { margin: 0; max-width: 34ch; font-size: clamp(0.98rem, 1.25vw, 1.12rem); line-height: 1.5; }
+
+/* ============ The card the film cuts under ============ */
+.inter {
+  position: absolute; inset: 0; z-index: 6; visibility: hidden; opacity: 0;
+  display: grid; place-content: center; padding: var(--gutter); text-align: center;
+  background: var(--night); color: #fff;
+}
+.inter__title {
+  margin: 0 0 1.1rem; font-family: var(--font-serif); font-weight: 400; text-transform: uppercase;
+  font-size: clamp(2.4rem, 7vw, 6rem); line-height: 0.98; letter-spacing: 0.01em; text-wrap: balance;
+}
+.inter__line { margin: 0 auto; max-width: 38ch; font-size: clamp(0.98rem, 1.25vw, 1.12rem); line-height: 1.6; color: color-mix(in oklab, #fff 80%, var(--blue)); }
+
+/* ============ The floor plan ============ */
+.plan {
+  position: absolute; inset: 0; z-index: 7; visibility: hidden; opacity: 0;
+  display: grid; place-items: center; isolation: isolate;
+  padding: clamp(4.75rem, 11cqh, 6.5rem) var(--gutter) clamp(1rem, 4cqh, 2.5rem);
+}
+.plan::before { content: ""; position: absolute; inset: 0; z-index: -1; background: color-mix(in oklab, var(--night) 74%, transparent); }
+.plan__card {
+  box-sizing: border-box; width: min(66rem, 100%); max-height: 100%; overflow: auto;
+  display: grid; grid-template-columns: minmax(13rem, 17rem) 1fr; align-items: center; gap: clamp(1rem, 3vw, 2.75rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem); border-radius: 12px; background: #fff; color: var(--ink);
+  box-shadow: 0 40px 90px -35px rgb(0 18 56 / 0.7);
+}
+.plan__title { margin: 0 0 0.35rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(2rem, 3.4vw, 2.9rem); line-height: 1; }
+.plan__kind { margin: 0 0 1.1rem; font-size: 1.05rem; }
+.plan__rooms { margin: 0 0 1rem; font-size: 0.95rem; line-height: 1.5; }
+.plan__rooms dt { font-weight: 600; color: var(--blue); }
+.plan__rooms dd { margin: 0 0 0.7rem; }
+.plan__note { margin: 0 0 1.25rem; font-size: 0.85rem; color: color-mix(in oklab, var(--ink) 72%, white); }
+.plan__cta { display: inline-block; text-decoration: none; }
+.plan__svg { display: block; width: 100%; height: auto; max-height: 62cqh; }
+.plan__room { fill: #fff; stroke: var(--ink); stroke-width: 3; }
+.plan__room--seen { fill: color-mix(in oklab, var(--sun) 30%, white); }  /* the rooms the film showed */
+.plan__open { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.plan__label { font-family: var(--font-text); font-size: 10px; font-weight: 500; fill: var(--ink); }
+.plan__floor { font-family: var(--font-text); font-size: 12px; font-weight: 600; fill: var(--blue); }
 
 /* ============ Close ============ */
 .sc-close { display: flex; align-items: center; padding: clamp(5rem, 12cqh, 8rem) var(--gutter) clamp(2rem, 6cqh, 4rem); color: #fff; overflow: visible; isolation: isolate; }
@@ -232,8 +276,12 @@ html:has(.gharaana), html:has(.gharaana) body {
   .nav__actions { gap: 0.35rem; }
   .sc-close::before { background: linear-gradient(0deg, color-mix(in oklab, var(--ink) 85%, transparent) 0%, color-mix(in oklab, var(--ink) 55%, transparent) 55%, transparent 90%); }
   .sc-close { align-items: flex-end; }
+  .plan__card { grid-template-columns: 1fr; gap: 0.75rem; padding: 1.1rem; }
+  .plan__rooms, .plan__note { font-size: 0.85rem; }
+  .plan__kind { margin-bottom: 0.6rem; }
+  .plan__rooms dd { margin-bottom: 0.4rem; }
 }
 @media (max-aspect-ratio: 1/1) {
-  .hero--title { top: 8.5cqh; }  /* just under the nav on phones */
+  .hero--title { top: 16cqh; }  /* under the nav on phones */
 }
 

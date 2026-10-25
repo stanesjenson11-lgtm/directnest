@@ -24,11 +24,22 @@ const TITLE = (
   </>
 );
 
-/** The title on its own layer, so the cut-out of the blocks (Tour.tsx) can sit between it and the search. */
+/** The title, set over the clouds of the film's first frame, as the reference film opens. */
 export function HeroTitle() {
   return (
     <div className="hero hero--title" data-hero-title>
       <h1 className="hero__title">{TITLE}</h1>
+      <p className="hero__sub">Homes from verified owners in Bengaluru. A person checks every listing.</p>
+    </div>
+  );
+}
+
+/** The card the film cuts to the building site under: the villa about to rise. */
+export function Interstitial() {
+  return (
+    <div className="inter" data-inter aria-hidden="true">
+      <p className="inter__title">From the ground up.</p>
+      <p className="inter__line">One home, from the first footing to the lights coming on.</p>
     </div>
   );
 }
@@ -83,7 +94,6 @@ export function Captions() {
     <div className="caps" aria-live="polite">
       {STOPS.filter((s) => s.title).map((s) => (
         <section key={s.id} className="cap" data-cap={s.id} data-tone={s.tone}>
-          {s.kicker && <p className="cap__kicker">{s.kicker}</p>}
           <h2 className="cap__title">
             {s.title.split(" ").map((w, i) => <span key={i}><span className="w"><span className="wi">{w}</span></span>{" "}</span>)}
           </h2>

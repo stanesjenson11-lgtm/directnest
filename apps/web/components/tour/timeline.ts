@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CAPTIONS, TOTAL } from "./config";
+import { CAPTIONS, CLOSE_AT, INTER, PLAN, TOTAL } from "./config";
 
 type Vars = gsap.TweenVars;
 
@@ -11,7 +11,7 @@ export type TourHooks = {
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the film: hero, captions, close. The film itself is rendered from apps/web/film.
+/** The HTML layer over the film: hero, the "from the ground up" card, captions, the floor plan, close. The film itself is rendered from apps/web/film.
  *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the film follows too, so
  *  the two never drift apart. Tour.tsx imports this module (and GSAP with it) only after the page is up, so it never
  *  holds up the first paint. */
@@ -54,22 +54,32 @@ function make(root: HTMLElement, o: TourHooks) {
     if (Object.keys(t.rest).length) tl.set(target, t.rest, at + dur);
   }
 
-  // the hero is gone by tick 4, while the film still holds frame 1 (the cut-out of the blocks matches only that frame)
+  // the hero is gone by tick 4, while the film still holds its first frame (film.json map)
   fx("[data-hero-title], [data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
-  fx("[data-cutout]", { autoAlpha: 1 }, { autoAlpha: 0 }, 3.6, 0.3);
+
+  // the card the film cuts under: opaque while the cut happens (ticks 20-30 hold the film)
+  const [ia, ib] = INTER;
+  fx("[data-inter]", { autoAlpha: 0 }, { autoAlpha: 1 }, ia, 2.5);
+  fx("[data-inter] .inter__title", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, ia + 0.6, 2.2, "power3.out");
+  fx("[data-inter] .inter__line", { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, ia + 1.6, 2, "power2.out");
+  fx("[data-inter]", { autoAlpha: 1 }, { autoAlpha: 0 }, ib, 2, "none", true);
 
   const cap = (id: string, inAt: number, outAt: number) => {
     const s = `[data-cap="${id}"]`;
     fx(s, { autoAlpha: 0 }, { autoAlpha: 1 }, inAt, 0.6);
-    fx(`${s} .cap__kicker`, { x: -12, autoAlpha: 0 }, { x: 0, autoAlpha: 1 }, inAt, 1.2, "power2.out");
     fx(`${s} .wi`, { yPercent: 115 }, { yPercent: 0, stagger: 0.18 }, inAt, 1.4, "power3.out");
     fx(`${s} .cap__line`, { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, inAt + 0.9, 1.4, "power2.out");
     fx(s, { autoAlpha: 1 }, { autoAlpha: 0 }, outAt, 1.2, "none", true);
   };
   for (const [id, [inAt, outAt]] of Object.entries(CAPTIONS)) cap(id, inAt, outAt);
 
-  fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, 116, 3);
-  fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.35 }, 116.5, 2, "power3.out");
+  // the floor plan over the film's last frame, then the way in
+  const [pa, pb] = PLAN;
+  fx("[data-plan]", { autoAlpha: 0 }, { autoAlpha: 1 }, pa, 2);
+  fx("[data-plan] .plan__card", { y: 60, scale: 0.97 }, { y: 0, scale: 1 }, pa + 0.3, 2.2, "power3.out");
+  fx("[data-plan]", { autoAlpha: 1 }, { autoAlpha: 0 }, pb, 1.2, "none", true);
+  fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, CLOSE_AT, 2);
+  fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.3 }, CLOSE_AT + 0.4, 1.6, "power3.out");
 
   tl.set({}, {}, TOTAL); // fix total length
 
