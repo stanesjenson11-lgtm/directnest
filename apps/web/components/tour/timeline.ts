@@ -13,9 +13,17 @@ const FADE = new Set(["opacity", "autoAlpha"]);
 
 /** The HTML layer over the film: hero, captions, close. The film itself is rendered from apps/web/film.
  *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the film follows too, so
- *  the two never drift apart. */
+ *  the two never drift apart. Tour.tsx imports this module (and GSAP with it) only after the page is up, so it never
+ *  holds up the first paint. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
   gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+  let api!: ReturnType<typeof make>;
+  const ctx = gsap.context(() => { api = make(root, o); }, root);
+  return { ...api, destroy() { api.destroy(); ctx.revert(); } };
+}
+
+function make(root: HTMLElement, o: TourHooks) {
   const q = gsap.utils.selector(root);
 
   const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
