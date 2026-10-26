@@ -2,30 +2,39 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { buildTour } from "./timeline";
-import { Captions, Close, Hero, HeroTitle, Interstitial, Nav } from "./Chrome";
-import { HOTSPOTS, PIN_FADE, TOTAL, lin, pw } from "./config";
-import film from "./film.json";
-import { PlanCard } from "./Plan";
+import { RENTALS } from "@/lib/search";
+import { Captions, Close, Hero, HeroTitle, Nav, VillaCard } from "./Chrome";
+import { MARKS, TOTAL, lin, pw } from "./config";
+import film from "./earth.json";
 import "./tour.css";
 
 type Tone = "ink" | "paper";
 
-// The tour is a film path-traced in Blender (apps/web/film/villa.py); film.map says which film second each tick shows.
+// The tour is a film path-traced in Blender (apps/web/film/earth.py); film.map says which film second each tick shows.
 const MAP = film.map as [number, number][];
 const filmSec = (tick: number) => lin(MAP, tick);
+// Before the first scroll the clouds drift: the film loops its opening seconds (its frame film.loop[1] is frame 1 again).
+const LOOP = (film.loop[1] - 1) / film.fps;
 // Phones held upright get a portrait cut of the frame, 608 of its 1920 px wide, its centre following the subject
 // (film.crop, in film seconds; encode.py cuts the phone films the same way).
 const PHONE = "(orientation: portrait) and (max-width: 699px)";
 const CROP_W = 608 / 1920;
 const cropX0 = (sec: number) => Math.min(1 - CROP_W, Math.max(0, pw(film.crop as [number, number][], sec) - CROP_W / 2));
 const SRC = {
-  av1: "/tour/film-1080-av1.mp4", hevc: "/tour/film-1080-hevc.mp4", h264: "/tour/film-1080.mp4",
-  phoneHevc: "/tour/film-phone-hevc.mp4", phone: "/tour/film-phone.mp4",
+  av1: "/tour/earth-1080-av1.mp4", hevc: "/tour/earth-1080-hevc.mp4", h264: "/tour/earth-1080.mp4",
+  phoneHevc: "/tour/earth-phone-hevc.mp4", phone: "/tour/earth-phone.mp4",
 };
 
-// The tour's one steady pace (a wheel glide, and the tour's own glide after a swipe), in ticks per second, by where the
-// tour is: brisk outside, a little slower in the three rooms (ticks 62 to 84). The whole tour takes about 20 s.
-const PACE: [number, number][] = [[0, 5.4], [60, 5.4], [62.5, 3.6], [83.5, 3.6], [86, 5.4], [TOTAL, 5.4]];
+// The tour's one steady pace (a wheel glide, and the tour's own glide after a swipe), in ticks per second. The whole
+// tour takes about 20 s.
+const PACE: [number, number][] = [[0, 5.4], [TOTAL, 5.4]];
+
+// The film's labels (config MARKS) and the markers on the roofs: a sale marker reads "For sale"; rent markers only get a
+// label once rentals launch (lib/search.ts).
+const PINS = Object.entries(film.pins as Record<string, string>)
+  .filter(([, kind]) => kind === "sale" || RENTALS)
+  .map(([key, kind]) => ({ id: `pin-${key}`, label: kind === "sale" ? "For sale" : "For rent", kind: "pin" as const, sale: kind === "sale" }));
+const LABELS = [...MARKS.map((m) => ({ ...m, sale: false })), ...PINS];
 
 /** The scroll tour: a sticky stage with the film, played by scroll, and the HTML layer on top. */
 export default function Tour() {
@@ -146,13 +155,16 @@ export default function Tour() {
       // Moving forward, the film plays (frames decode in order, no seeking) at the tour's speed, plus a gentle correction
       // for any gap. It pauses once caught up; a frame or two of overshoot is held rather than sought back. Going back seeks,
       // and so do the tour's only jumps: Book, the backlog cap (step, below) and reduced motion.
-      const pins = HOTSPOTS.map((p) => root.current!.querySelector<HTMLElement>(`[data-wpin="${p.id}"]`)!);
+      const marks = LABELS.map((m) => ({
+        el: root.current!.querySelector<HTMLElement>(`[data-mark="${m.id}"]`)!,
+        at: (film.marks as Record<string, { from: number; points: (number[] | null)[] }>)[m.id] as Track,
+      }));
       const FRAME = 1 / (phone ? 30 : 60); // desktop films are 60 fps, phone films 30 (film/encode.py)
       let canPlay = !reduced;
       let frameId = 0;
       let now = goal, vel = 0, shownAt = -1; // the tour's tick, its speed (ticks per second), the tick the HTML layer shows
       let speed = 0, lastTarget = 0, lastMs = performance.now(); // how fast the film should move (s per s)
-      jump.current = (tick) => { // "Book a viewing" and the rooms' hotspots: straight there, not a glide through the tour
+      jump.current = (tick) => { // "Book a viewing": straight there, not a glide through the tour
         window.scrollTo(0, api.current!.goto(tick));
         goal = now = tick;
         vel = 0;
@@ -183,18 +195,27 @@ export default function Tour() {
             vel = 0;
           } else now = next;
         }
-        placePins(v, pins, phone); // before the timeline writes its styles: no second style recalc
+        placeMarks(v, marks, phone); // before the timeline writes its styles: no second style recalc
         if (now !== shownAt) api.current!.seek((shownAt = now));
         const target = filmSec(now);
         if (dt > 0) speed = (target - lastTarget) / dt; // the tour moves smoothly: no need to smooth this
         lastTarget = target;
         if (v.readyState < 2) return;
+        if (canPlay && now === 0 && goal === 0) {
+          // at rest under the title: the clouds drift, round the loop (its last frame runs into its first)
+          if (v.currentTime >= LOOP - FRAME && !v.seeking) v.currentTime = 0;
+          if (v.playbackRate !== 1) v.playbackRate = 1;
+          if (v.paused) v.play().catch(() => { canPlay = false; });
+          return;
+        }
+        // still in the loop when the tour sets off: play on out of it (seeking to the film would jump the clouds)
         const ahead = target - v.currentTime;
+        const loopLeft = v.currentTime < LOOP ? LOOP - v.currentTime : 0;
         const going = !v.paused;
         // a quarter second past the tour is held, not sought back (a jump back was the hitch when a glide came to rest);
         // scrolling backwards still follows frame by frame
         const behindOk = speed < -0.05 ? FRAME * 2 : 0.25;
-        if (ahead < -behindOk || ahead > 1.5) {
+        if (ahead < -behindOk || ahead - loopLeft > 1.5) {
           if (!v.seeking) {
             if (going) v.pause();
             v.currentTime = target;
@@ -227,23 +248,25 @@ export default function Tour() {
       <div className="stage" data-world={ready}>
         {/* the film's first frame, shown at once (it is the largest paint), then the film itself over it */}
         <picture>
-          <source media={PHONE} srcSet="/tour/film-poster-phone.webp" />
-          <img className="film" src="/tour/film-poster.webp" alt="" fetchPriority="high" />
+          <source media={PHONE} srcSet="/tour/earth-poster-phone.webp" />
+          <img className="film" src="/tour/earth-poster.webp" alt="" fetchPriority="high" />
         </picture>
         <video ref={video} className="film film--video" muted playsInline preload="auto" aria-hidden="true"
           disablePictureInPicture disableRemotePlayback />
         <HeroTitle />
-        {/* the rooms you can step into from the villa's front (placed every frame from the 3D camera) */}
-        <div className="wpins">
-          {HOTSPOTS.map((p) => (
-            <button key={p.id} type="button" className="wpin" data-wpin={p.id} onClick={() => jump.current(p.tick)}>
-              <span className="wpin__chip">{p.label}</span>
-              <i className="wpin__dot" aria-hidden="true" />
-            </button>
+        {/* the film's labels: countries, cities, areas, the markers on the roofs (placed every frame from the 3D camera) */}
+        <div className="marks">
+          {LABELS.map((m) => m.kind === "pin" ? (
+            <a key={m.id} className="mark mark--pin" data-mark={m.id} href={m.sale ? "/search?type=buy" : "/search?type=rent"}>
+              <span className="mark__chip">{m.label}</span>
+            </a>
+          ) : (
+            <span key={m.id} className={`mark mark--${m.kind}`} data-mark={m.id} aria-hidden="true">
+              <span className="mark__chip">{m.label}</span>
+            </span>
           ))}
         </div>
-        <Interstitial />
-        <PlanCard />
+        <VillaCard />
         <Close />
         <Hero />
         <Captions />
@@ -253,29 +276,33 @@ export default function Tour() {
   );
 }
 
-let pinsShown = true;
-/** Pins sit where Blender projected each place for this frame, mapped through the video's object-fit: cover crop (and,
- *  on phones, the portrait cut). Hidden ones can't be clicked or tabbed to. */
-function placePins(v: HTMLVideoElement, els: HTMLElement[], phone: boolean) {
+type Track = { from: number; points: ([number, number] | null)[] };
+
+/** Labels sit where Blender projected each place for this frame (null: behind the Earth, off screen, not yet there),
+ *  mapped through the video's object-fit: cover crop (and, on phones, the portrait cut), fading in and out over the
+ *  first and last few frames of their span. Hidden ones can't be clicked or tabbed to. */
+function placeMarks(v: HTMLVideoElement, marks: { el: HTMLElement; at: Track }[], phone: boolean) {
   const frame = Math.round(v.currentTime * film.fps) + 1;
-  const alpha = pw(PIN_FADE, v.currentTime);
-  const { from, to, points } = film.pins;
-  if (alpha < 0.01 || frame < from || frame > to) {
-    if (pinsShown) for (const el of els) { el.style.opacity = "0"; el.style.visibility = "hidden"; }
-    pinsShown = false;
-    return;
-  }
-  pinsShown = true;
   const w = v.clientWidth, h = v.clientHeight;
   const vw = v.videoWidth || 16, vh = v.videoHeight || 9;
   const s = Math.max(w / vw, h / vh);
   const dw = vw * s, dh = vh * s, ox = (w - dw) / 2, oy = (h - dh) / 2;
   const x0 = cropX0(v.currentTime);
-  HOTSPOTS.forEach((p, i) => {
-    const [fx, y] = points[p.id][frame - from];
-    const x = phone ? (fx - x0) / CROP_W : fx;
-    els[i].style.opacity = String(alpha);
-    els[i].style.visibility = "visible";
-    els[i].style.transform = `translate(${ox + x * dw}px, ${oy + y * dh}px)`;
-  });
+  for (const { el, at } of marks) {
+    const i = frame - at.from;
+    const p = i >= 0 && i < at.points.length ? at.points[i] : null;
+    const x = p ? (phone ? (p[0] - x0) / CROP_W : p[0]) : -1;
+    if (!p || x < -0.02 || x > 1.02) {
+      if (el.dataset.on) {
+        el.style.opacity = "0";
+        el.style.visibility = "hidden";
+        delete el.dataset.on;
+      }
+      continue;
+    }
+    el.dataset.on = "1";
+    el.style.opacity = String(Math.min(1, Math.min(i, at.points.length - 1 - i) / 6));
+    el.style.visibility = "visible";
+    el.style.transform = `translate(${ox + x * dw}px, ${oy + p[1] * dh}px)`;
+  }
 }

@@ -33,13 +33,16 @@ export function HeroTitle() {
   );
 }
 
-/** The card the film cuts to the building site under: the villa about to rise. */
-export function Interstitial() {
+/** The card beside the villa while the film holds on its front (the sketch's "select a property"). */
+export function VillaCard() {
   return (
-    <div className="inter" data-inter aria-hidden="true">
-      <p className="inter__title">From the ground up.</p>
-      <p className="inter__line">One home, from the first footing to the lights coming on.</p>
-    </div>
+    <aside className="villa" data-villa aria-label="The villa in the film">
+      <p className="villa__kind">Villa</p>
+      <h2 className="villa__title">Four bedrooms, two floors.</h2>
+      <p className="villa__line">Photos and video tours before you visit.</p>
+      <p className="villa__note">An illustrative home, not a listing.</p>
+      <a className="btn btn--sun villa__cta" href="/search?type=buy&amp;q=villa">Find villas</a>
+    </aside>
   );
 }
 
@@ -120,9 +123,10 @@ export function Close() {
     <div className="scene sc-close" data-scene="close">
       <div className="close__panel" data-close>
         <h2 className="close__title">
-          <span className="close__line">The light&rsquo;s on.</span>
-          <span className="close__line">Come in.</span>
+          <span className="close__line">A higher way</span>
+          <span className="close__line">of living.</span>
         </h2>
+        <p className="close__kinds">Villas <span aria-hidden="true">|</span> Apartments <span aria-hidden="true">|</span> Communities</p>
         <p className="close__text">Pick a home, then schedule a visit or chat with the owner. Sign in to see their number.</p>
         <form className="find" role="search" action="/search" method="get" id="book" aria-label="Find homes to visit">
           {!RENTALS && <input type="hidden" name="type" value="buy" />}

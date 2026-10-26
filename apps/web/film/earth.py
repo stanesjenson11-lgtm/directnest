@@ -403,7 +403,7 @@ def export(cam, heads):
             old = json.load(fh)
     n = shots.FRAMES + 1
     logo = old.get("logo") if old.get("frames") == n else None
-    out = {"fps": shots.FPS, "frames": n, "loop": [1, shots.frame_of(shots.LOOP)],
+    out = {"fps": shots.FPS, "frames": n, "loop": [1, shots.frame_of(shots.LOOP)], "map": shots.MAP,
            "shots": [[s[0], shots.frame_of(s[1])] for s in shots.SHOTS], "crop": shots.CROP,
            "pins": {k: kind for k, _, _, kind in shots.PINS}, "marks": marks,
            "logo": logo or {"desk": "D" * n, "phone": "D" * n}}

@@ -7,7 +7,7 @@ export default function Home() {
       <Tour />
       <footer className="foot">
         <Logo tone="white" className="foot__logo" />
-        <p>The building, home and neighbourhood in this tour are an illustrative 3D model of a Bengaluru-style area, not a real listing, floor plan or location.</p>
+        <p>The neighbourhood, homes and markers in this tour are an illustrative 3D model of a Bengaluru-style area, not real listings or locations. Earth imagery: NASA. Borders: Natural Earth.</p>
       </footer>
     </main>
   );

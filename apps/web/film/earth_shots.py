@@ -20,6 +20,13 @@ FRAMES = round(SECONDS * FPS)  # 816: frames 1..817
 R = 6371.0  # the Earth's radius, km
 
 
+# page ticks -> film seconds (linear between rows; components/tour/config.ts, TOTAL = 100). Tick 0 shows 4 s, the end of
+# the idle loop; the flat stretches hold the film while the page shows HTML over it (India, Karnataka, the markers, the
+# villa's card). A hold sits at least 0.3 s before a cut: the player may run up to 0.25 s past where the tour stops.
+MAP = [(0, 4.0), (6, 4.0), (16, 7.0), (30, 10.0), (38, 11.9), (41, 12.0), (47, 13.3), (50, 13.4), (53, 14.2), (60, 17.0),
+       (66, 20.0), (68, 20.9), (71, 21.0), (79, 25.0), (85, 27.6), (88, 27.65), (94, 31.0), (98, 33.6), (100, 34.0)]
+
+
 def frame_of(sec):
     return 1 + round(sec * FPS)
 

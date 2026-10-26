@@ -1,6 +1,7 @@
-// The tour is one master timeline measured in "ticks"; the film's own clock is film seconds, and film.json's `map`
-// (from apps/web/film/shots.py MAP) says which film second each tick shows. Flat stretches of the map hold the film
-// still while the page shows HTML over it: the title, the "from the ground up" card, the hotspots, the floor plan.
+// The tour is one master timeline measured in "ticks"; the film's own clock is film seconds, and earth.json's `map`
+// (from apps/web/film/earth_shots.py MAP) says which film second each tick shows. Flat stretches of the map hold the film
+// still while the page shows HTML over it. Before the first scroll the film loops its opening seconds (earth.json
+// `loop`): the clouds drift under the title.
 export const TOTAL = 100;
 
 export type Stop = {
@@ -10,35 +11,41 @@ export type Stop = {
   tone: "ink" | "paper"; // caption colour
 };
 
-// Each line names something the app really does (search, listing checks, photos and video, filters, shortlists).
-// ponytail: no prices, stats or addresses; the villa is an illustrative model.
+// Each line names something the app really does (search, listing checks, filters, the map on every listing).
+// ponytail: no prices, stats or addresses; the city, the villa and the markers on it are an illustrative model.
 export const STOPS: Stop[] = [
-  { id: "build", title: "See how it was built.", line: "A person checks every listing before it goes live.", tone: "paper" },
-  { id: "explore", title: "Explore the home.", line: "Tap a room, or keep scrolling.", tone: "paper" },
-  { id: "hall", title: "The living hall.", line: "Photos and video tours before you visit.", tone: "paper" },
-  { id: "bedroom", title: "The bedroom.", line: "Shortlist homes and save your searches.", tone: "paper" },
-  { id: "bath", title: "The bath.", line: "Filter by BHK, parking and amenities.", tone: "paper" },
+  { id: "earth", title: "From Earth to your next home.", line: "Search Bengaluru by area, metro station or project.", tone: "paper" },
+  { id: "city", title: "Bengaluru, area by area.", line: "Homes from verified owners. A person checks every listing.", tone: "paper" },
+  { id: "pins", title: "Every home on one map.", line: "Filter by BHK, parking and amenities.", tone: "paper" },
+  { id: "around", title: "And what’s around it.", line: "Each listing’s map shows the metro, schools and hospitals nearby.", tone: "paper" },
 ];
 
 // When each caption is on screen [in, out], in ticks.
 export const CAPTIONS: Record<string, [number, number]> = {
-  build: [31, 47], explore: [52.5, 60.5], hall: [63, 68.5], bedroom: [71, 75.5], bath: [78, 82.5],
+  earth: [22, 33], city: [55, 63], pins: [66, 75.5], around: [88.5, 94.5],
 };
 
-// The "from the ground up" card over the cut to the building site, and the floor plan at the end, in ticks.
-export const INTER: [number, number] = [17.5, 28.5];
-export const PLAN: [number, number] = [88.5, 95.5];
+// The villa's card while the film holds on its front, and the close, in ticks.
+export const VILLA: [number, number] = [83.5, 88];
 export const CLOSE_AT = 96;
 
-// Rooms you can jump to from the villa's front: where each label sits comes from the film (film.json pins); the tick is
-// where its room's shot starts.
-export const HOTSPOTS = [
-  { id: "hall", label: "Living hall", tick: 62.4 },
-  { id: "bedroom", label: "Bedroom", tick: 70.4 },
-  { id: "bath", label: "Bath", tick: 77.4 },
-] as const;
-// The hotspots fade in and out with the film, in film seconds (they show while the film holds on the front).
-export const PIN_FADE: [number, number][] = [[0, 0], [12.4, 0], [13.1, 1], [13.95, 1], [13.99, 0]];
+// The labels the film carries: where each sits on screen comes from the 3D camera, every frame (earth.json marks).
+// The markers on the roofs are "pin-<key>" (their kind, sale or rent, is earth.json pins).
+export const MARKS: { id: string; label: string; kind: "geo" | "city" | "area" | "place" }[] = [
+  { id: "india", label: "India", kind: "geo" },
+  { id: "karnataka", label: "Karnataka", kind: "geo" },
+  { id: "tamil-nadu", label: "Tamil Nadu", kind: "geo" },
+  { id: "bengaluru", label: "Bengaluru", kind: "city" },
+  { id: "mysuru", label: "Mysuru", kind: "city" },
+  { id: "city-bengaluru", label: "Bengaluru", kind: "city" },
+  { id: "yelahanka", label: "Yelahanka", kind: "area" },
+  { id: "whitefield", label: "Whitefield", kind: "area" },
+  { id: "sarjapur", label: "Sarjapur", kind: "area" },
+  { id: "electronic-city", label: "Electronic City", kind: "area" },
+  { id: "clubhouse", label: "Clubhouse and pool", kind: "place" },
+  { id: "park", label: "Park", kind: "place" },
+  { id: "lake", label: "Lake walk", kind: "place" },
+];
 
 /** Piecewise lookup in a [tick, value] table, eased between rows. */
 export function pw(table: [number, number][], t: number) {
