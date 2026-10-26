@@ -1,6 +1,8 @@
 """Encodes the villa film's rendered frames into the home page's films and posters (needs ffmpeg on PATH).
 
-  python apps/web/film/encode.py [--draft]
+  python apps/web/film/encode.py [--draft] [--film earth]
+
+--film earth: the explorer film (earth.py) instead, from gharaana-earth into earth-*.mp4 and earth-poster*.webp.
 
 Every file a browser downloads stays under its byte budget (BUDGET, MB): each is encoded at a starting quality and
 re-encoded a notch lower until it fits, so the page loads fast on a phone over 4G.
@@ -11,6 +13,7 @@ there each in-between frame is replaced by the nearest real one.
 Works on a partial render too: each rendered frame is held until the next one.
 """
 import glob
+import importlib
 import os
 import shutil
 import subprocess
@@ -19,9 +22,11 @@ import tempfile
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import shots  # noqa: E402
+FILM = sys.argv[sys.argv.index("--film") + 1] if "--film" in sys.argv else "villa"
+shots = importlib.import_module({"villa": "shots", "earth": "earth_shots"}[FILM])
+NAME = {"villa": "film", "earth": "earth"}[FILM]  # the page's files: film-1080.mp4 ..., earth-1080.mp4 ...
 
-ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-villa")
+ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), f"gharaana-{FILM}")
 SRC = os.path.join(ROOT, "frames-draft" if "--draft" in sys.argv else "frames-1080")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "tour")
 CLEAN = "hqdn3d=1:1:4:4"  # a very light temporal denoise: takes the render's leftover grain, keeps the detail
@@ -30,9 +35,9 @@ GRADE = ("eq=contrast=0.94:brightness=0.005:gamma=1.02:saturation=1.06,vibrance=
          "huesaturation=saturation=0.4:colors=c+b:strength=3,colorbalance=bh=0.04:rh=-0.01")
 SHARP = "cas=strength=0.5"  # contrast-adaptive sharpening, after any scaling
 FPS_OUT = 60
-BUDGET = {"film-1080-hevc.mp4": 8.0, "film-1080-av1.mp4": 8.0, "film-1080.mp4": 9.5,
-          "film-phone-hevc.mp4": 3.5, "film-phone.mp4": 3.5}
-CUTS = [s[1] for s in shots.SHOTS[1:]]  # film seconds where one shot cuts to the next
+BUDGET = {f"{NAME}-1080-hevc.mp4": 8.0, f"{NAME}-1080-av1.mp4": 8.0, f"{NAME}-1080.mp4": 9.5,
+          f"{NAME}-phone-hevc.mp4": 3.5, f"{NAME}-phone.mp4": 3.5}
+CUTS = getattr(shots, "CUTS", [s[1] for s in shots.SHOTS[1:]])  # film seconds where one shot cuts to the next
 RIFE = (glob.glob(os.path.join(os.path.dirname(ROOT), "gharaana-film", "rife", "*", "rife-ncnn-vulkan.exe")) or [None])[0]
 
 
@@ -110,22 +115,23 @@ with tempfile.TemporaryDirectory(dir=ROOT) as seq:  # same drive as the frames, 
     DESK = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{SHARP}"
     CUT = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{PHONE},{SHARP}"  # (the cut is measured on a 1080p frame)
     x265 = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error"]
-    fit("film-1080-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), *x265, *gop(FPS_OUT, 20), p))
-    fit("film-1080-av1.mp4", 38, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), "-c:v", "libsvtav1", "-preset", "5", *gop(FPS_OUT, 20), p))
+    fit(f"{NAME}-1080-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), *x265, *gop(FPS_OUT, 20), p))
+    fit(f"{NAME}-1080-av1.mp4", 38, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), "-c:v", "libsvtav1", "-preset", "5", *gop(FPS_OUT, 20), p))
     # the H.264 fallback at 30 fps: half the frames for the browsers that play neither HEVC nor AV1
-    fit("film-1080.mp4", 25, lambda crf, p: ffmpeg(*frames, "-vf", f"{DESK},fps=30", "-crf", str(crf), "-c:v", "libx264",
+    fit(f"{NAME}-1080.mp4", 25, lambda crf, p: ffmpeg(*frames, "-vf", f"{DESK},fps=30", "-crf", str(crf), "-c:v", "libx264",
                                                     "-preset", "veryslow", "-tune", "film", *gop(30, 15), p))
-    fit("film-phone-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", f"{CUT},fps=30", "-crf", str(crf), *x265, *gop(30, 15), p))
-    fit("film-phone.mp4", 26, lambda crf, p: ffmpeg(*frames, "-vf", f"{CUT},scale=540:960:flags=lanczos,fps=30", "-crf", str(crf),
+    fit(f"{NAME}-phone-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", f"{CUT},fps=30", "-crf", str(crf), *x265, *gop(30, 15), p))
+    fit(f"{NAME}-phone.mp4", 26, lambda crf, p: ffmpeg(*frames, "-vf", f"{CUT},scale=540:960:flags=lanczos,fps=30", "-crf", str(crf),
                                                      "-c:v", "libx264", "-preset", "veryslow", "-tune", "film", *gop(30, 15), p))
     first = os.path.join(seq, "0001.png")
     webp = ["-c:v", "libwebp", "-quality", "68"]
-    ffmpeg("-i", first, "-vf", DESK, *webp, os.path.join(OUT, "film-poster.webp"))
-    ffmpeg("-i", first, "-vf", CUT, *webp, os.path.join(OUT, "film-poster-phone.webp"))
+    ffmpeg("-i", first, "-vf", DESK, *webp, os.path.join(OUT, f"{NAME}-poster.webp"))
+    ffmpeg("-i", first, "-vf", CUT, *webp, os.path.join(OUT, f"{NAME}-poster-phone.webp"))
 for f in ("hero-cutout.webp", "hero-cutout-phone.webp"):  # the apartment film's; the villa's title sits over the clouds
     if os.path.exists(os.path.join(OUT, f)):
         os.remove(os.path.join(OUT, f))
 if "--draft" not in sys.argv:  # (a draft keeps the logo white throughout)
-    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tone.py")], check=True)
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tone.py"), "--film", FILM], check=True)
 for f in sorted(os.listdir(OUT)):
-    print(f, round(os.path.getsize(os.path.join(OUT, f)) / 1e6, 2), "MB")
+    if f.startswith(NAME):
+        print(f, round(os.path.getsize(os.path.join(OUT, f)) / 1e6, 2), "MB")
