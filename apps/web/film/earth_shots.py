@@ -233,8 +233,9 @@ LABELS = {
     "lake": ((-80.0, -230.0, 2.0), (30.0, 31.0)),
 }
 
-# phones see a 9:16 cut of the 16:9 frame: where its centre sits (0..1 across the frame)
-CROP = [(0, 0.5), (34, 0.5)]
+# phones see a 9:16 cut of the 16:9 frame: where its centre sits (0..1 across the frame), eased between rows; over
+# Karnataka it follows Bengaluru as the camera turns towards it
+CROP = step([(0, 0.5), (12.6, 0.5), (13.15, 0.57), (13.35, 0.59), (13.85, 0.53), (14.0, 0.5, True), (34, 0.5)])
 
 
 def crop_at(sec):
