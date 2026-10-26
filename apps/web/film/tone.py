@@ -52,7 +52,8 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory(dir=ROOT) as seq:
         last = None
         for n in range(1, film["frames"] + 1):
-            last = next((p for d in dirs if os.path.exists(p := os.path.join(d, f"f{n:04d}.png"))), last)
+            # (the farm's download names a frame 0001.png, ours f0001.png)
+            last = next((p for d in dirs for name in (f"f{n:04d}.png", f"{n:04d}.png") if os.path.exists(p := os.path.join(d, name))), last)
             os.link(last, os.path.join(seq, f"{n:04d}.png"))
         film["logo"] = {k: tones(os.path.join(seq, "%04d.png"), c) for k, c in PATCH.items()}
     # frame 1 is the hero (the film holds it under the title): white there, whatever the patch measures

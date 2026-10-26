@@ -30,7 +30,7 @@ GRADE = ("eq=contrast=0.94:brightness=0.005:gamma=1.02:saturation=1.06,vibrance=
          "huesaturation=saturation=0.4:colors=c+b:strength=3,colorbalance=bh=0.04:rh=-0.01")
 SHARP = "cas=strength=0.5"  # contrast-adaptive sharpening, after any scaling
 FPS_OUT = 60
-BUDGET = {"film-1080-hevc.mp4": 8.0, "film-1080-av1.mp4": 8.0, "film-1080.mp4": 9.5,
+BUDGET = {"film-1080-hevc.mp4": 8.0, "film-1080-av1.mp4": 9.5, "film-1080.mp4": 9.5,
           "film-phone-hevc.mp4": 3.5, "film-phone.mp4": 3.5}
 CUTS = [s[1] for s in shots.SHOTS[1:]]  # film seconds where one shot cuts to the next
 RIFE = (glob.glob(os.path.join(os.path.dirname(ROOT), "gharaana-film", "rife", "*", "rife-ncnn-vulkan.exe")) or [None])[0]
@@ -111,7 +111,7 @@ with tempfile.TemporaryDirectory(dir=ROOT) as seq:  # same drive as the frames, 
     CUT = f"{CLEAN},{GRADE},scale=1920:1080:flags=lanczos,{PHONE},{SHARP}"  # (the cut is measured on a 1080p frame)
     x265 = ["-c:v", "libx265", "-preset", "slow", "-tag:v", "hvc1", "-x265-params", "log-level=error"]
     fit("film-1080-hevc.mp4", 28, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), *x265, *gop(FPS_OUT, 20), p))
-    fit("film-1080-av1.mp4", 38, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), "-c:v", "libsvtav1", "-preset", "5", *gop(FPS_OUT, 20), p))
+    fit("film-1080-av1.mp4", 50, lambda crf, p: ffmpeg(*frames, "-vf", DESK, "-crf", str(crf), "-c:v", "libsvtav1", "-preset", "5", *gop(FPS_OUT, 20), p))
     # the H.264 fallback at 30 fps: half the frames for the browsers that play neither HEVC nor AV1
     fit("film-1080.mp4", 25, lambda crf, p: ffmpeg(*frames, "-vf", f"{DESK},fps=30", "-crf", str(crf), "-c:v", "libx264",
                                                     "-preset", "veryslow", "-tune", "film", *gop(30, 15), p))
