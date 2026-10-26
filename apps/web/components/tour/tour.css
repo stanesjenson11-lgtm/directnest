@@ -264,6 +264,8 @@ html:has(.gharaana), html:has(.gharaana) body {
   .sc-close::before { background: linear-gradient(0deg, color-mix(in oklab, var(--ink) 85%, transparent) 0%, color-mix(in oklab, var(--ink) 55%, transparent) 55%, transparent 90%); }
   .sc-close { align-items: flex-end; }
   .villa { top: auto; bottom: clamp(1rem, 4cqh, 2rem); translate: none; }
+  .close__kinds { font-size: 0.78rem; letter-spacing: 0.1em; }
+  .close__kinds span { margin-inline: 0.3em; }
 }
 @media (max-aspect-ratio: 1/1) {
   .hero--title { top: 16cqh; }  /* under the nav on phones */

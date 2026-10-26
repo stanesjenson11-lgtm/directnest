@@ -57,8 +57,10 @@ if __name__ == "__main__":
             last = next((p for d in dirs if os.path.exists(p := os.path.join(d, f"f{n:04d}.png"))), last)
             os.link(last, os.path.join(seq, f"{n:04d}.png"))
         film["logo"] = {k: tones(os.path.join(seq, "%04d.png"), c) for k, c in PATCH.items()}
-    # frame 1 is the hero (the film holds it under the title): white there, whatever the patch measures
-    film["logo"] = {k: "D" + v[1:] for k, v in film["logo"].items()}
+    # frame 1 is the hero (the film holds it under the title): white there, whatever the patch measures; a film that
+    # loops its opening under the title (earth.json loop) keeps it white for the whole loop, or it would blink each time round
+    hold = max(1, film.get("loop", [1, 2])[1] - 1)
+    film["logo"] = {k: "D" * hold + v[hold:] for k, v in film["logo"].items()}
     with open(FILM_JSON, "w", encoding="utf-8") as f:
         json.dump(film, f, separators=(",", ":"))
     for k, s in film["logo"].items():

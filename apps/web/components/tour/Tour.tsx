@@ -292,7 +292,10 @@ function placeMarks(v: HTMLVideoElement, marks: { el: HTMLElement; at: Track }[]
     const i = frame - at.from;
     const p = i >= 0 && i < at.points.length ? at.points[i] : null;
     const x = p ? (phone ? (p[0] - x0) / CROP_W : p[0]) : -1;
-    if (!p || x < -0.02 || x > 1.02) {
+    const sx = ox + x * dw, sy = p ? oy + p[1] * dh : 0;
+    // a label that would be cut by the edge, or sit under the nav, waits until it is clear
+    const half = +(el.dataset.half ||= String((el.firstElementChild as HTMLElement).offsetWidth / 2));
+    if (!p || sx - half < 8 || sx + half > w - 8 || sy < 88 || sy > h - 24) {
       if (el.dataset.on) {
         el.style.opacity = "0";
         el.style.visibility = "hidden";
@@ -303,6 +306,6 @@ function placeMarks(v: HTMLVideoElement, marks: { el: HTMLElement; at: Track }[]
     el.dataset.on = "1";
     el.style.opacity = String(Math.min(1, Math.min(i, at.points.length - 1 - i) / 6));
     el.style.visibility = "visible";
-    el.style.transform = `translate(${ox + x * dw}px, ${oy + p[1] * dh}px)`;
+    el.style.transform = `translate(${sx}px, ${sy}px)`;
   }
 }

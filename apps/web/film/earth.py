@@ -384,8 +384,9 @@ def export(cam, heads):
     screen (0..1, top-left origin; null while it is hidden, behind the Earth or off screen) for its span of frames."""
     sc = bpy.context.scene
     marks = {}
+    # the markers' labels go before the villa's front rises in front of them (labels have no occlusion test)
     rows = [(k, p, span) for k, (p, span) in shots.LABELS.items()] + \
-           [(f"pin-{k}", heads[k], (shots.PIN_POP[0], 28.0 if k != "villa" else 25.5)) for k, *_ in shots.PINS]
+           [(f"pin-{k}", heads[k], (shots.PIN_POP[0], 25.5)) for k, *_ in shots.PINS]
     for key, p, (a, b) in rows:
         f0, f1 = shots.frame_of(a), shots.frame_of(b)
         pts = []
