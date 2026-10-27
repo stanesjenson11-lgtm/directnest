@@ -6,7 +6,7 @@ import { loadMapLibre, MAP_STYLE } from "@/lib/maplibre";
 import { PINS_AT, cameraAt } from "./config";
 
 // NASA's Blue Marble (public domain) for the globe, to zoom 8; the vector map takes over beneath it from zoom 8 to 10.
-const EARTH = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default//EPSG3857_500m/{z}/{y}/{x}.jpeg";
+const EARTH = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
 
 type Pin = { id: string; lat: number; lng: number; label: string };
 const SPACING = 0.014; // degrees of latitude (~1.5 km): a price chip's width at the tour's closest view
