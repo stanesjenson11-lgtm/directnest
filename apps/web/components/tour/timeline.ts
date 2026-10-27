@@ -11,8 +11,8 @@ export type TourHooks = {
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the clip and the map: hero, captions, close.
- *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the clip and the map follow too, so
+/** The HTML layer over the clouds and the map: hero, captions, close.
+ *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the clouds and the map follow too, so
  *  the two never drift apart. Tour.tsx imports this module (and GSAP with it) only after the page is up, so it never
  *  holds up the first paint. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
@@ -54,7 +54,7 @@ function make(root: HTMLElement, o: TourHooks) {
     if (Object.keys(t.rest).length) tl.set(target, t.rest, at + dur);
   }
 
-  // the hero is gone by tick 4, while the clip still holds its first frame (config CLIP)
+  // the hero is gone by tick 4, as the camera starts to rise out of the clouds (config RISE)
   fx("[data-hero-title], [data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
 
   const cap = (id: string, inAt: number, outAt: number) => {

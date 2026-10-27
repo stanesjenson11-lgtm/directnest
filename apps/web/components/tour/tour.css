@@ -65,30 +65,29 @@ html:has(.gharaana), html:has(.gharaana) body {
   position: sticky; top: 0;
   height: 100svh; overflow: clip; isolation: isolate;
   container-type: size;
-  /* Space while the poster loads, and round the globe: a few stars over the night. */
-  background:
+  /* Dawn while the clouds start (their sky's colours); under the map, once they have gone, space round the globe. */
+  background: linear-gradient(180deg, #2e4f8f 0%, #6f8fc4 38%, #e7b98a 56%, #f4efe9 64%, #e9ecf1 100%);
+}
+.stage[data-map="ready"] { background:
     radial-gradient(1px 1px at 12% 22%, rgb(255 255 255 / 0.8) 50%, transparent 51%),
     radial-gradient(1px 1px at 68% 14%, rgb(255 255 255 / 0.6) 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 84% 62%, rgb(255 255 255 / 0.7) 50%, transparent 51%),
     radial-gradient(1px 1px at 31% 78%, rgb(255 255 255 / 0.5) 50%, transparent 51%),
-    radial-gradient(1px 1px at 52% 41%, rgb(255 255 255 / 0.4) 50%, transparent 51%),
     radial-gradient(120% 90% at 50% 120%, color-mix(in oklab, var(--blue) 28%, var(--night)) 0%, var(--night) 50%, #01040c 100%);
 }
 .scene { position: absolute; inset: 0; pointer-events: none; }
 .sc-close { visibility: hidden; z-index: 4; }
 
-/* The clip (Higgsfield), scrubbed by scroll; its poster shows until it can play, and goes if there is no clip. */
-.film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
-.film--video { opacity: 0; }  /* over the poster once its first frame is in (then Tour.tsx fades it into the map) */
-.stage[data-clip="ready"] .film--video { opacity: 1; }
-.stage[data-clip="failed"] .film { display: none; }
+/* The clouds (clouds.ts), drawn small and scaled up: soft cloud loses nothing to it. */
+.sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage[data-clouds="failed"] .sky { display: none; }
 .stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(130% 95% at 50% 45%, transparent 60%, color-mix(in oklab, var(--ink) 26%, transparent) 100%);
 }
 
-/* The live map (map.ts) over the clip: Tour.tsx fades it in at the handoff. (.stage .map: MapLibre's own class would
-   make it position: relative.) */
+/* The live map (map.ts) under the clouds: Tour.tsx fades it in as they dissolve. (.stage .map: MapLibre's own class
+   would make it position: relative.) */
 .stage .map { position: absolute; inset: 0; opacity: 0; background: transparent; }
 /* the homes' prices, as on /search: they rise in one after another once the map is close enough to read them */
 .hpin { display: block; text-decoration: none; z-index: 1; }  /* prices over the dots they sit among */
@@ -105,9 +104,9 @@ html:has(.gharaana), html:has(.gharaana) body {
 .hpin--dot span { width: 10px; height: 10px; padding: 0; box-sizing: border-box; border: 2px solid #fff; background: var(--sun); }
 .map.pins-on .hpin span { opacity: 1; transform: none; }
 .hpin:hover span { background: var(--sun); }
-/* ?handoff: the map alone, as the clip's end frame (HIGGSFIELD.md) */
+/* ?handoff: the globe alone, as the clouds leave it (SCRIPT.md) */
 .tour[data-handoff] :is(.hero, .caps, .nav, .sc-close, .maplibregl-ctrl) { visibility: hidden; }
-.tour[data-handoff] .stage::after { display: none; }
+.tour[data-handoff] .stage::after, .tour[data-handoff] .sky { display: none; }
 
 /* ============ Hero ============ */
 .hero {
@@ -117,7 +116,7 @@ html:has(.gharaana), html:has(.gharaana) body {
   gap: clamp(0.6rem, 1.6cqh, 1.25rem);
   pointer-events: none; z-index: 4;
 }
-/* the title sits left, a third of the way down, over the clouds (as the reference film opens); the search sits low */
+/* the title sits left, a third of the way down, over the clouds; the search sits low */
 .hero--title { z-index: 2; top: 27cqh; align-items: flex-start; text-align: left; isolation: isolate; }
 .hero--title::before {  /* a soft shade under the words: white serif over bright cloud needs it */
   content: ""; position: absolute; z-index: -1; inset: -40% -10% -45% -20%; pointer-events: none;

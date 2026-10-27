@@ -23,7 +23,7 @@ const TITLE = (
   </>
 );
 
-/** The title, set over the clip's first frame: the Earth from space. */
+/** The title, set over the clouds at dawn (clouds.ts). */
 export function HeroTitle() {
   return (
     <div className="hero hero--title" data-hero-title>

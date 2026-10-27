@@ -24,12 +24,20 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
   m.on("error", (e) => {
     if (!m.loaded() && /style|fetch|network/i.test(String(e.error?.message))) onFail();
   });
-  m.once("load", () => {
+  // style.load, not load: load waits for the first full render, which would show the plain street style (a pale ball,
+  // with borders) on the globe until then
+  m.once("style.load", () => {
     m.setProjection({ type: "globe" });
     for (const l of m.getStyle().layers) {
       // no borders, ever (the app's maps never draw them); below zoom 8 the globe is the imagery alone, without labels
       if (l.id.includes("boundary")) m.setLayoutProperty(l.id, "visibility", "none");
       else if (l.type !== "background") m.setLayerZoomRange(l.id, Math.max(8, l.minzoom ?? 0), l.maxzoom ?? 24);
+    }
+    // under the imagery, ocean, not the street map's pale ground: a tile still on its way never shows as a white patch
+    const bg = m.getStyle().layers.find((l) => l.type === "background");
+    const ground = bg && m.getPaintProperty(bg.id, "background-color");
+    if (bg && typeof ground === "string") {
+      m.setPaintProperty(bg.id, "background-color", ["interpolate", ["linear"], ["zoom"], 7.5, "#0b2a4a", 9.5, ground]);
     }
     m.addSource("earth", { type: "raster", tiles: [EARTH], tileSize: 256, minzoom: 1, maxzoom: 8, attribution: "Imagery: NASA" });
     m.addLayer({

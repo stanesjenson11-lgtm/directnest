@@ -7,7 +7,7 @@ export default function Home() {
       <Tour />
       <footer className="foot">
         <Logo tone="white" className="foot__logo" />
-        <p>The opening film is AI-generated. The map after it is live: its pins are real homes, each at its owner&rsquo;s asking price.</p>
+        <p>The clouds are drawn live and the Earth is NASA&rsquo;s imagery. The map is live too: its pins are real homes, each at its owner&rsquo;s asking price.</p>
       </footer>
     </main>
   );
