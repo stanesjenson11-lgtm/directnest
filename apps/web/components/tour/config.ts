@@ -1,27 +1,31 @@
-// The tour is one master timeline measured in "ticks" (the scroll, 0..TOTAL). It opens on the Higgsfield clip (public/tour
-// space.mp4, made as components/tour/HIGGSFIELD.md says): space, the Earth, down to south India. At the handoff the live
-// map takes over, framed as the clip ends, and flies on down into Bengaluru, where the homes are.
+// The tour is one master timeline measured in "ticks" (the scroll, 0..TOTAL), played as one continuous shot (the script
+// is components/tour/HIGGSFIELD.md): above the clouds; up through them until the whole Earth hangs in space; down again
+// onto Bengaluru, where the live map takes over and the homes come up. The film is public/tour/hero.mp4: a seamless
+// loop of the clouds (LOOP seconds) for the hero, then the rise and the descent.
 export const TOTAL = 100;
 
-// How far through the clip each tick is (0..1 of its length, whatever it turns out to be).
-export const CLIP: [number, number][] = [[0, 0], [4, 0], [40, 1]];
-// The clip crossfades into the map over these ticks.
-export const HANDOFF: [number, number] = [40, 46];
+// The cloud loop at the head of the film, seconds: it plays under the title until the visitor scrolls.
+export const LOOP = 5;
+// Which film second each tick shows: tick 0 is the loop's last frame (the same as its first), the end of the film is the
+// handoff.
+export const CLIP: [number, number][] = [[0, 0], [66, 1]]; // 0..1 of the way from LOOP to the film's end
+// The film crossfades into the map over these ticks.
+export const HANDOFF: [number, number] = [66, 72];
 
 // The map's camera, eased between rows: tick, longitude, latitude, zoom, pitch, bearing. Before the handoff it only shows
-// when there is no clip: the globe from space, turning to India.
+// when there is no film: the globe from space, turning to India.
 export const CAMERA: [number, number, number, number, number, number][] = [
-  [0, 62, 16, 1.6, 0, 0],
-  [20, 70, 15, 2.4, 0, 0],
-  [40, 77.6, 13.0, 4.2, 0, 0], // the handoff: south India from orbit, north up (the clip's last frame)
-  [56, 77.6, 12.97, 8.6, 25, -6],
-  [70, 77.62, 12.96, 11.2, 48, -16],
-  [88, 77.64, 12.95, 12.3, 55, -26],
+  [0, 64, 16, 1.6, 0, 0],
+  [33, 72, 14, 2.6, 0, 0],
+  [66, 77.6, 12.97, 6.4, 0, 0], // the handoff: Bengaluru from high above, north up (the film's last frame)
+  [80, 77.62, 12.96, 10.6, 40, -12],
+  [92, 77.64, 12.95, 12.3, 55, -26],
   [100, 77.64, 12.95, 12.3, 55, -26],
 ];
-// The homes' price pins come up once the map is close enough to read them; the nav turns ink once the map is light.
-export const PINS_AT = 66;
-export const LIGHT_AT = 52;
+// The homes' price pins come up once the map is close enough to read them.
+export const PINS_AT = 82;
+// The nav's colour, from these ticks on: ink over the bright clouds, white in space, ink again on the light map.
+export const TONE_BREAKS: [number, "ink" | "paper"][] = [[0, "ink"], [14, "paper"], [76, "ink"]];
 
 export type Stop = {
   id: string;
@@ -34,13 +38,12 @@ export type Stop = {
 // ponytail: no stats or invented prices; the prices on the map are the live listings' own.
 export const STOPS: Stop[] = [
   { id: "earth", title: "Start from anywhere.", line: "Owners list from across India and abroad. You search Bengaluru, street by street.", tone: "paper" },
-  { id: "city", title: "Bengaluru, from above.", line: "Homes from verified owners. A person checks every listing.", tone: "paper" },
   { id: "pins", title: "Every pin is a home you can visit.", line: "The price is the owner’s own. No brokerage, ever.", tone: "ink" },
 ];
 
 // When each caption is on screen [in, out], in ticks.
-export const CAPTIONS: Record<string, [number, number]> = { earth: [14, 34], city: [47, 58], pins: [70, 84] };
-export const CLOSE_AT = 90;
+export const CAPTIONS: Record<string, [number, number]> = { earth: [26, 44], pins: [83, 91] };
+export const CLOSE_AT = 92;
 
 /** Piecewise lookup in a [tick, value] table, eased between rows. */
 export function pw(table: [number, number][], t: number) {

@@ -60,7 +60,7 @@ html:has(.gharaana), html:has(.gharaana) body {
 }
 
 /* ============ Stage ============ */
-.tour { position: relative; height: 480svh; }  /* less to scroll through */
+.tour { position: relative; height: 300svh; }  /* the whole story in two screens of scroll */
 .stage {
   position: sticky; top: 0;
   height: 100svh; overflow: clip; isolation: isolate;
