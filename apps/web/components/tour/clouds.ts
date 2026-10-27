@@ -2,14 +2,18 @@
 // curve away into a planet with a thin blue rim in black space (where the live globe, map.ts, takes over). One fragment
 // shader over the whole canvas, raymarching a layer of cloud made of noise; drawn small and scaled up (cloud is soft).
 
-// uRise: 0 just over the cloud tops .. 1 the edge of space. uTime: seconds, the wind's drift.
+import { skyCamera } from "./config";
+
+// uRise: 0 just over the cloud tops .. 1 the edge of space. uCam: the camera at that rise (config.ts skyCamera: height,
+// pitch, the cloud sea's radius, field of view). uTime: seconds, the wind's drift.
 const FRAG = `
 precision highp float;
 uniform vec2 uRes;
 uniform float uTime;
 uniform float uRise;
+uniform vec4 uCam;
 
-const vec3 SUN = vec3(0.47, 0.13, 0.87);
+const vec3 SUN = vec3(0.4749, 0.0523, 0.8784); // just up, right of the view
 
 float hash(vec3 p) {
   p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -42,20 +46,25 @@ float density(vec3 p, int oct) {
   // denser close to (the sea of cloud we wake over), more broken from orbit
   return clamp((n - 0.36 + 0.07 * (1.0 - uRise) - h * 0.18) * 4.0, 0.0, 1.0) * body;
 }
-vec3 sky(vec3 rd) {
+// bg: 1 for the sky itself, 0 for the haze on the clouds (which has no sun's disc: it would draw a line of it below the sun)
+vec3 sky(vec3 rd, float bg) {
   float h = rd.y;
-  vec3 low = vec3(1.0, 0.70, 0.44), mid = vec3(0.45, 0.63, 0.92), top = vec3(0.10, 0.23, 0.55);
+  // the horizon glows gold towards the sun and cools away from it
+  float toward = max(dot(normalize(vec3(rd.x, 0.0, rd.z)), normalize(vec3(SUN.x, 0.0, SUN.z))), 0.0);
+  vec3 low = mix(vec3(0.5, 0.52, 0.78), vec3(1.0, 0.62, 0.34), pow(toward, 3.0));
+  vec3 mid = vec3(0.28, 0.42, 0.78), top = vec3(0.035, 0.085, 0.27);
   mid = mix(mid, vec3(0.06, 0.14, 0.34), uRise);
   top = mix(top, vec3(0.004, 0.008, 0.025), uRise);
   low = mix(low, vec3(0.55, 0.65, 1.0), uRise * 0.6);
   vec3 c = mix(low, mid, smoothstep(-0.02, 0.11, h));
-  c = mix(c, top, smoothstep(0.12, 0.75, h));
+  c = mix(c, top, smoothstep(0.08, 0.55, h));
   // below the horizon (round the planet's edge, once high up): haze low down, space higher
   vec3 below = mix(vec3(0.80, 0.76, 0.72), vec3(0.002, 0.004, 0.012), smoothstep(0.2, 0.7, uRise));
   c = mix(c, below, smoothstep(0.02, -0.12, h));
+  c *= 1.0 - 0.85 * smoothstep(0.35, 0.85, uRise) * bg; // the sky going dark as we leave it
   float s = max(dot(rd, SUN), 0.0);
-  c += vec3(1.0, 0.72, 0.40) * (pow(s, 10.0) * 0.5 + pow(s, 120.0) * 0.8) * (1.0 - uRise * 0.9);
-  c += vec3(1.0, 0.94, 0.82) * smoothstep(0.9992, 0.9996, s) * 6.0;
+  c += vec3(1.0, 0.62, 0.30) * (pow(s, 6.0) * 0.35 + (pow(s, 60.0) * 0.9 + pow(s, 600.0) * 2.0) * bg) * (1.0 - uRise * 0.9);
+  c += vec3(1.0, 0.95, 0.85) * smoothstep(0.99955, 0.99975, s) * 8.0 * bg;
   // stars, once high up
   vec3 g = floor(rd * 260.0);
   float st = step(0.9975, hash(g)) * smoothstep(0.3, 0.9, uRise) * smoothstep(0.0, 0.2, h);
@@ -63,16 +72,13 @@ vec3 sky(vec3 rd) {
 }
 void main() {
   vec2 uv = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;
-  float e = uRise * uRise;
-  float alt = mix(3.0, 34.0, e);
+  float alt = uCam.x, pitch = uCam.y, R = uCam.z;
   vec3 ro = vec3(0.0, alt, 0.0);
-  float pitch = mix(-0.13, -0.62, smoothstep(0.1, 1.0, uRise));
-  float yaw = 0.42;
+  float yaw = 0.1;
   vec3 fw = normalize(vec3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)));
   vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
   vec3 up = cross(fw, rt);
-  vec3 rd = normalize(fw + (uv.x * rt + uv.y * up) * 0.62);
-  float R = mix(900.0, 90.0, uRise); // how quickly the cloud sea curves away: the Earth's curve shows as we climb
+  vec3 rd = normalize(fw + (uv.x * rt + uv.y * up) * uCam.w);
   vec3 col = vec3(0.0);
   float a = 0.0;
   bool ground = false;
@@ -83,7 +89,7 @@ void main() {
     if (t > far || a > 0.97) break;
     vec3 p = ro + rd * t;
     vec2 d = p.xz;
-    p.y += dot(d, d) / (2.0 * R);
+    p.y += dot(d, d) / (2.0 * R); // the cloud sea curves away: the Earth's curve shows as we climb
     float dt = 0.05 + t * 0.016;
     if (p.y <= -0.05) { ground = true; break; }
     if (p.y < 1.05) {
@@ -92,12 +98,12 @@ void main() {
         float sh = density(p + SUN * 0.16, 3) + density(p + SUN * 0.42, 2);
         float light = exp(-sh * 3.4);
         float phase = 0.55 + 0.9 * pow(max(dot(rd, SUN), 0.0), 6.0);
-        vec3 sunc = vec3(1.0, 0.76, 0.52) * 2.7;
-        vec3 amb = mix(vec3(0.36, 0.45, 0.66), vec3(0.75, 0.82, 0.95), p.y);
+        vec3 sunc = vec3(1.0, 0.70, 0.45) * mix(1.9, 2.7, uRise); // dawn gold, then hard sunlight in space
+        vec3 amb = mix(mix(vec3(0.2, 0.25, 0.46), vec3(0.5, 0.56, 0.82), p.y), mix(vec3(0.36, 0.45, 0.66), vec3(0.75, 0.82, 0.95), p.y), uRise);
         vec3 c = sunc * light * phase + amb * (0.36 + 0.5 * p.y);
         float k = 1.0 - exp(-den * dt * 9.0);
         float haze = 1.0 - exp(-t * 0.012 / (1.0 + alt * 0.05));
-        c = mix(c, sky(normalize(vec3(rd.x, 0.02, rd.z))) * (1.0 - uRise * 0.4), haze);
+        c = mix(c, sky(normalize(vec3(rd.x, 0.02, rd.z)), 0.0) * (1.0 - uRise * 0.4), haze);
         col += (1.0 - a) * k * c;
         a += (1.0 - a) * k;
       }
@@ -108,7 +114,7 @@ void main() {
     t += dt;
   }
   // past the clouds: the land far below them, or the sky (and once high up, space round the planet)
-  vec3 bg = ground ? vec3(0.08, 0.17, 0.30) : sky(rd);
+  vec3 bg = ground ? mix(vec3(0.42, 0.50, 0.66), vec3(0.08, 0.17, 0.30), smoothstep(0.1, 0.6, uRise)) : sky(rd, 1.0);
   col += (1.0 - a) * bg;
   col += air * 0.018 * smoothstep(0.15, 0.7, uRise) * (1.0 - a);
   col = col / (1.0 + col * 0.55);
@@ -139,7 +145,8 @@ export function startClouds(canvas: HTMLCanvasElement) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); // one triangle over it all
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  const uRes = gl.getUniformLocation(prog, "uRes"), uTime = gl.getUniformLocation(prog, "uTime"), uRise = gl.getUniformLocation(prog, "uRise");
+  const at = (name: string) => gl.getUniformLocation(prog, name);
+  const uRes = at("uRes"), uTime = at("uTime"), uRise = at("uRise"), uCam = at("uCam");
 
   // drawn at a fraction of the screen's pixels: half on a desktop, a third on a phone, and less if frames run slow
   let scale = matchMedia("(pointer: coarse)").matches ? 0.33 : 0.5;
@@ -162,6 +169,8 @@ export function startClouds(canvas: HTMLCanvasElement) {
       gl.uniform2f(uRes, w, h);
       gl.uniform1f(uTime, time);
       gl.uniform1f(uRise, rise);
+      const c = skyCamera(rise);
+      gl.uniform4f(uCam, c.alt, c.pitch, c.radius, c.fov);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
     destroy() {

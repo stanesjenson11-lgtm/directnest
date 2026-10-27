@@ -55,7 +55,7 @@ function make(root: HTMLElement, o: TourHooks) {
   }
 
   // the hero is gone by tick 4, as the camera starts to rise out of the clouds (config RISE)
-  fx("[data-hero-title], [data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
+  fx("[data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
 
   const cap = (id: string, inAt: number, outAt: number) => {
     const s = `[data-cap="${id}"]`;
@@ -68,6 +68,7 @@ function make(root: HTMLElement, o: TourHooks) {
 
   // the way in, over the map and its homes
   fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, CLOSE_AT, 2);
+  fx("[data-hud]", { autoAlpha: 1 }, { autoAlpha: 0 }, CLOSE_AT, 2, "none", true);
   fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.3 }, CLOSE_AT + 0.4, 1.6, "power3.out");
 
   tl.set({}, {}, TOTAL); // fix total length

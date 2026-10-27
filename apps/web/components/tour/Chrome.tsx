@@ -14,45 +14,38 @@ const MODES = RENTALS ? (["Buy", "Rent", "Invest"] as const) : (["Buy", "Invest"
 
 // --i staggers the CSS intro across the whole title
 const words = (s: string, from = 0) => s.split(" ").map((w, i) => (
-  <span key={i}><span className="w"><span className="wi" style={{ "--i": from + i } as CSSProperties}>{w}</span></span>{" "}</span>
+  <span key={i}><span className="wi" style={{ "--i": from + i } as CSSProperties}>{w}</span>{" "}</span>
 ));
-const TITLE = (
-  <>
-    <span className="hero__line">{words("Step inside")}</span>
-    <span className="hero__line">{words("your next address.", 2)}</span>
-  </>
-);
 
-/** The title, set over the clouds at dawn (clouds.ts). */
-export function HeroTitle() {
-  return (
-    <div className="hero hero--title" data-hero-title>
-      <h1 className="hero__title">{TITLE}</h1>
-      <p className="hero__sub">Homes from verified owners in Bengaluru. A person checks every listing.</p>
-    </div>
-  );
-}
-
+/** The first view, over the clouds at dawn (clouds.ts): the title, its line and the search in one column, and the cue to
+ *  scroll. */
 export function Hero() {
   return (
-    <div className="hero hero--rest" data-hero>
-
-      <form className="search" role="search" action="/search" method="get" aria-label="Search homes">
-        <fieldset className="search__modes">
-          <legend className="sr-only">I want to</legend>
-          {MODES.map((m, i) => (
-            <label key={m} className="search__mode">
-              <input type="radio" name="type" value={m === "Rent" ? "rent" : "buy"} defaultChecked={i === 0} />
-              <span>{m}</span>
-            </label>
-          ))}
-        </fieldset>
-        <label className="search__field">
-          <span className="sr-only">City, area or project</span>
-          <input type="text" name="q" placeholder="City, area or project" autoComplete="off" />
-        </label>
-        <button type="submit" className="btn btn--sun">Search homes</button>
-      </form>
+    <div className="hero" data-hero>
+      <div className="hero__col">
+        <h1 className="hero__title">
+          <span className="hero__line">{words("Step inside")}</span>
+          <span className="hero__line">{words("your next address.", 2)}</span>
+        </h1>
+        <p className="hero__sub">Homes from verified owners in Bengaluru. <span>A person checks every listing.</span></p>
+        <form className="search" role="search" action="/search" method="get" aria-label="Search homes">
+          <fieldset className="search__modes">
+            <legend className="sr-only">I want to</legend>
+            {MODES.map((m, i) => (
+              <label key={m} className="search__mode">
+                <input type="radio" name="type" value={m === "Rent" ? "rent" : "buy"} defaultChecked={i === 0} />
+                <span>{m}</span>
+              </label>
+            ))}
+          </fieldset>
+          <label className="search__field">
+            <span className="sr-only">City, area or project</span>
+            <input type="text" name="q" placeholder="City, area or project" autoComplete="off" />
+          </label>
+          <button type="submit" className="btn btn--sun">Search homes</button>
+        </form>
+      </div>
+      <p className="hero__cue" aria-hidden="true">Scroll to rise</p>
     </div>
   );
 }

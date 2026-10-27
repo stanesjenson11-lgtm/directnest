@@ -105,34 +105,74 @@ html:has(.gharaana), html:has(.gharaana) body {
 .map.pins-on .hpin span { opacity: 1; transform: none; }
 .hpin:hover span { background: var(--sun); }
 /* ?handoff: the globe alone, as the clouds leave it (SCRIPT.md) */
-.tour[data-handoff] :is(.hero, .caps, .nav, .sc-close, .maplibregl-ctrl) { visibility: hidden; }
-.tour[data-handoff] .stage::after, .tour[data-handoff] .sky { display: none; }
+.tour[data-handoff] :is(.hero, .caps, .nav, .sc-close, .hud, .maplibregl-ctrl) { visibility: hidden; }
+.tour[data-handoff] .stage::before, .tour[data-handoff] .stage::after { display: none; }
+.tour[data-handoff] .sky { display: none; }
 
 /* ============ Hero ============ */
+/* one column over the dawn sky, left: the title, its line and the search; the cue to scroll at the foot */
 .hero {
-  position: absolute; left: 0; right: 0; top: 34cqh;
-  padding-inline: var(--gutter);
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: clamp(0.6rem, 1.6cqh, 1.25rem);
-  pointer-events: none; z-index: 4;
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(5rem, 10cqh, 7rem) var(--gutter) clamp(6rem, 22cqh, 13rem);
 }
-/* the title sits left, a third of the way down, over the clouds; the search sits low */
-.hero--title { z-index: 2; top: 27cqh; align-items: flex-start; text-align: left; isolation: isolate; }
-.hero--title::before {  /* a soft shade under the words: white serif over bright cloud needs it */
-  content: ""; position: absolute; z-index: -1; inset: -40% -10% -45% -20%; pointer-events: none;
-  background: radial-gradient(closest-side, rgb(0 18 56 / 0.42), rgb(0 18 56 / 0.18) 60%, transparent);
+/* the sky is lightest low down, towards the horizon: a little shade from the left keeps the line under the title
+   readable (4.5:1) */
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgb(0 18 56 / 0.3), rgb(0 18 56 / 0.12) 38%, rgb(0 18 56 / 0) 62%);
 }
-.hero--rest { top: auto; bottom: clamp(2rem, 9cqh, 5.5rem); }
+.hero__col { display: flex; flex-direction: column; align-items: flex-start; }
 .hero__title {
   margin: 0; font-family: var(--font-serif); font-weight: 400;
-  font-size: clamp(2.7rem, 6.2vw, 5.75rem); line-height: 1.06; letter-spacing: -0.015em;
+  font-size: clamp(3rem, 7vw, 6rem); line-height: 0.98; letter-spacing: -0.02em;
   text-wrap: balance; color: #fff;
-  text-shadow: 0 0.02em 0.4em rgb(0 18 56 / 0.4);
+  text-shadow: 0 0.03em 0.5em rgb(0 18 56 / 0.3);
 }
-.hero__line { display: block; }
+.hero__line, .hero__sub span { display: block; }
 .hero__sub {
-  margin: 0; max-width: 34ch; font-size: clamp(1rem, 1.25vw, 1.15rem); line-height: 1.55; color: rgb(255 255 255 / 0.94);
-  text-shadow: 0 1px 12px rgb(0 18 56 / 0.5); animation: hero-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+  margin: clamp(1rem, 2.6cqh, 1.6rem) 0 0; max-width: 34ch;
+  font-size: clamp(1.05rem, 1.3vw, 1.2rem); line-height: 1.5; color: #fff;
+  text-shadow: 0 1px 14px rgb(0 18 56 / 0.55); animation: hero-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+/* a line drawn down, over and over: the way on is down */
+.hero__cue {
+  position: absolute; left: 50%; bottom: clamp(1.1rem, 3.4cqh, 2rem); translate: -50% 0; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 0.55rem;
+  font-size: 0.8rem; font-weight: 500; letter-spacing: 0.02em; color: #fff; text-shadow: 0 1px 8px rgb(0 18 56 / 0.5);
+  animation: hero-in 1s ease 1.2s both;
+}
+.hero__cue::after {
+  content: ""; width: 1px; height: 2.5rem; transform-origin: top;
+  background: linear-gradient(#fff, rgb(255 255 255 / 0));
+  animation: cue 2.4s cubic-bezier(0.65, 0, 0.35, 1) 2s infinite;
+}
+@keyframes cue { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* where the camera is over the Earth, and how high (Tour.tsx writes it): white over the sky, ink over the light map */
+.hud {
+  position: absolute; z-index: 5; left: var(--gutter); bottom: clamp(1.1rem, 3.4cqh, 2rem); margin: 0;
+  pointer-events: none; white-space: pre;
+  font-size: 0.78rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+  color: #fff; text-shadow: 0 1px 8px rgb(0 18 56 / 0.6);
+  animation: hero-in 1s ease 1.2s both;
+}
+.hud[data-tone="ink"] { color: var(--ink); text-shadow: 0 0 8px rgb(255 255 255 / 0.9); }
+
+/* the sun's glare, as the clouds give way to the globe (Tour.tsx fades it): a bloom on the horizon and a streak
+   through it, as a lens draws them */
+.flare {  /* centred on the stage's top edge; Tour.tsx moves it down onto the horizon */
+  position: absolute; left: 0; right: 0; top: -50%; height: 100%; z-index: 2; pointer-events: none; opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse 36% 0.8% at 56% 50%, rgb(255 255 255 / 0.75), rgb(255 255 255 / 0)),
+    radial-gradient(ellipse 22% 5% at 56% 50%, rgb(255 250 236 / 0.85), rgb(255 250 236 / 0)),
+    radial-gradient(ellipse 80% 26% at 56% 50%, rgb(255 196 120 / 0.5), rgb(255 160 90 / 0.16) 50%, rgb(255 160 90 / 0) 100%);
+}
+/* film grain over the whole shot, still (a moving grain would cost a repaint every frame) */
+.stage::before {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.07;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 /* The intro is CSS, so it runs from the first paint rather than after the page's script has loaded. The title is the
    phone's LCP element (Chrome skips the full-screen poster), so its words come into focus instead of rising from behind
@@ -148,9 +188,9 @@ html:has(.gharaana), html:has(.gharaana) body {
 .wi { display: inline-block; }
 
 .search {
-  pointer-events: auto; margin-top: clamp(0.5rem, 2cqh, 1.5rem);
+  pointer-events: auto; margin-top: clamp(1.5rem, 4.4cqh, 2.75rem);
   display: flex; align-items: center; gap: 0.5rem;
-  width: min(100%, 46rem);
+  width: min(100%, 40rem);
   padding: 0.5rem; border-radius: 999px;
   background: rgb(255 255 255 / 0.95);
   box-shadow: 0 1px 0 rgb(255 255 255), 0 24px 56px -18px color-mix(in oklab, var(--blue) 55%, transparent);
@@ -244,10 +284,13 @@ html:has(.gharaana), html:has(.gharaana) body {
   .caps { width: calc(100% - 2 * var(--gutter) - 1.5rem); }
   .nav .btn--sm { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
   .nav__actions { gap: 0.35rem; }
+  .nav__mark { height: 1.85rem; }  /* room between the name and the buttons */
+  .hero__cue { left: auto; right: var(--gutter); translate: none; align-items: flex-end; }  /* clear of the readout */
   .sc-close::before { background: linear-gradient(0deg, color-mix(in oklab, var(--ink) 85%, transparent) 0%, color-mix(in oklab, var(--ink) 55%, transparent) 55%, transparent 90%); }
   .sc-close { align-items: flex-end; }
 }
 @media (max-aspect-ratio: 1/1) {
-  .hero--title { top: 16cqh; }  /* under the nav on phones */
+  .hero { justify-content: flex-start; padding-top: max(5.5rem, 15cqh); }  /* under the nav on phones */
+  .hero::before { background: linear-gradient(rgb(0 18 56 / 0.36), rgb(0 18 56 / 0.22) 45%, rgb(0 18 56 / 0) 70%); }
 }
 

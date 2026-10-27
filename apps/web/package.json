@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --env-file-if-exists=.env.local --test lib/*.test.ts",
+    "test": "node --env-file-if-exists=.env.local --test lib/*.test.ts components/tour/*.test.ts",
     "db:start": "node scripts/db.mjs start",
     "db:stop": "node scripts/db.mjs stop",
     "db:generate": "drizzle-kit generate",

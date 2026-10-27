@@ -3,7 +3,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as MapLibre } from "maplibre-gl";
 import { loadMapLibre, MAP_STYLE } from "@/lib/maplibre";
-import { PINS_AT, cameraAt } from "./config";
+import { PINS_AT, REF_H, cameraAt } from "./config";
 
 // NASA's Blue Marble (public domain) for the globe, to zoom 8; the vector map takes over beneath it from zoom 8 to 10.
 const EARTH = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
@@ -17,6 +17,7 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
     container: el,
     style: MAP_STYLE,
     ...cameraAt(0),
+    maxPitch: 85, // the clouds' horizon, low over the globe (config.ts skyFraming)
     interactive: false, // the page's scroll drives it; the pins stay clickable
     attributionControl: { compact: true },
     fadeDuration: 0,
@@ -77,13 +78,16 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
     });
   };
 
-  let last = -1;
+  let last = -1, lastFov = 0;
   return {
     /** Shows the map as it is at this tick. */
     set(tick: number) {
       if (tick === last) return;
       last = tick;
-      m.jumpTo(cameraAt(tick));
+      const { fov, ...view } = cameraAt(tick);
+      if (fov !== lastFov) m.setVerticalFieldOfView((lastFov = fov));
+      // the same view on any screen: the zooms are for one REF_H high
+      m.jumpTo({ ...view, zoom: view.zoom + Math.log2(el.clientHeight / REF_H) });
       const on = tick >= PINS_AT;
       if (on) place();
       el.classList.toggle("pins-on", on);
