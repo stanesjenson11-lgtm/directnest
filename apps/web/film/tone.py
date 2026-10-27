@@ -1,6 +1,6 @@
 """Writes, for every frame, whether the film is dark behind the nav logo, so the page can switch it to white there.
 
-  python apps/web/film/tone.py [--film earth]   (encode.py runs it too)
+  python apps/web/film/tone.py   (encode.py runs it too)
 
 ffmpeg averages the logo's patch of each rendered frame down to one grey pixel: one for the desktop film (the logo sits
 top-left of the full frame) and one for the phone cut (top-left of the centre 9:16 crop, after its cover crop on a phone).
@@ -10,14 +10,12 @@ import glob
 import json
 import os
 import subprocess
-import sys
 import tempfile
 
-FILM = sys.argv[sys.argv.index("--film") + 1] if "--film" in sys.argv else "villa"
-ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), f"gharaana-{FILM}")
+ROOT = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "gharaana-villa")
 # ponytail: the phone patch assumes the portrait cut at its centre; the villa's cut pans on the front (shots.CROP), where
 # the logo's tone is the same either way (dusk sky). Measure per frame if a pan ever crosses light and dark.
-FILM_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "components", "tour", {"villa": "film.json", "earth": "earth.json"}[FILM])
+FILM_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "components", "tour", "film.json")
 PATCH = {"desk": "crop=240:60:60:20", "phone": "crop=225:43:735:27"}  # x, y of the logo in the 1920x1080 frame
 
 
@@ -57,10 +55,8 @@ if __name__ == "__main__":
             last = next((p for d in dirs if os.path.exists(p := os.path.join(d, f"f{n:04d}.png"))), last)
             os.link(last, os.path.join(seq, f"{n:04d}.png"))
         film["logo"] = {k: tones(os.path.join(seq, "%04d.png"), c) for k, c in PATCH.items()}
-    # frame 1 is the hero (the film holds it under the title): white there, whatever the patch measures; a film that
-    # loops its opening under the title (earth.json loop) keeps it white for the whole loop, or it would blink each time round
-    hold = max(1, film.get("loop", [1, 2])[1] - 1)
-    film["logo"] = {k: "D" * hold + v[hold:] for k, v in film["logo"].items()}
+    # frame 1 is the hero (the film holds it under the title): white there, whatever the patch measures
+    film["logo"] = {k: "D" + v[1:] for k, v in film["logo"].items()}
     with open(FILM_JSON, "w", encoding="utf-8") as f:
         json.dump(film, f, separators=(",", ":"))
     for k, s in film["logo"].items():

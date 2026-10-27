@@ -65,51 +65,49 @@ html:has(.gharaana), html:has(.gharaana) body {
   position: sticky; top: 0;
   height: 100svh; overflow: clip; isolation: isolate;
   container-type: size;
-  /* Sky while the film's poster loads. */
-  background: linear-gradient(180deg, #a9c4e3 0%, #dbe7f3 52%, #f6f8fb 100%);
+  /* Space while the poster loads, and round the globe: a few stars over the night. */
+  background:
+    radial-gradient(1px 1px at 12% 22%, rgb(255 255 255 / 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 68% 14%, rgb(255 255 255 / 0.6) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 84% 62%, rgb(255 255 255 / 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 31% 78%, rgb(255 255 255 / 0.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 52% 41%, rgb(255 255 255 / 0.4) 50%, transparent 51%),
+    radial-gradient(120% 90% at 50% 120%, color-mix(in oklab, var(--blue) 28%, var(--night)) 0%, var(--night) 50%, #01040c 100%);
 }
 .scene { position: absolute; inset: 0; pointer-events: none; }
 .sc-close { visibility: hidden; z-index: 4; }
 
-/* The film: path-traced in Blender, scrubbed by scroll. Its poster shows until the video can play. */
+/* The clip (Higgsfield), scrubbed by scroll; its poster shows until it can play, and goes if there is no clip. */
 .film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
-.film--video { opacity: 0; }  /* over the poster once its first frame is in */
-.stage[data-world="ready"] .film--video { opacity: 1; }
+.film--video { opacity: 0; }  /* over the poster once its first frame is in (then Tour.tsx fades it into the map) */
+.stage[data-clip="ready"] .film--video { opacity: 1; }
+.stage[data-clip="failed"] .film { display: none; }
 .stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(130% 95% at 50% 45%, transparent 60%, color-mix(in oklab, var(--ink) 26%, transparent) 100%);
 }
 
-/* The film's labels: countries, cities, areas, the markers on the roofs (positioned every frame from the 3D camera). */
-.marks { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-.mark { position: absolute; left: 0; top: 0; opacity: 0; visibility: hidden; will-change: transform, opacity; color: #fff; }
-.mark__chip {
-  position: absolute; left: 0; top: 0; translate: -50% -50%; white-space: nowrap;
-  font-weight: 600; font-size: clamp(0.78rem, 1vw, 0.95rem); line-height: 1.2; letter-spacing: 0.16em; text-transform: uppercase;
-  padding: 0.45rem 0.85rem; border-radius: 6px;
-  background: color-mix(in oklab, var(--ink) 58%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--sun) 55%, transparent), 0 10px 24px -12px rgb(0 18 56 / 0.8);
-  text-shadow: 0 1px 6px rgb(0 18 56 / 0.6);
+/* The live map (map.ts) over the clip: Tour.tsx fades it in at the handoff. (.stage .map: MapLibre's own class would
+   make it position: relative.) */
+.stage .map { position: absolute; inset: 0; opacity: 0; background: transparent; }
+/* the homes' prices, as on /search: they rise in one after another once the map is close enough to read them */
+.hpin { display: block; text-decoration: none; z-index: 1; }  /* prices over the dots they sit among */
+.hpin span {
+  display: block; padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap;
+  font-size: 0.78rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.4; color: var(--ink);
+  background: #fff; border: 1px solid color-mix(in oklab, var(--ink) 14%, white);
+  box-shadow: 0 2px 6px -2px rgb(0 18 56 / 0.35);
+  opacity: 0; transform: translateY(8px) scale(0.92); transform-origin: 50% 100%;
+  transition: opacity 0.5s var(--ease-out), transform 0.6s var(--ease-out), background 0.2s var(--ease-out);
+  transition-delay: var(--d, 0ms);
 }
-.mark--geo .mark__chip { font-family: var(--font-serif); font-weight: 400; font-size: clamp(1rem, 1.6vw, 1.5rem); letter-spacing: 0.22em; }
-.mark--area .mark__chip { font-size: clamp(0.7rem, 0.9vw, 0.85rem); letter-spacing: 0.14em; }
-/* a city: a gold dot on the place, its name above it */
-.mark--city::before {
-  content: ""; position: absolute; width: 12px; height: 12px; left: -6px; top: -6px; border-radius: 50%;
-  background: var(--sun); box-shadow: 0 0 0 3px #fff, 0 0 0 10px color-mix(in oklab, var(--sun) 30%, transparent);
-}
-.mark--city .mark__chip { translate: -50% calc(-100% - 14px); }
-/* the markers and the amenities: white pills over the place */
-.mark--pin, .mark--place { color: var(--ink); }
-.mark--pin .mark__chip, .mark--place .mark__chip {
-  translate: -50% calc(-100% - 12px); letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 0.95rem;
-  display: flex; align-items: center; min-height: 44px; box-sizing: border-box; padding: 0.45rem 1rem; border-radius: 999px;
-  background: #fff; text-shadow: none; box-shadow: 0 12px 26px -10px color-mix(in oklab, var(--ink) 70%, transparent);
-}
-.mark--pin { pointer-events: auto; text-decoration: none; }
-.mark--pin .mark__chip { transition: background 0.2s var(--ease-out); }
-.mark--pin:hover .mark__chip { background: var(--sun); }
-.mark--pin .mark__chip::before { content: ""; width: 8px; height: 8px; margin-right: 0.5rem; border-radius: 50%; background: #e2a73a; }
+.hpin--dot { z-index: 0; }
+.hpin--dot span { width: 10px; height: 10px; padding: 0; box-sizing: border-box; border: 2px solid #fff; background: var(--sun); }
+.map.pins-on .hpin span { opacity: 1; transform: none; }
+.hpin:hover span { background: var(--sun); }
+/* ?handoff: the map alone, as the clip's end frame (HIGGSFIELD.md) */
+.tour[data-handoff] :is(.hero, .caps, .nav, .sc-close, .maplibregl-ctrl) { visibility: hidden; }
+.tour[data-handoff] .stage::after { display: none; }
 
 /* ============ Hero ============ */
 .hero {
@@ -211,18 +209,6 @@ html:has(.gharaana), html:has(.gharaana) body {
 .cap__title { margin: 0 0 0.6rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.9rem, 3.8vw, 3.4rem); line-height: 1.04; letter-spacing: -0.01em; text-wrap: balance; }
 .cap__line { margin: 0; max-width: 34ch; font-size: clamp(0.98rem, 1.25vw, 1.12rem); line-height: 1.5; }
 
-/* ============ The villa's card ============ */
-.villa {
-  position: absolute; z-index: 8; right: var(--gutter); top: 50%; translate: 0 -50%; visibility: hidden; opacity: 0;
-  box-sizing: border-box; width: min(22rem, calc(100% - 2 * var(--gutter))); padding: clamp(1.25rem, 2.4vw, 1.75rem);
-  border-radius: 12px; background: #fff; color: var(--ink); box-shadow: 0 40px 90px -35px rgb(0 18 56 / 0.7);
-}
-.villa__kind { margin: 0 0 0.35rem; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
-.villa__title { margin: 0 0 0.6rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(1.7rem, 2.6vw, 2.3rem); line-height: 1.05; }
-.villa__line { margin: 0 0 0.5rem; font-size: 1rem; line-height: 1.5; }
-.villa__note { margin: 0 0 1.1rem; font-size: 0.85rem; color: color-mix(in oklab, var(--ink) 72%, white); }
-.villa__cta { display: inline-block; text-decoration: none; }
-
 /* ============ Close ============ */
 .sc-close { display: flex; align-items: center; padding: clamp(5rem, 12cqh, 8rem) var(--gutter) clamp(2rem, 6cqh, 4rem); color: #fff; overflow: visible; isolation: isolate; }
 .sc-close::after { display: none; }
@@ -233,8 +219,6 @@ html:has(.gharaana), html:has(.gharaana) body {
 .close__panel { pointer-events: auto; width: min(36rem, 100%); }
 .close__title { margin: 0 0 1rem; font-family: var(--font-serif); font-weight: 400; font-size: clamp(2.6rem, 6vw, 5.5rem); line-height: 1; letter-spacing: -0.01em; }
 .close__line { display: block; white-space: nowrap; }
-.close__kinds { margin: 0 0 1rem; font-size: clamp(0.85rem, 1.1vw, 1rem); font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sun); }
-.close__kinds span { margin-inline: 0.5em; opacity: 0.6; }
 .close__text { margin: 0 0 1.75rem; max-width: 34ch; font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.55; color: color-mix(in oklab, #fff 90%, var(--blue)); }
 .find { display: flex; gap: 0.5rem; padding: 0.4rem; border-radius: 999px; background: rgb(255 255 255 / 0.96); }
 .find__field { flex: 1; min-width: 0; }
@@ -263,9 +247,6 @@ html:has(.gharaana), html:has(.gharaana) body {
   .nav__actions { gap: 0.35rem; }
   .sc-close::before { background: linear-gradient(0deg, color-mix(in oklab, var(--ink) 85%, transparent) 0%, color-mix(in oklab, var(--ink) 55%, transparent) 55%, transparent 90%); }
   .sc-close { align-items: flex-end; }
-  .villa { top: auto; bottom: clamp(1rem, 4cqh, 2rem); translate: none; }
-  .close__kinds { font-size: 0.78rem; letter-spacing: 0.1em; }
-  .close__kinds span { margin-inline: 0.3em; }
 }
 @media (max-aspect-ratio: 1/1) {
   .hero--title { top: 16cqh; }  /* under the nav on phones */

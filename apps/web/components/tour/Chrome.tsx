@@ -23,26 +23,13 @@ const TITLE = (
   </>
 );
 
-/** The title, set over the clouds of the film's first frame, as the reference film opens. */
+/** The title, set over the clip's first frame: the Earth from space. */
 export function HeroTitle() {
   return (
     <div className="hero hero--title" data-hero-title>
       <h1 className="hero__title">{TITLE}</h1>
       <p className="hero__sub">Homes from verified owners in Bengaluru. A person checks every listing.</p>
     </div>
-  );
-}
-
-/** The card beside the villa while the film holds on its front (the sketch's "select a property"). */
-export function VillaCard() {
-  return (
-    <aside className="villa" data-villa aria-label="The villa in the film">
-      <p className="villa__kind">Villa</p>
-      <h2 className="villa__title">Four bedrooms, two floors.</h2>
-      <p className="villa__line">Photos and video tours before you visit.</p>
-      <p className="villa__note">An illustrative home, not a listing.</p>
-      <a className="btn btn--sun villa__cta" href="/search?type=buy&amp;q=villa">Find villas</a>
-    </aside>
   );
 }
 
@@ -123,10 +110,9 @@ export function Close() {
     <div className="scene sc-close" data-scene="close">
       <div className="close__panel" data-close>
         <h2 className="close__title">
-          <span className="close__line">A higher way</span>
-          <span className="close__line">of living.</span>
+          <span className="close__line">Pick a pin.</span>
+          <span className="close__line">Come in.</span>
         </h2>
-        <p className="close__kinds">Villas <span aria-hidden="true">|</span> Apartments <span aria-hidden="true">|</span> Communities</p>
         <p className="close__text">Pick a home, then schedule a visit or chat with the owner. Sign in to see their number.</p>
         <form className="find" role="search" action="/search" method="get" id="book" aria-label="Find homes to visit">
           {!RENTALS && <input type="hidden" name="type" value="buy" />}
@@ -137,6 +123,7 @@ export function Close() {
           <button type="submit" className="btn btn--sun" data-magnet>Find homes to visit</button>
         </form>
         <ul className="close__links">
+          <li><a href="/search">See every home on the map</a></li>
           <li><a href="/sign-in?next=%2F">Sign in</a></li>
           <li><a href="/post">List your home</a></li>
         </ul>

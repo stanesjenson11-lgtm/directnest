@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CAPTIONS, CLOSE_AT, TOTAL, VILLA } from "./config";
+import { CAPTIONS, CLOSE_AT, TOTAL } from "./config";
 
 type Vars = gsap.TweenVars;
 
@@ -11,8 +11,8 @@ export type TourHooks = {
 
 const FADE = new Set(["opacity", "autoAlpha"]);
 
-/** The HTML layer over the film: hero, captions, the villa's card, close. The film itself is rendered from apps/web/film.
- *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the film follows too, so
+/** The HTML layer over the clip and the map: hero, captions, close.
+ *  The timeline is not scrubbed by the scroll: Tour.tsx seeks it to the tour's own tick, which the clip and the map follow too, so
  *  the two never drift apart. Tour.tsx imports this module (and GSAP with it) only after the page is up, so it never
  *  holds up the first paint. */
 export function buildTour(root: HTMLElement, o: TourHooks) {
@@ -54,7 +54,7 @@ function make(root: HTMLElement, o: TourHooks) {
     if (Object.keys(t.rest).length) tl.set(target, t.rest, at + dur);
   }
 
-  // the hero is gone by tick 4, while the film still holds on the clouds (earth.json map)
+  // the hero is gone by tick 4, while the clip still holds its first frame (config CLIP)
   fx("[data-hero-title], [data-hero]", { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -90 }, 0.4, 3.2, "power2.in");
 
   const cap = (id: string, inAt: number, outAt: number) => {
@@ -66,10 +66,7 @@ function make(root: HTMLElement, o: TourHooks) {
   };
   for (const [id, [inAt, outAt]] of Object.entries(CAPTIONS)) cap(id, inAt, outAt);
 
-  // the villa's card while the film holds on its front, then the way in
-  const [va, vb] = VILLA;
-  fx("[data-villa]", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0 }, va, 1.8, "power3.out");
-  fx("[data-villa]", { autoAlpha: 1 }, { autoAlpha: 0 }, vb, 1.2, "none", true);
+  // the way in, over the map and its homes
   fx(".sc-close", { autoAlpha: 0 }, { autoAlpha: 1 }, CLOSE_AT, 2);
   fx("[data-close] > *", { y: 36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.3 }, CLOSE_AT + 0.4, 1.6, "power3.out");
 

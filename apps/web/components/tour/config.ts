@@ -1,8 +1,27 @@
-// The tour is one master timeline measured in "ticks"; the film's own clock is film seconds, and earth.json's `map`
-// (from apps/web/film/earth_shots.py MAP) says which film second each tick shows. Flat stretches of the map hold the film
-// still while the page shows HTML over it. Before the first scroll the film loops its opening seconds (earth.json
-// `loop`): the clouds drift under the title.
+// The tour is one master timeline measured in "ticks" (the scroll, 0..TOTAL). It opens on the Higgsfield clip (public/tour
+// space.mp4, made as components/tour/HIGGSFIELD.md says): space, the Earth, down to south India. At the handoff the live
+// map takes over, framed as the clip ends, and flies on down into Bengaluru, where the homes are.
 export const TOTAL = 100;
+
+// How far through the clip each tick is (0..1 of its length, whatever it turns out to be).
+export const CLIP: [number, number][] = [[0, 0], [4, 0], [40, 1]];
+// The clip crossfades into the map over these ticks.
+export const HANDOFF: [number, number] = [40, 46];
+
+// The map's camera, eased between rows: tick, longitude, latitude, zoom, pitch, bearing. Before the handoff it only shows
+// when there is no clip: the globe from space, turning to India.
+export const CAMERA: [number, number, number, number, number, number][] = [
+  [0, 62, 16, 1.6, 0, 0],
+  [20, 70, 15, 2.4, 0, 0],
+  [40, 77.6, 13.0, 4.2, 0, 0], // the handoff: south India from orbit, north up (the clip's last frame)
+  [56, 77.6, 12.97, 8.6, 25, -6],
+  [70, 77.62, 12.96, 11.2, 48, -16],
+  [88, 77.64, 12.95, 12.3, 55, -26],
+  [100, 77.64, 12.95, 12.3, 55, -26],
+];
+// The homes' price pins come up once the map is close enough to read them; the nav turns ink once the map is light.
+export const PINS_AT = 66;
+export const LIGHT_AT = 52;
 
 export type Stop = {
   id: string;
@@ -11,41 +30,17 @@ export type Stop = {
   tone: "ink" | "paper"; // caption colour
 };
 
-// Each line names something the app really does (search, listing checks, filters, the map on every listing).
-// ponytail: no prices, stats or addresses; the city, the villa and the markers on it are an illustrative model.
+// Each line names something the app really does (search by map, listing checks, owners' own prices, no brokerage).
+// ponytail: no stats or invented prices; the prices on the map are the live listings' own.
 export const STOPS: Stop[] = [
-  { id: "earth", title: "From Earth to your next home.", line: "Search Bengaluru by area, metro station or project.", tone: "paper" },
-  { id: "city", title: "Bengaluru, area by area.", line: "Homes from verified owners. A person checks every listing.", tone: "paper" },
-  { id: "pins", title: "Every home on one map.", line: "Filter by BHK, parking and amenities.", tone: "paper" },
-  { id: "around", title: "And what’s around it.", line: "Each listing’s map shows the metro, schools and hospitals nearby.", tone: "paper" },
+  { id: "earth", title: "Start from anywhere.", line: "Owners list from across India and abroad. You search Bengaluru, street by street.", tone: "paper" },
+  { id: "city", title: "Bengaluru, from above.", line: "Homes from verified owners. A person checks every listing.", tone: "paper" },
+  { id: "pins", title: "Every pin is a home you can visit.", line: "The price is the owner’s own. No brokerage, ever.", tone: "ink" },
 ];
 
 // When each caption is on screen [in, out], in ticks.
-export const CAPTIONS: Record<string, [number, number]> = {
-  earth: [22, 33], city: [55, 63], pins: [66, 75.5], around: [88.5, 94.5],
-};
-
-// The villa's card while the film holds on its front, and the close, in ticks.
-export const VILLA: [number, number] = [83.5, 88];
-export const CLOSE_AT = 96;
-
-// The labels the film carries: where each sits on screen comes from the 3D camera, every frame (earth.json marks).
-// The markers on the roofs are "pin-<key>" (their kind, sale or rent, is earth.json pins).
-export const MARKS: { id: string; label: string; kind: "geo" | "city" | "area" | "place" }[] = [
-  { id: "india", label: "India", kind: "geo" },
-  { id: "karnataka", label: "Karnataka", kind: "geo" },
-  { id: "tamil-nadu", label: "Tamil Nadu", kind: "geo" },
-  { id: "bengaluru", label: "Bengaluru", kind: "city" },
-  { id: "mysuru", label: "Mysuru", kind: "city" },
-  { id: "city-bengaluru", label: "Bengaluru", kind: "city" },
-  { id: "yelahanka", label: "Yelahanka", kind: "area" },
-  { id: "whitefield", label: "Whitefield", kind: "area" },
-  { id: "sarjapur", label: "Sarjapur", kind: "area" },
-  { id: "electronic-city", label: "Electronic City", kind: "area" },
-  { id: "clubhouse", label: "Clubhouse and pool", kind: "place" },
-  { id: "park", label: "Park", kind: "place" },
-  { id: "lake", label: "Lake walk", kind: "place" },
-];
+export const CAPTIONS: Record<string, [number, number]> = { earth: [14, 34], city: [47, 58], pins: [70, 84] };
+export const CLOSE_AT = 90;
 
 /** Piecewise lookup in a [tick, value] table, eased between rows. */
 export function pw(table: [number, number][], t: number) {
@@ -60,7 +55,7 @@ export function pw(table: [number, number][], t: number) {
   return table[table.length - 1][1];
 }
 
-/** The same lookup, straight lines between rows (the tick -> film second map). */
+/** The same lookup, straight lines between rows. */
 export function lin(table: [number, number][], t: number) {
   if (t <= table[0][0]) return table[0][1];
   for (let i = 1; i < table.length; i++) {
@@ -70,4 +65,10 @@ export function lin(table: [number, number][], t: number) {
     }
   }
   return table[table.length - 1][1];
+}
+
+/** The map's camera at a tick. */
+export function cameraAt(t: number) {
+  const col = (i: number) => pw(CAMERA.map((r) => [r[0], r[i]] as [number, number]), t);
+  return { center: [col(1), col(2)] as [number, number], zoom: col(3), pitch: col(4), bearing: col(5) };
 }
