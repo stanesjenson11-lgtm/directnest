@@ -34,9 +34,9 @@ export default function Tour() {
     let dead = false, loaded = false, stopTour = () => {};
     let live: LiveMap | null = null, cl: Clouds | null = null;
 
-    // The clouds start at once: they are the first view (a small shader, nothing to download). The map and the HTML
-    // layer's timeline (with GSAP) come when the visitor first scrolls or touches the page, or 3 s after it has loaded:
-    // someone who leaves at once never pays for them.
+    // The clouds start at once: they are the first view. The map and the HTML layer's timeline (with GSAP) come once the
+    // page has loaded (or at the first scroll or touch, if sooner): the map then loads the whole flight under the clouds
+    // while the visitor reads the hero (map.ts WARM).
     if (!handoff) {
       import("./clouds").then(({ startClouds }) => {
         if (dead) return;
@@ -59,7 +59,7 @@ export default function Tour() {
     for (const e of WAKE) addEventListener(e, load, { passive: true });
     let idle = 0;
     if (scrollY > 2 || handoff) load(); // a reload mid-tour: the browser restored the scroll before these listeners were here
-    const later = () => { idle = window.setTimeout(load, 3000); };
+    const later = () => { idle = window.setTimeout(load, 300); };
     if (document.readyState === "complete") later();
     else addEventListener("load", later, { once: true });
 

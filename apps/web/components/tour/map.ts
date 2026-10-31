@@ -6,7 +6,12 @@ import { loadMapLibre, MAP_STYLE } from "@/lib/maplibre";
 import { PINS_AT, REF_H, cameraAt } from "./config";
 
 // NASA's Blue Marble (public domain) for the globe, to zoom 8; the vector map takes over beneath it from zoom 8 to 10.
-const EARTH = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
+// Served from public/earth: NASA's own server (GIBS) took ~3.7 s a tile and forbids caching. Only the tiles the flight
+// sees are there (SCRIPT.md); a missing one shows its parent, a little softer.
+const EARTH = "/earth/{z}/{y}/{x}.webp";
+// While the visitor reads the hero, the hidden map visits these ticks once, so the flight finds the Earth, the city's
+// streets and their labels' fonts already loaded.
+const WARM = [36, 54, 68, 82, 100];
 
 type Pin = { id: string; lat: number; lng: number; label: string };
 const SPACING = 0.014; // degrees of latitude (~1.5 km): a price chip's width at the tour's closest view
@@ -42,19 +47,28 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
     }
     m.addSource("earth", { type: "raster", tiles: [EARTH], tileSize: 256, minzoom: 1, maxzoom: 8, attribution: "Imagery: NASA" });
     m.addLayer({
-      id: "earth", type: "raster", source: "earth",
+      id: "earth", type: "raster", source: "earth", maxzoom: 10, // (gone by 10: no tiles asked for past it)
       paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 8, 1, 10, 0], "raster-fade-duration": 0 },
     });
     m.setSky({ "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 6, 1, 9, 0] });
     onReady();
+    // the warm-up stops as soon as the tour first shows the map (set)
+    const warm = (i: number) => {
+      if (last >= 0) return;
+      if (i === WARM.length) return m.jumpTo(view(0));
+      m.jumpTo(view(WARM[i]));
+      m.once("idle", () => warm(i + 1));
+    };
+    warm(0);
+    getPins();
   });
 
   // the pins go on when the map first gets close enough for them; their chips rise in one after another (tour.css)
   let pins: Promise<Pin[]> | null = null;
   let placed = false;
+  const getPins = (): Promise<Pin[]> => (pins ??=fetch("/api/pins").then((r) => (r.ok ? r.json() : [])).catch(() => []));
   const place = () => {
-    pins ??= fetch("/api/pins").then((r) => (r.ok ? r.json() : [])).catch(() => []);
-    pins.then((list) => {
+    getPins().then((list) => {
       if (placed) return;
       placed = true;
       // as on /search, prices that would sit on top of each other are dots: a home gets its price only when no home
@@ -79,15 +93,18 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
   };
 
   let last = -1, lastFov = 0;
+  /** The camera at a tick, for this screen (the zooms are for one REF_H high). */
+  function view(tick: number) {
+    const { fov, ...v } = cameraAt(tick);
+    if (fov !== lastFov) m.setVerticalFieldOfView((lastFov = fov));
+    return { ...v, zoom: v.zoom + Math.log2(el.clientHeight / REF_H) };
+  }
   return {
     /** Shows the map as it is at this tick. */
     set(tick: number) {
       if (tick === last) return;
       last = tick;
-      const { fov, ...view } = cameraAt(tick);
-      if (fov !== lastFov) m.setVerticalFieldOfView((lastFov = fov));
-      // the same view on any screen: the zooms are for one REF_H high
-      m.jumpTo({ ...view, zoom: view.zoom + Math.log2(el.clientHeight / REF_H) });
+      m.jumpTo(view(tick));
       const on = tick >= PINS_AT;
       if (on) place();
       el.classList.toggle("pins-on", on);
