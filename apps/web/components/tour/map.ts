@@ -79,7 +79,7 @@ export async function startMap(el: HTMLElement, onReady: () => void, onFail: () 
         if (chip) priced.push(p);
         const a = document.createElement("a");
         a.className = chip ? "hpin" : "hpin hpin--dot";
-        a.href = `/homes/${p.id}`;
+        a.href = `/search?home=${encodeURIComponent(p.id)}`; // the search map, this home picked out
         // out of the tab order: a keyboard gets "See every home on the map" instead of a few hundred stops
         a.tabIndex = -1;
         a.setAttribute("aria-hidden", "true");

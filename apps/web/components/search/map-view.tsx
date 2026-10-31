@@ -17,6 +17,7 @@ type Props = {
   area?: number[];
   bbox?: number[];
   centre?: [number, number]; // [lat, lng]
+  focusId?: string; // the camera starts on this home instead of fitting them all
   fitKey: string; // camera refits when this changes (a new place was searched)
   onMoved: (bbox: number[]) => void;
   drawing: boolean;
@@ -138,7 +139,12 @@ export function MapView(p: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const { area, bbox, cards, centre } = latest.current;
+    const { area, bbox, cards, centre, focusId } = latest.current;
+    const focus = cards.find((c) => c.id === focusId);
+    if (focus) {
+      m.jumpTo({ center: [focus.lng, focus.lat], zoom: 14 });
+      return;
+    }
     const ring = toRing(area);
     const points: [number, number][] = ring ?? (bbox ? [[bbox[0], bbox[1]], [bbox[2], bbox[3]]] : cards.map((c) => [c.lng, c.lat]));
     if (points.length > 1) {

@@ -23,21 +23,27 @@ export function SearchView({
   params: p,
   cards,
   centre,
+  home,
   sample,
 }: {
   params: SearchParams;
   cards: Card[];
   centre?: [number, number];
+  home?: string; // picked on the home page's map: selected, the map on it, and on phones the map shown
   sample: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "map">("list");
-  const [mapWanted, setMapWanted] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(home ?? null);
+  const [view, setView] = useState<"list" | "map">(home ? "map" : "list");
+  const [mapWanted, setMapWanted] = useState(!!home);
   const [drawing, setDrawing] = useState(false);
   const [follow, setFollow] = useState(true);
+
+  useEffect(() => {
+    if (home) document.getElementById(`tile-${home}`)?.scrollIntoView({ block: "center" });
+  }, [home]);
 
   // The map's JS (~250 KB) only loads on wide screens, or once a phone user opens the map.
   useEffect(() => {
@@ -144,6 +150,7 @@ export function SearchView({
               area={p.area}
               bbox={p.bbox}
               centre={centre}
+              focusId={home}
               fitKey={fitKey}
               onMoved={(bbox) => follow && !p.area && go({ bbox })}
               drawing={drawing}

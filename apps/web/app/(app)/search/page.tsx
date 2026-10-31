@@ -20,10 +20,13 @@ export default function SearchPage({ searchParams }: PageProps<"/search">) {
 }
 
 async function Results({ searchParams }: Pick<PageProps<"/search">, "searchParams">) {
-  const params = parseSearch(await searchParams);
+  const raw = await searchParams;
+  const params = parseSearch(raw);
   const cards = await searchCards(params);
   const centre = params.q ? Object.entries(LOCALITIES).find(([n]) => n.toLowerCase() === params.q!.toLowerCase())?.[1] : undefined;
-  return <SearchView params={params} cards={cards} centre={centre} sample={cards.some((c) => c.sample)} />;
+  // ?home=<id>: a pin picked on the home page's map; opens with that home selected, if it's in the results
+  const home = cards.find((c) => c.id === raw.home)?.id;
+  return <SearchView params={params} cards={cards} centre={centre} home={home} sample={cards.some((c) => c.sample)} />;
 }
 
 function SearchSkeleton() {
